@@ -16,6 +16,7 @@ import os
 import json
 import re
 import hashlib
+import sys
 from pathlib import Path
 from typing import List, Dict
 
@@ -24,6 +25,13 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     CharacterTextSplitter,
 )
+
+
+# Windows terminals may default to a legacy code page that cannot print the
+# progress messages used below. Keep preprocessing portable without changing
+# the encoding of the generated JSON artifacts.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 # ─────────────────────────────────────────────

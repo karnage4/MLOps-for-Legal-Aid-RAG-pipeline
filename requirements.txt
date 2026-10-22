@@ -2,6 +2,7 @@ streamlit
 sentence-transformers
 pinecone[grpc]
 langchain-text-splitters
+tiktoken
 huggingface-hub
 rank-bm25
 google-genai

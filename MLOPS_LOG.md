@@ -34,6 +34,7 @@ Add experiment tracking and GenAI tracing to the original Streamlit/Pinecone/Hug
 - Added offline evaluation-run logging for configuration parameters, faithfulness, relevancy, and latency.
 - Updated the Streamlit application to use the traced pipeline.
 - Ignored local MLflow state (`mlflow.db`, its SQLite journal files, and `mlruns/`) in Git.
+- Added the missing `tiktoken` preprocessing dependency and Windows UTF-8 console handling.
 
 ### Preserved from the NLP project
 
@@ -54,7 +55,8 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | 2026-10-22 | Original environment variable names | Passed | `.env.example` still contains only the original three RAG variables. |
 | 2026-10-22 | Credential-free MLflow smoke test | Passed | MLflow 3.17.1 recorded run `3b2ce216871d42278f1c2542ff5c71d4` and trace `tr-733a80cdd7ad53af15152a1874324bea`; readback confirmed the CHAIN, RETRIEVER, and LLM spans. |
 | 2026-10-22 | MLflow UI and tracking API | Passed | Local UI returned HTTP 200; its API returned experiment `legal-aid-rag` and the finished smoke run with `integration_ok = 1.0`. Team browser inspection confirmed the session and evaluation run are visible. |
-| 2026-10-22 | Full Pinecone + Hugging Face traced query | Blocked | Prerequisite audit found no `.env`, no `output/bm25_corpus.json`, and no local source corpus in either working copy or baseline. Required packages are installed and MLflow remains healthy. |
+| 2026-10-23 | Corpus regeneration and validation | Passed | Loaded 46 of 50 supplied files and generated 3,593 unique recursive chunks. `bm25_corpus.json` matches `chunks_recursive.json`, with non-empty texts of 30-600 characters. Four PDFs were skipped because they contained fewer than 50 extractable characters. |
+| 2026-10-23 | Full Pinecone + Hugging Face traced query | Blocked | `.env`, Hugging Face authentication, and BM25 data are ready. The configured Pinecone index `legal-inheritance-rag` does not exist; the only available index is incompatible (`rag-fixed-chunks`, 2,394 vectors). |
 | 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
 
 ## Phase 1 manual test plan
@@ -157,7 +159,7 @@ Record the result:
 
 | Date/time | Tester | Query | Result | Trace ID | Retrieval mode | Model used | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-22 | Codex (prerequisite audit) | Not run | Blocked | Not created | Not run | Not run | `.env`, `output/bm25_corpus.json`, and a local source corpus are absent from both the integration folder and read-only baseline. Add the two query-time keys and the previously generated BM25 file before retrying. |
+| 2026-10-23 | Codex (prerequisite + data audit) | Not run | Blocked | Not created | Not run | Not run | Keys are set without being exposed, Hugging Face authentication passed, and 3,593 BM25 entries were validated. Pinecone returned `404 NOT_FOUND` for `legal-inheritance-rag`; creating and populating that remote index requires team approval. |
 
 ### Test E — log offline evaluation runs
 
@@ -202,3 +204,4 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | 2026-10-22 | `1-mlflow-integration` | Verified the MLflow UI server and tracking API; browser inspection remains pending. |
 | 2026-10-22 | `1-mlflow-integration` | Team confirmed the session and evaluation run in the MLflow UI; Test C passed. |
 | 2026-10-22 | `1-mlflow-integration` | Test D prerequisite audit completed; real-query verification is blocked by missing local keys and corpus artifacts. |
+| 2026-10-23 | `1-mlflow-integration` | Regenerated and validated 3,593 BM25 entries; added missing tokenizer dependency and Windows UTF-8 handling. Test D is now blocked only by the absent configured Pinecone index. |
