@@ -9,6 +9,7 @@ docs
 evaluation_results.json
 ablation_results.json
 mlflow.db
+mlflow.db-*
 mlruns/
 
 # Byte-compiled / optimized / DLL files

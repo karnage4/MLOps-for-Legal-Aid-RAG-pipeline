@@ -14,7 +14,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | MLflow integration | `1-mlflow-integration` | Complete | Pending | In testing |
+| 1 | MLflow integration | `1-mlflow-integration` | Complete | 1 of 4 feature tests passed | In testing |
 | 2 | To be selected after Phase 1 | Not created | Not started | Not started | Blocked by Phase 1 acceptance |
 
 ## Phase 1 — MLflow integration
@@ -33,7 +33,7 @@ Add experiment tracking and GenAI tracing to the original Streamlit/Pinecone/Hug
 - Added an `LLM` span around Hugging Face generation while excluding `HF_API_TOKEN`.
 - Added offline evaluation-run logging for configuration parameters, faithfulness, relevancy, and latency.
 - Updated the Streamlit application to use the traced pipeline.
-- Ignored local MLflow state (`mlflow.db` and `mlruns/`) in Git.
+- Ignored local MLflow state (`mlflow.db`, its SQLite journal files, and `mlruns/`) in Git.
 
 ### Preserved from the NLP project
 
@@ -52,7 +52,7 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | 2026-10-22 | Python bytecode compilation for `app.py` and `src/` | Passed | All changed modules produced compiled bytecode. |
 | 2026-10-22 | Credential-shaped secret scan | Passed | No token-shaped values found in the working copy. |
 | 2026-10-22 | Original environment variable names | Passed | `.env.example` still contains only the original three RAG variables. |
-| 2026-10-22 | Credential-free MLflow smoke test | Pending | First local SQLite initialization exceeded the automated 60-second verification window before returning a trace ID. Run the manual test below without that agent time limit. |
+| 2026-10-22 | Credential-free MLflow smoke test | Passed | MLflow 3.17.1 recorded run `3b2ce216871d42278f1c2542ff5c71d4` and trace `tr-733a80cdd7ad53af15152a1874324bea`; readback confirmed the CHAIN, RETRIEVER, and LLM spans. |
 | 2026-10-22 | Full Pinecone + Hugging Face traced query | Pending | Requires the original corpus artifacts, Pinecone index, and keys. |
 | 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
 
@@ -101,7 +101,7 @@ Record the result here immediately after testing:
 
 | Date/time | Tester | Result | Run ID | Trace ID | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Pending | Pending | Pending | Pending | Pending | Pending |
+| 2026-10-22 21:59 PKT | Codex (automated) | Passed | `3b2ce216871d42278f1c2542ff5c71d4` | `tr-733a80cdd7ad53af15152a1874324bea` | MLflow 3.17.1 on Python 3.14.3. The first database initialization was interrupted by the verification timeout; the generated test-only database was recreated cleanly, then run and trace readback passed in 13 seconds. |
 
 ### Test C — inspect the MLflow UI
 
@@ -191,3 +191,4 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | Date | Branch | Change |
 | --- | --- | --- |
 | 2026-10-22 | `1-mlflow-integration` | Created the phase log and recorded implementation plus pending manual tests. |
+| 2026-10-22 | `1-mlflow-integration` | Passed the credential-free smoke test and recorded its run ID, trace ID, and verified spans. |
