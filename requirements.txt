@@ -1,0 +1,12 @@
+streamlit
+sentence-transformers
+pinecone[grpc]
+langchain-text-splitters
+huggingface-hub
+rank-bm25
+google-genai
+requests
+pypdf
+python-dotenv
+nltk
+mlflow>=3.8,<4
