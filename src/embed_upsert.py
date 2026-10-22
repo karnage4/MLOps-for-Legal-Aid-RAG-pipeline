@@ -18,6 +18,7 @@ import os
 import json
 import time
 import math
+import sys
 from pathlib import Path
 from typing import List, Dict
 
@@ -28,6 +29,9 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 
 load_dotenv()
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # ─────────────────────────────────────────────
 # CONFIG

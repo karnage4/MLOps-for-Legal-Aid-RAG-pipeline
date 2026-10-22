@@ -1,10 +1,11 @@
 streamlit
 sentence-transformers
-pinecone[grpc]
+pinecone
 langchain-text-splitters
 tiktoken
 huggingface-hub
 rank-bm25
+tqdm
 google-genai
 requests
 pypdf

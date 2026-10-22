@@ -56,7 +56,9 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | 2026-10-22 | Credential-free MLflow smoke test | Passed | MLflow 3.17.1 recorded run `3b2ce216871d42278f1c2542ff5c71d4` and trace `tr-733a80cdd7ad53af15152a1874324bea`; readback confirmed the CHAIN, RETRIEVER, and LLM spans. |
 | 2026-10-22 | MLflow UI and tracking API | Passed | Local UI returned HTTP 200; its API returned experiment `legal-aid-rag` and the finished smoke run with `integration_ok = 1.0`. Team browser inspection confirmed the session and evaluation run are visible. |
 | 2026-10-23 | Corpus regeneration and validation | Passed | Loaded 46 of 50 supplied files and generated 3,593 unique recursive chunks. `bm25_corpus.json` matches `chunks_recursive.json`, with non-empty texts of 30-600 characters. Four PDFs were skipped because they contained fewer than 50 extractable characters. |
-| 2026-10-23 | Full Pinecone + Hugging Face traced query | Blocked | `.env`, Hugging Face authentication, and BM25 data are ready. The configured Pinecone index `legal-inheritance-rag` does not exist; the only available index is incompatible (`rag-fixed-chunks`, 2,394 vectors). |
+| 2026-10-23 | Python 3.12 environment | Passed | Created an ignored project-local Python 3.12.13 environment; PyTorch 2.14.1 CPU and Sentence Transformers 6.2.0 import successfully. |
+| 2026-10-23 | Pinecone embedding and upsert | Passed | Created the approved 384-dimensional cosine index `legal-inheritance-rag`, uploaded all 3,593 vectors, and passed a three-result semantic sanity query. The pre-existing `rag-fixed-chunks` index was not changed. |
+| 2026-10-23 | Full Pinecone + Hugging Face traced query | Blocked | Hybrid retrieval and reranking reached generation. Hugging Face returned HTTP 402 for the primary model because the account has no remaining provider credits; the fallback model is not supported by an enabled provider. MLflow flushed the failed-attempt trace. |
 | 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
 
 ## Phase 1 manual test plan
@@ -145,6 +147,12 @@ Start the app:
 streamlit run app.py
 ```
 
+For a repeatable command-line trace check, run:
+
+```bash
+python -m src.mlflow_rag_smoke_test
+```
+
 Submit one legal question, then inspect the newest MLflow trace.
 
 Pass conditions:
@@ -159,7 +167,7 @@ Record the result:
 
 | Date/time | Tester | Query | Result | Trace ID | Retrieval mode | Model used | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-23 | Codex (prerequisite + data audit) | Not run | Blocked | Not created | Not run | Not run | Keys are set without being exposed, Hugging Face authentication passed, and 3,593 BM25 entries were validated. Pinecone returned `404 NOT_FOUND` for `legal-inheritance-rag`; creating and populating that remote index requires team approval. |
+| 2026-10-23 | Codex (automated) | What share does a daughter receive in Islamic inheritance? | Blocked at generation | Failed attempt was flushed; rerun required to capture verified ID | Hybrid + reranking | None | Retrieval reached Hugging Face after the 3,593-vector Pinecone index was built. Primary returned HTTP 402 due to exhausted credits; fallback was unsupported. No secret value was printed or committed. |
 
 ### Test E — log offline evaluation runs
 
@@ -205,3 +213,4 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | 2026-10-22 | `1-mlflow-integration` | Team confirmed the session and evaluation run in the MLflow UI; Test C passed. |
 | 2026-10-22 | `1-mlflow-integration` | Test D prerequisite audit completed; real-query verification is blocked by missing local keys and corpus artifacts. |
 | 2026-10-23 | `1-mlflow-integration` | Regenerated and validated 3,593 BM25 entries; added missing tokenizer dependency and Windows UTF-8 handling. Test D is now blocked only by the absent configured Pinecone index. |
+| 2026-10-23 | `1-mlflow-integration` | Created and validated `legal-inheritance-rag` with 3,593 vectors. Real-query generation is blocked by Hugging Face credit/model availability. |
