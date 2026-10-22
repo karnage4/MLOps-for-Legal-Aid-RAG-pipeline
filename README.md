@@ -66,6 +66,8 @@ The resultant interface is designed to migrate beyond local boundaries and is ac
 
 This working copy keeps the original RAG architecture, models, API providers, and required environment variables unchanged. The only required dependency added in this phase is MLflow. If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
 
+Testing status, evidence, and the handoff rules for later features are maintained in [`MLOPS_LOG.md`](MLOPS_LOG.md). Update that file immediately after each manual test and before opening the next feature branch.
+
 The integration records:
 
 - a root `legal_aid_rag_query` CHAIN span for each Streamlit question;
