@@ -54,7 +54,7 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | 2026-10-22 | Original environment variable names | Passed | `.env.example` still contains only the original three RAG variables. |
 | 2026-10-22 | Credential-free MLflow smoke test | Passed | MLflow 3.17.1 recorded run `3b2ce216871d42278f1c2542ff5c71d4` and trace `tr-733a80cdd7ad53af15152a1874324bea`; readback confirmed the CHAIN, RETRIEVER, and LLM spans. |
 | 2026-10-22 | MLflow UI and tracking API | Passed | Local UI returned HTTP 200; its API returned experiment `legal-aid-rag` and the finished smoke run with `integration_ok = 1.0`. Team browser inspection confirmed the session and evaluation run are visible. |
-| 2026-10-22 | Full Pinecone + Hugging Face traced query | Pending | Requires the original corpus artifacts, Pinecone index, and keys. |
+| 2026-10-22 | Full Pinecone + Hugging Face traced query | Blocked | Prerequisite audit found no `.env`, no `output/bm25_corpus.json`, and no local source corpus in either working copy or baseline. Required packages are installed and MLflow remains healthy. |
 | 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
 
 ## Phase 1 manual test plan
@@ -131,7 +131,7 @@ Current result:
 
 Required before this test:
 
-- a `.env` file containing valid `PINECONE_API_KEY`, `HF_API_TOKEN`, and `GROQ_API_KEY` values;
+- a `.env` file containing valid `PINECONE_API_KEY` and `HF_API_TOKEN` values (`GROQ_API_KEY` is needed for Test E, not this test);
 - the populated Pinecone index named `legal-inheritance-rag`;
 - the same embedding model used for that index (`all-MiniLM-L6-v2`);
 - `output/bm25_corpus.json` produced by `python src/preprocess.py`;
@@ -157,7 +157,7 @@ Record the result:
 
 | Date/time | Tester | Query | Result | Trace ID | Retrieval mode | Model used | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Pending | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
+| 2026-10-22 | Codex (prerequisite audit) | Not run | Blocked | Not created | Not run | Not run | `.env`, `output/bm25_corpus.json`, and a local source corpus are absent from both the integration folder and read-only baseline. Add the two query-time keys and the previously generated BM25 file before retrying. |
 
 ### Test E — log offline evaluation runs
 
@@ -201,3 +201,4 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | 2026-10-22 | `1-mlflow-integration` | Passed the credential-free smoke test and recorded its run ID, trace ID, and verified spans. |
 | 2026-10-22 | `1-mlflow-integration` | Verified the MLflow UI server and tracking API; browser inspection remains pending. |
 | 2026-10-22 | `1-mlflow-integration` | Team confirmed the session and evaluation run in the MLflow UI; Test C passed. |
+| 2026-10-22 | `1-mlflow-integration` | Test D prerequisite audit completed; real-query verification is blocked by missing local keys and corpus artifacts. |
