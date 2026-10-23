@@ -44,6 +44,7 @@ def log_evaluation_summary(
     run_name: str,
     params: Mapping[str, Any],
     summary: Mapping[str, Any],
+    tags: Mapping[str, Any] | None = None,
 ) -> str:
     """Log one offline evaluation/ablation configuration as an MLflow run."""
     configure_mlflow()
@@ -54,6 +55,10 @@ def log_evaluation_summary(
         "relevancy_std",
         "avg_retrieval_ms",
         "avg_generation_ms",
+        "avg_total_ms",
+        "successful_queries",
+        "failed_queries",
+        "success_rate",
     )
     metrics = {
         key: float(summary[key])
@@ -63,5 +68,19 @@ def log_evaluation_summary(
     with mlflow.start_run(run_name=run_name) as run:
         mlflow.log_params(dict(params))
         mlflow.log_metrics(metrics)
-        mlflow.set_tags({"pipeline": "legal-aid-rag", "stage": "offline-evaluation"})
+        mlflow.set_tags(
+            {
+                "pipeline": "legal-aid-rag",
+                "stage": "offline-evaluation",
+                **dict(tags or {}),
+            }
+        )
         return run.info.run_id
+
+
+def mark_best_evaluation_run(run_id: str, selection_reason: str) -> None:
+    """Mark exactly one completed evaluation run as the selected best run."""
+    configure_mlflow()
+    client = mlflow.MlflowClient()
+    client.set_tag(run_id, "evaluation.best_run", "true")
+    client.set_tag(run_id, "evaluation.selection_reason", selection_reason)

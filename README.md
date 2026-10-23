@@ -9,8 +9,8 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/preprocess.py`: Extracts and recursively chunks raw legal documents from PDF formats.
 - `src/embed_upsert.py`: Processes continuous text chunks into dense mathematical vectors locally using Sentence Transformers and upserts them to a remote Pinecone Serverless matrix.
 - `src/retrieval.py`: Houses the mathematical logic for querying. It executes parallel sparse (BM25) and dense (Pinecone) queries, merging their outputs systematically via Reciprocal Rank Fusion (RRF). 
-- `src/generation.py`: Dispatches retrieved context arrays securely to the Hugging Face Inference API for strict logical generation using Qwen models.
-- `src/evaluation.py`: An autonomous testing suite that verifies Faithfulness and Relevancy algorithmically via the unmetered Groq Llama-3.1 API.
+- `src/generation.py`: Sends retrieved context to Hugging Face first and cleanly falls back to the configured Groq Qwen model when Hugging Face is unavailable.
+- `src/evaluation.py`: Runs reproducible RAG experiments and measures faithfulness and relevancy with a configurable Groq judge.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 
 ## Setup and Dependencies
@@ -19,7 +19,7 @@ To execute the data injection and compilation stages locally, you must provide e
 
 1. Clone the repository and navigate into the root directory.
 2. Create a `.env` file containing the following access keys:
-   - `HF_TOKEN=your_huggingface_token`
+   - `HF_API_TOKEN=your_huggingface_token`
    - `PINECONE_API_KEY=your_pinecone_key`
    - `GROQ_API_KEY=your_groq_key`
 
@@ -35,7 +35,7 @@ Note: The `requirements.txt` includes advanced dependencies natively required fo
 The pipeline must be engaged consecutively to ensure structural integrity across the Vector DB and local sparse matrices before opening the application loop.
 
 1. **Preprocessing Phase**:
-   Combiles raw input structures.
+   Combines and validates raw input documents, then creates the local chunk and BM25 artifacts.
    ```bash
    python3 src/preprocess.py
    ```
@@ -54,13 +54,29 @@ The pipeline must be engaged consecutively to ensure structural integrity across
 
 ## Evaluation and Validation
 
-The implementation was systematically benchmarked using `src/evaluation.py`. The evaluation isolated varying configurations (fixed vs. recursive chunking, semantic-only vs. hybrid retrieval) verifying their latency properties and synthetic metrics natively. 
+The project evaluates three reproducible configurations over the same query set: semantic retrieval with five chunks, hybrid retrieval with three reranked chunks, and hybrid retrieval with five reranked chunks. `src/evaluation.py` aggregates faithfulness, relevancy, success rate, and latency metrics, logs every configuration to MLflow, and selects the best run by mean faithfulness, then mean relevancy, then lower total latency.
 
-The evaluation framework automatically aggregates these properties into statistical tables mapping Faithfulness (claims supported by source documents) and Relevancy (cosine stability against generated inverse questions) specifically using the Llama-3.1-8B model natively on Groq processors.
+The Groq judge model is configured through `GROQ_JUDGE_MODEL` and defaults to the currently verified `openai/gpt-oss-20b`, keeping judge quota separate from the Qwen generation fallback. `EVALUATION_QUERY_LIMIT` controls the common evaluation-set size and defaults to three queries; `EVALUATION_COOLDOWN_SECONDS` defaults to five seconds between queries.
+
+### Verified experiment results (2026-10-23)
+
+All three configurations evaluated the same three held-out questions with no failed queries. The compact, reviewable result is stored in [`artifacts/rag_evaluation_summary.json`](artifacts/rag_evaluation_summary.json).
+
+| Configuration | Retrieval | Top K | Mean faithfulness | Mean relevancy | Mean total latency | MLflow run ID |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| A | Semantic only | 5 | 0.9667 | 0.7435 | 13,778.3 ms | `fad0d83034144ec6b225b75d5317ebaa` |
+| B | Hybrid + reranking | 3 | 0.9000 | 0.7481 | 7,893.3 ms | `15fd491ef5d54a16af4794a1067bc100` |
+| C | Hybrid + reranking | 5 | **0.9762** | **0.7831** | 8,226.3 ms | `f9787d3e95a646baa707770c2754a17a` |
+
+Configuration C is the selected best run because it has the highest mean faithfulness; it also has the highest mean relevancy. The deterministic selection rule compares mean faithfulness first, then mean relevancy, then lower mean total latency. MLflow tags this run with `evaluation.best_run=true`.
+
+### Training exemption for this RAG project
+
+This project does not perform task-specific supervised model training. It uses pretrained embedding, reranking, and generation models, so the traditional training requirement is exempted. Its reproducible modeling workflow consists of corpus preparation, embedding/index construction, retrieval configuration, held-out RAG evaluation, experiment tracking, and clearly named evaluation artifacts.
 
 ## Deployment Notes
 
-The resultant interface is designed to migrate beyond local boundaries and is actively configured sequentially for Hugging Face Spaces. Using the provided `Dockerfile`, the Streamlit application containerizes efficiently, circumventing rigid SDK requirements. The interface automatically pulls variables continuously, operating directly under the mapped 7860 network port.
+The repository retains its Docker configuration, but Hugging Face Space deployment is intentionally deferred until the milestone's local pipeline, API, and tests are complete.
 
 ## MLflow Integration — Phase 1
 
@@ -116,6 +132,10 @@ HF_API_TOKEN=your_huggingface_token
 GROQ_API_KEY=your_groq_key
 GROQ_MODEL=qwen/qwen3.8-27b
 GROQ_MAX_ATTEMPTS=3
+GROQ_JUDGE_MODEL=openai/gpt-oss-20b
+GROQ_JUDGE_REASONING_EFFORT=low
+EVALUATION_QUERY_LIMIT=3
+EVALUATION_COOLDOWN_SECONDS=5
 ```
 
 Keep the original `output/bm25_corpus.json` and Pinecone index available, then start:
@@ -137,10 +157,10 @@ Submit one question and refresh the MLflow Traces tab. The query should appear a
 After the original corpus, Pinecone index, and provider keys are available:
 
 ```bash
-python src/evaluation.py
+python -m src.evaluation
 ```
 
-Each evaluated chunking/retrieval configuration is logged as a separate MLflow run with its parameters and aggregate faithfulness, relevancy, and latency metrics.
+The command logs the three configurations shown above. A passing suite reports `3/3` successful queries for each run, writes `artifacts/rag_evaluation_summary.json`, and tags the selected run with `evaluation.best_run=true`.
 
 ### Optional shared tracking server
 

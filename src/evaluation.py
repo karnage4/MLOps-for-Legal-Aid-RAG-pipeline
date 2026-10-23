@@ -10,17 +10,17 @@ Implements the two evaluation metrics required by the assignment:
                   with original query
                   Score = mean similarity of 3 generated questions
 
-Also runs the full ablation study across:
-  - Chunking strategies  (fixed vs recursive)
+Also runs comparable experiments across:
   - Retrieval modes      (semantic-only vs hybrid + re-ranking)
+  - Retrieved context    (top-3 vs top-5)
 
 Outputs:
-  ./output/evaluation_results.json   — per-query scores
-  ./output/ablation_table.json       — ablation study summary
+  ./output/rag_evaluation_details.json       — ignored per-query details
+  ./artifacts/rag_evaluation_summary.json    — reviewable run summary
 
 Usage:
   pip install requests sentence-transformers numpy
-  python evaluation.py
+  python -m src.evaluation
 """
 
 import os
@@ -29,7 +29,6 @@ import time
 import re
 import numpy as np
 import requests
-import json
 from typing import List, Dict, Optional, Tuple
 
 from sentence_transformers import SentenceTransformer
@@ -37,9 +36,9 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
 try:
-    from src.mlflow_config import log_evaluation_summary
+    from src.mlflow_config import log_evaluation_summary, mark_best_evaluation_run
 except ImportError:  # supports `python src/evaluation.py`
-    from mlflow_config import log_evaluation_summary
+    from mlflow_config import log_evaluation_summary, mark_best_evaluation_run
 
 load_dotenv()
 
@@ -53,13 +52,24 @@ if HF_API_TOKEN:
 
 GROQ_API_KEY        = os.getenv("GROQ_API_KEY")
 
-# Groq model for ultra-fast, unmetered evaluation
-JUDGE_MODEL         = "llama-3.1-8b-instant"
+# Keep the judge independently configurable while defaulting to the same active
+# Groq model verified by the generation fallback.
+JUDGE_MODEL         = os.getenv(
+    "GROQ_JUDGE_MODEL",
+    "openai/gpt-oss-20b",
+)
+JUDGE_REASONING_EFFORT = os.getenv("GROQ_JUDGE_REASONING_EFFORT", "low")
 
 
 SIMILARITY_MODEL    = "all-MiniLM-L6-v2"   # same model used in retrieval
 
 OUTPUT_DIR          = "./output"
+ARTIFACT_DIR        = "./artifacts"
+EVALUATION_QUERY_LIMIT = max(1, int(os.getenv("EVALUATION_QUERY_LIMIT", "3")))
+EVALUATION_COOLDOWN_SECONDS = max(
+    0.0,
+    float(os.getenv("EVALUATION_COOLDOWN_SECONDS", "5")),
+)
 
 # Test set — 15 queries covering key inheritance law topics
 # Replace / extend with queries relevant to YOUR corpus
@@ -87,10 +97,10 @@ TEST_QUERIES = [
 # 1.  LLM JUDGE HELPER
 # ─────────────────────────────────────────────
 
-def call_judge(prompt: str, max_tokens: int = 512, max_retries: int = 4) -> str:
+def call_judge(prompt: str, max_tokens: int = 1200, max_retries: int = 4) -> str:
     """
     Call the LLM judge with a prompt. Returns the raw generated text.
-    Uses Groq API for blazing-fast inference using Llama 3.
+    Uses the configured Groq judge model and retries transient failures.
     """
     if not GROQ_API_KEY:
         print("    Judge error: GROQ_API_KEY not set in .env")
@@ -105,10 +115,11 @@ def call_judge(prompt: str, max_tokens: int = 512, max_retries: int = 4) -> str:
         "model": JUDGE_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
-        "max_tokens": max_tokens,
+        "max_completion_tokens": max_tokens,
+        "reasoning_effort": JUDGE_REASONING_EFFORT,
     }
 
-    for attempt in range(max_retries):
+    for attempt in range(1, max_retries + 1):
         try:
             response = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -121,20 +132,51 @@ def call_judge(prompt: str, max_tokens: int = 512, max_retries: int = 4) -> str:
             text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
             if text:
                 return text
-        except Exception as e:
-            error_msg = str(e)
-            if "429" in error_msg:
-                wait_time = 10 * (attempt + 1)
-                print(f"    [Groq Rate Limit] Sleeping for {wait_time}s before retry {attempt + 1}/{max_retries}...")
-                time.sleep(wait_time)
-                continue
-            else:
-                print(f"    Judge error on Groq: {e}")
-                if hasattr(e, "response") and hasattr(e.response, "text"):
-                     print(f"    Groq Details: {e.response.text}")
+            print("    Judge returned an empty response.")
+            if attempt < max_retries:
+                time.sleep(min(float(2 ** (attempt - 1)), 5.0))
+        except requests.RequestException as error:
+            status_code = (
+                error.response.status_code if error.response is not None else None
+            )
+            retryable = status_code == 429 or (
+                status_code is not None and status_code >= 500
+            ) or status_code is None
+            if not retryable or attempt >= max_retries:
+                print(f"    Judge error on Groq: {error}")
                 break
 
+            wait_time = _provider_retry_delay(error, attempt)
+            print(
+                f"    Judge retry after {status_code or 'network error'} "
+                f"({attempt}/{max_retries}) in {wait_time}s..."
+            )
+            time.sleep(wait_time)
+
     return ""
+
+
+def _provider_retry_delay(error: requests.RequestException, attempt: int) -> float:
+    """Honor Groq retry timing when available, with a bounded fallback delay."""
+    fallback = float(2 ** (attempt - 1))
+    if error.response is None:
+        return fallback
+
+    retry_after = error.response.headers.get("retry-after")
+    if retry_after:
+        try:
+            return min(60.0, max(fallback, float(retry_after)))
+        except ValueError:
+            pass
+
+    match = re.search(
+        r"try again in\s+([0-9.]+)s",
+        error.response.text or "",
+        flags=re.IGNORECASE,
+    )
+    if match:
+        return min(60.0, max(fallback, float(match.group(1))))
+    return fallback
 
 
 # ─────────────────────────────────────────────
@@ -153,23 +195,26 @@ Numbered list of claims:"""
 
 
 CLAIM_VERIFICATION_PROMPT = """You are a strict legal fact-checker.
-Determine whether the following claim is fully supported by the provided context.
+Determine whether each numbered claim is fully supported by the provided context.
 
 Context:
 {context}
 
-Claim: {claim}
+Claims:
+{claims}
 
-Reply with ONLY one word: SUPPORTED or NOT_SUPPORTED"""
+Return exactly one numbered verdict per claim using this format:
+1. SUPPORTED
+2. NOT_SUPPORTED
+
+Do not add explanations or omit any claim."""
 
 
 def extract_claims(answer: str) -> List[str]:
     """Ask the LLM to extract atomic factual claims from the answer."""
     prompt   = CLAIM_EXTRACTION_PROMPT.format(answer=answer)
-    response = call_judge(prompt, max_tokens=300)
+    response = call_judge(prompt, max_tokens=1200)
     
-    print(f"\n  [DEBUG] Judge Model (Claim Extraction) Response:\n{response}\n")
-
     claims = []
     for line in response.splitlines():
         line = line.strip()
@@ -183,11 +228,35 @@ def extract_claims(answer: str) -> List[str]:
     return claims
 
 
-def verify_claim(claim: str, context: str) -> bool:
-    """Ask the LLM judge whether a single claim is supported by the context."""
-    prompt   = CLAIM_VERIFICATION_PROMPT.format(context=context[:3000], claim=claim)
-    response = call_judge(prompt, max_tokens=10)
-    return "SUPPORTED" in response.upper() and "NOT_SUPPORTED" not in response.upper()
+def verify_claims(claims: List[str], context: str) -> Optional[List[bool]]:
+    """Verify all claims in one judge request while preserving the score formula."""
+    numbered_claims = "\n".join(
+        f"{index}. {claim}" for index, claim in enumerate(claims, 1)
+    )
+    prompt = CLAIM_VERIFICATION_PROMPT.format(
+        context=context[:5000],
+        claims=numbered_claims,
+    )
+    response = call_judge(prompt, max_tokens=max(1200, len(claims) * 30))
+
+    verdicts = {}
+    for line in response.splitlines():
+        match = re.match(
+            r"^(\d+)[.)]\s+(SUPPORTED|NOT_SUPPORTED)\s*$",
+            line.strip(),
+            flags=re.IGNORECASE,
+        )
+        if match:
+            verdicts[int(match.group(1))] = match.group(2).upper() == "SUPPORTED"
+
+    expected = set(range(1, len(claims) + 1))
+    if set(verdicts) != expected:
+        print(
+            f"    Judge returned {len(verdicts)}/{len(claims)} claim verdicts; "
+            "marking this query as an evaluation failure."
+        )
+        return None
+    return [verdicts[index] for index in range(1, len(claims) + 1)]
 
 
 def evaluate_faithfulness(
@@ -209,28 +278,30 @@ def evaluate_faithfulness(
       supported_claims: int
     """
     if not answer or not context:
-        return _empty_faithfulness()
+        return _empty_faithfulness("answer_or_context_missing")
 
     print("    Extracting claims...", end=" ", flush=True)
     claims = extract_claims(answer)
     print(f"{len(claims)} claims found.")
 
     if not claims:
-        return _empty_faithfulness()
+        return _empty_faithfulness("judge_claim_extraction_failed")
+
+    print("    Verifying claims in one batch...", end=" ", flush=True)
+    verdicts = verify_claims(claims, context)
+    if verdicts is None:
+        return _empty_faithfulness("judge_claim_verification_failed")
+    print("done.")
 
     verifications = []
-    supported     = 0
-
-    for i, claim in enumerate(claims):
-        if verbose:
-            print(f"      Verifying [{i+1}/{len(claims)}]: {claim[:60]}...", end=" ")
-        is_supported = verify_claim(claim, context)
+    supported = 0
+    for claim, is_supported in zip(claims, verdicts):
         verifications.append({"claim": claim, "supported": is_supported})
         if is_supported:
             supported += 1
         if verbose:
-            print("✓" if is_supported else "✗")
-        time.sleep(0.3)   # small delay to avoid rate limiting
+            safe_claim = claim.encode("ascii", errors="backslashreplace").decode("ascii")
+            print(f"      {'SUPPORTED' if is_supported else 'NOT_SUPPORTED'} {safe_claim}")
 
     score = supported / len(claims) if claims else 0.0
 
@@ -240,13 +311,14 @@ def evaluate_faithfulness(
         "supported_claims":  supported,
         "claims":            claims,
         "verifications":     verifications,
+        "error":             None,
     }
 
 
-def _empty_faithfulness() -> Dict:
+def _empty_faithfulness(error: Optional[str] = None) -> Dict:
     return {
         "score": 0.0, "total_claims": 0, "supported_claims": 0,
-        "claims": [], "verifications": [],
+        "claims": [], "verifications": [], "error": error,
     }
 
 
@@ -267,9 +339,7 @@ Answer:
 def generate_questions_from_answer(answer: str) -> List[str]:
     """Ask the LLM to generate 3 questions that the answer responds to."""
     prompt   = QUESTION_GEN_PROMPT.format(answer=answer)
-    response = call_judge(prompt, max_tokens=200)
-
-    print(f"\n  [DEBUG] Judge Model (Question Generation) Response:\n{response}\n")
+    response = call_judge(prompt, max_tokens=1000)
 
     questions = []
     for line in response.splitlines():
@@ -317,14 +387,14 @@ def evaluate_relevancy(
       similarities       : per-question similarity scores
     """
     if not answer:
-        return _empty_relevancy()
+        return _empty_relevancy("answer_missing")
 
     print("    Generating questions from answer...", end=" ", flush=True)
     questions = generate_questions_from_answer(answer)
     print(f"{len(questions)} questions generated.")
 
-    if not questions:
-        return _empty_relevancy()
+    if len(questions) != 3:
+        return _empty_relevancy("judge_question_generation_failed")
 
     # Encode original query and generated questions
     all_texts    = [original_query] + questions
@@ -343,11 +413,17 @@ def evaluate_relevancy(
         "score":               round(score, 4),
         "generated_questions": questions,
         "similarities":        similarities,
+        "error":               None,
     }
 
 
-def _empty_relevancy() -> Dict:
-    return {"score": 0.0, "generated_questions": [], "similarities": []}
+def _empty_relevancy(error: Optional[str] = None) -> Dict:
+    return {
+        "score": 0.0,
+        "generated_questions": [],
+        "similarities": [],
+        "error": error,
+    }
 
 
 # ─────────────────────────────────────────────
@@ -358,27 +434,40 @@ def run_evaluation(
     test_queries: List[str],
     retriever_components: Dict,
     similarity_model: SentenceTransformer,
+    config_label: str,
     semantic_only: bool = False,
-    chunks_strategy: str = "recursive",
-    verbose: bool = True,
-) -> List[Dict]:
+    top_k: int = 5,
+    temperature: float = 0.2,
+    verbose: bool = False,
+) -> Dict:
     """
     Run the full evaluation pipeline on all test queries.
 
     Args:
-        semantic_only    : if True, uses semantic-only retrieval (ablation)
-        chunks_strategy  : label for the chunking strategy used
+        config_label     : stable experiment label
+        semantic_only    : if True, uses semantic-only retrieval
+        top_k            : number of reranked chunks returned
+        temperature      : answer-generation temperature
         verbose          : print per-claim verification
 
-    Returns list of per-query result dicts.
+    Returns the configuration, per-query results, summary, and MLflow run ID.
     """
-    from retrieval import retrieve
-    from generation import generate_answer
+    try:
+        from src.retrieval import retrieve
+        from src.generation import generate_answer
+    except ImportError:  # supports `python src/evaluation.py`
+        from retrieval import retrieve
+        from generation import generate_answer
 
     results = []
-    mode    = "semantic_only" if semantic_only else "hybrid"
+    mode = "semantic_only" if semantic_only else "hybrid_rerank"
 
-    print(f"\nRunning evaluation — mode: {mode}, chunks: {chunks_strategy}")
+    if not test_queries:
+        raise ValueError("Evaluation query set must not be empty")
+    if top_k < 1:
+        raise ValueError("top_k must be at least 1")
+
+    print(f"\nRunning evaluation {config_label} — mode: {mode}, top_k: {top_k}")
     print(f"Queries: {len(test_queries)}")
     print("-" * 55)
 
@@ -390,7 +479,12 @@ def run_evaluation(
         # 1. Retrieve
         print("  Retrieving...", end=" ", flush=True)
         t0 = time.time()
-        retrieval = retrieve(query, **retriever_components, semantic_only=semantic_only)
+        retrieval = retrieve(
+            query,
+            **retriever_components,
+            top_k=top_k,
+            semantic_only=semantic_only,
+        )
         retrieval_ms = round((time.time() - t0) * 1000)
         print(f"{retrieval_ms} ms — {len(retrieval['chunks'])} chunks")
 
@@ -400,13 +494,11 @@ def run_evaluation(
         # 2. Generate
         print("  Generating answer...", end=" ", flush=True)
         t0 = time.time()
-        gen = generate_answer(query, chunks)
+        gen = generate_answer(query, chunks, temperature=temperature)
         generation_ms = round((time.time() - t0) * 1000)
         print(f"{generation_ms} ms")
 
         answer = gen["answer"]
-        print(f"\n  [DEBUG] Generator Model Answer:\n{answer}\n")
-
         if gen["error"]:
             print(f"  Generation failed: {gen['error']}")
             results.append({
@@ -414,6 +506,7 @@ def run_evaluation(
                 "faithfulness": _empty_faithfulness(),
                 "relevancy":    _empty_relevancy(),
             })
+            time.sleep(EVALUATION_COOLDOWN_SECONDS)
             continue
 
         # 3. Faithfulness
@@ -429,6 +522,14 @@ def run_evaluation(
               f"(similarities: {rel['similarities']})")
 
         total_ms = round((time.time() - t_start) * 1000)
+        evaluation_errors = [
+            error
+            for error in (faith.get("error"), rel.get("error"))
+            if error
+        ]
+        evaluation_error = "; ".join(evaluation_errors) or None
+        if evaluation_error:
+            print(f"  Evaluation failed: {evaluation_error}")
 
         results.append({
             "query":           query,
@@ -443,101 +544,189 @@ def run_evaluation(
                 "total_ms":      total_ms,
             },
             "config": {
-                "mode":             mode,
-                "chunks_strategy":  chunks_strategy,
+                "mode": mode,
+                "chunking_strategy": "recursive",
+                "top_k": top_k,
+                "temperature": temperature,
             },
-            "error": None,
+            "error": evaluation_error,
         })
 
-        # Small pause between queries to stay within HF rate limits
-        time.sleep(1)
+        # Keep provider token windows independent between comparable queries.
+        time.sleep(EVALUATION_COOLDOWN_SECONDS)
 
-    summary = summarize_results(results, f"{chunks_strategy}-{mode}")
+    summary = summarize_results(results, config_label)
     run_id = log_evaluation_summary(
-        run_name=f"evaluation-{chunks_strategy}-{mode}",
+        run_name=f"evaluation-{config_label}",
         params={
-            "chunking_strategy": chunks_strategy,
+            "config_label": config_label,
+            "chunking_strategy": "recursive",
             "retrieval_mode": mode,
             "semantic_only": semantic_only,
+            "top_k": top_k,
+            "generation_temperature": temperature,
             "query_count": len(test_queries),
             "judge_model": JUDGE_MODEL,
+            "judge_reasoning_effort": JUDGE_REASONING_EFFORT,
             "similarity_model": SIMILARITY_MODEL,
         },
         summary=summary,
+        tags={
+            "evaluation.config": config_label,
+            "evaluation.status": (
+                "passed" if summary["failed_queries"] == 0 else "partial"
+            ),
+        },
     )
     print(f"  MLflow run: {run_id}")
-    return results
+    return {
+        "config": {
+            "label": config_label,
+            "retrieval_mode": mode,
+            "semantic_only": semantic_only,
+            "top_k": top_k,
+            "generation_temperature": temperature,
+            "chunking_strategy": "recursive",
+        },
+        "results": results,
+        "summary": summary,
+        "run_id": run_id,
+    }
 
 
 # ─────────────────────────────────────────────
-# 5.  ABLATION STUDY
+# 5.  RAG CONFIGURATION EXPERIMENTS
 # ─────────────────────────────────────────────
 
-def run_ablation_study(
+EXPERIMENT_CONFIGS = [
+    {
+        "label": "A-semantic-top5",
+        "semantic_only": True,
+        "top_k": 5,
+        "temperature": 0.2,
+    },
+    {
+        "label": "B-hybrid-top3",
+        "semantic_only": False,
+        "top_k": 3,
+        "temperature": 0.2,
+    },
+    {
+        "label": "C-hybrid-top5",
+        "semantic_only": False,
+        "top_k": 5,
+        "temperature": 0.2,
+    },
+]
+
+
+def run_experiment_suite(
     test_queries: List[str],
-    retriever_components_recursive: Dict,
-    retriever_components_fixed: Dict,
+    retriever_components: Dict,
     similarity_model: SentenceTransformer,
 ) -> Dict:
-    """
-    Run all four combinations for the ablation study table:
+    """Run the same evaluation set across three genuine RAG configurations."""
+    if not test_queries:
+        raise ValueError("Evaluation query set must not be empty")
 
-      A: Recursive chunks  + Semantic-only retrieval
-      B: Recursive chunks  + Hybrid + Re-ranking
-      C: Fixed chunks      + Semantic-only retrieval
-      D: Fixed chunks      + Hybrid + Re-ranking   ← expected best
-
-    Returns a summary dict with mean scores per configuration.
-    """
-    configurations = [
-        ("A", retriever_components_recursive, True,  "recursive"),
-        ("B", retriever_components_recursive, False, "recursive"),
-        ("C", retriever_components_fixed,     True,  "fixed"),
-        ("D", retriever_components_fixed,     False, "fixed"),
-    ]
-
-    ablation_results = {}
-
-    for label, components, sem_only, strategy in configurations:
-        config_name = f"{label}: {strategy} + {'semantic_only' if sem_only else 'hybrid+rerank'}"
+    experiments = {}
+    for config in EXPERIMENT_CONFIGS:
+        config_name = config["label"]
         print(f"\n{'='*55}")
-        print(f"  Ablation config {config_name}")
+        print(f"  RAG experiment {config_name}")
         print(f"{'='*55}")
 
-        results = run_evaluation(
-            test_queries[:5],   # use first 5 queries for speed
-            components,
+        experiments[config_name] = run_evaluation(
+            test_queries,
+            retriever_components,
             similarity_model,
-            semantic_only=sem_only,
-            chunks_strategy=strategy,
+            config_label=config_name,
+            semantic_only=config["semantic_only"],
+            top_k=config["top_k"],
+            temperature=config["temperature"],
             verbose=False,
         )
 
-        ablation_results[label] = summarize_results(results, config_name)
+    best_label = select_best_configuration(experiments)
+    best_experiment = experiments[best_label]
+    selection_reason = (
+        "Highest mean faithfulness, then mean relevancy, then lower average "
+        "total latency."
+    )
+    mark_best_evaluation_run(best_experiment["run_id"], selection_reason)
 
-    return ablation_results
+    return {
+        "query_count": len(test_queries),
+        "judge_model": JUDGE_MODEL,
+        "judge_reasoning_effort": JUDGE_REASONING_EFFORT,
+        "similarity_model": SIMILARITY_MODEL,
+        "experiments": experiments,
+        "best_configuration": best_label,
+        "best_run_id": best_experiment["run_id"],
+        "selection_reason": selection_reason,
+    }
+
+
+def select_best_configuration(experiments: Dict) -> str:
+    """Select the best successful configuration using the documented ordering."""
+    candidates = {
+        label: experiment
+        for label, experiment in experiments.items()
+        if experiment["summary"].get("successful_queries", 0) > 0
+        and experiment["summary"].get("failed_queries", 0) == 0
+    }
+    if not candidates:
+        raise ValueError("No evaluation configuration completed without failures")
+
+    return max(
+        candidates,
+        key=lambda label: (
+            candidates[label]["summary"]["faithfulness_mean"],
+            candidates[label]["summary"]["relevancy_mean"],
+            -candidates[label]["summary"]["avg_total_ms"],
+        ),
+    )
 
 
 def summarize_results(results: List[Dict], label: str = "") -> Dict:
     """Compute mean faithfulness and relevancy from a list of query results."""
     valid = [r for r in results if not r.get("error")]
+    failed_queries = len(results) - len(valid)
     if not valid:
-        return {"label": label, "faithfulness": 0.0, "relevancy": 0.0, "n": 0}
+        return {
+            "label": label,
+            "n_queries": len(results),
+            "successful_queries": 0,
+            "failed_queries": failed_queries,
+            "success_rate": 0.0,
+            "faithfulness_mean": 0.0,
+            "faithfulness_std": 0.0,
+            "relevancy_mean": 0.0,
+            "relevancy_std": 0.0,
+            "avg_retrieval_ms": 0.0,
+            "avg_generation_ms": 0.0,
+            "avg_total_ms": 0.0,
+        }
 
     faith_scores = [r["faithfulness"]["score"] for r in valid]
     rel_scores   = [r["relevancy"]["score"]    for r in valid]
     ret_times    = [r["timings"]["retrieval_ms"]  for r in valid]
     gen_times    = [r["timings"]["generation_ms"] for r in valid]
+    total_times  = [r["timings"]["total_ms"] for r in valid]
 
     return {
         "label":             label,
-        "n_queries":         len(valid),
+        "n_queries":         len(results),
+        "successful_queries": len(valid),
+        "failed_queries":    failed_queries,
+        "success_rate":      round(len(valid) / len(results), 4),
         "faithfulness_mean": round(float(np.mean(faith_scores)), 4),
         "faithfulness_std":  round(float(np.std(faith_scores)),  4),
         "relevancy_mean":    round(float(np.mean(rel_scores)),   4),
         "relevancy_std":     round(float(np.std(rel_scores)),    4),
         "avg_retrieval_ms":  round(float(np.mean(ret_times)),    1),
         "avg_generation_ms": round(float(np.mean(gen_times)),    1),
+        "avg_total_ms":      round(float(np.mean(total_times)),  1),
     }
 
 
@@ -545,25 +734,31 @@ def summarize_results(results: List[Dict], label: str = "") -> Dict:
 # 6.  REPORT HELPERS
 # ─────────────────────────────────────────────
 
-def print_ablation_table(ablation: Dict):
-    """Pretty-print the ablation study table for your report."""
+def print_experiment_table(suite: Dict):
+    """Pretty-print the comparable RAG experiment summaries."""
     print("\n" + "=" * 75)
-    print("  ABLATION STUDY RESULTS")
+    print("  RAG EXPERIMENT RESULTS")
     print("=" * 75)
-    header = f"{'Config':<45} {'Faith':>7} {'Relev':>7} {'Ret ms':>8} {'Gen ms':>8}"
+    header = (
+        f"{'Config':<24} {'Faith':>7} {'Relev':>7} "
+        f"{'Ret ms':>8} {'Gen ms':>8} {'OK/All':>7}"
+    )
     print(header)
     print("-" * 75)
-    for key in sorted(ablation.keys()):
-        r = ablation[key]
+    for key, experiment in suite["experiments"].items():
+        r = experiment["summary"]
         row = (
-            f"{r['label']:<45} "
+            f"{key:<24} "
             f"{r['faithfulness_mean']:>6.2%} "
             f"{r['relevancy_mean']:>7.4f} "
             f"{r['avg_retrieval_ms']:>8.0f} "
-            f"{r['avg_generation_ms']:>8.0f}"
+            f"{r['avg_generation_ms']:>8.0f} "
+            f"{r['successful_queries']:>2}/{r['n_queries']:<4}"
         )
         print(row)
     print("=" * 75)
+    print(f"Best configuration: {suite['best_configuration']}")
+    print(f"Best MLflow run: {suite['best_run_id']}")
 
 
 def print_example_faithfulness(results: List[Dict], n: int = 3):
@@ -584,30 +779,54 @@ def print_example_faithfulness(results: List[Dict], n: int = 3):
             continue
 
         print(f"\nQuery: {r['query']}")
-        print(f"Answer snippet: {r['answer'][:200]}...")
+        answer_snippet = r["answer"][:200].encode(
+            "ascii", errors="backslashreplace"
+        ).decode("ascii")
+        print(f"Answer snippet: {answer_snippet}...")
         print(f"Faithfulness score: {faith['score']:.2%} "
               f"({faith['supported_claims']}/{faith['total_claims']})")
         print("Claims:")
         for v in faith["verifications"]:
-            mark = "✓" if v["supported"] else "✗"
-            print(f"  {mark} {v['claim']}")
+            mark = "SUPPORTED" if v["supported"] else "NOT_SUPPORTED"
+            safe_claim = v["claim"].encode(
+                "ascii", errors="backslashreplace"
+            ).decode("ascii")
+            print(f"  {mark}: {safe_claim}")
         shown += 1
 
 
-def save_results(results: List[Dict], ablation: Dict):
-    """Save all evaluation results to JSON for your report."""
+def save_results(suite: Dict):
+    """Save detailed ignored output plus a compact reviewable summary artifact."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
-    eval_path    = os.path.join(OUTPUT_DIR, "evaluation_results.json")
-    ablation_path = os.path.join(OUTPUT_DIR, "ablation_table.json")
+    detail_path = os.path.join(OUTPUT_DIR, "rag_evaluation_details.json")
+    summary_path = os.path.join(ARTIFACT_DIR, "rag_evaluation_summary.json")
 
-    with open(eval_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    print(f"\nEvaluation results saved → {eval_path}")
+    with open(detail_path, "w", encoding="utf-8") as f:
+        json.dump(suite, f, ensure_ascii=False, indent=2)
+    print(f"\nDetailed evaluation results saved: {detail_path}")
 
-    with open(ablation_path, "w", encoding="utf-8") as f:
-        json.dump(ablation, f, ensure_ascii=False, indent=2)
-    print(f"Ablation table saved    → {ablation_path}")
+    compact_summary = {
+        "query_count": suite["query_count"],
+        "judge_model": suite["judge_model"],
+        "judge_reasoning_effort": suite["judge_reasoning_effort"],
+        "similarity_model": suite["similarity_model"],
+        "best_configuration": suite["best_configuration"],
+        "best_run_id": suite["best_run_id"],
+        "selection_reason": suite["selection_reason"],
+        "experiments": {
+            label: {
+                "config": experiment["config"],
+                "summary": experiment["summary"],
+                "run_id": experiment["run_id"],
+            }
+            for label, experiment in suite["experiments"].items()
+        },
+    }
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(compact_summary, f, ensure_ascii=False, indent=2)
+    print(f"Reviewable summary saved: {summary_path}")
 
 
 # ─────────────────────────────────────────────
@@ -619,75 +838,27 @@ def main():
     print("  Legal Inheritance RAG — Step 5: Evaluation")
     print("=" * 55)
 
-    if HF_API_TOKEN == "YOUR_HF_TOKEN_HERE":
-        print("ERROR: Set HF_API_TOKEN environment variable first.")
-        print("  export HF_API_TOKEN=hf_...")
-        return
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY is required for generation fallback and judging")
 
     # Load similarity model (used for relevancy scoring)
     print(f"\nLoading similarity model: {SIMILARITY_MODEL}")
     sim_model = SentenceTransformer(SIMILARITY_MODEL)
 
-    # Build retriever components for both chunking strategies
-    # Recursive chunks (default — used for main evaluation)
-    from retrieval import build_retriever
-    print("\nBuilding retriever (recursive chunks)...")
-    components_recursive = build_retriever()   # uses chunks_recursive.json by default
-
-    # For ablation on fixed chunks, point BM25_CORPUS_FILE to chunks_fixed.json
-    # The simplest way: temporarily patch the config in step3_retrieval
-    import retrieval as s3
-    original_bm25_file = s3.BM25_CORPUS_FILE
-    s3.BM25_CORPUS_FILE = "./output/bm25_corpus_fixed.json"
-    print("Building retriever (fixed chunks)...")
-    # NOTE: You need to save a separate BM25 corpus for fixed chunks.
-    # In step1_preprocess.py, call save_bm25_corpus(fixed_chunks, "bm25_corpus_fixed.json")
     try:
-        components_fixed = build_retriever()
-    except FileNotFoundError:
-        print("  bm25_corpus_fixed.json not found — using recursive for both.")
-        components_fixed = components_recursive
-    finally:
-        s3.BM25_CORPUS_FILE = original_bm25_file   # restore
+        from src.retrieval import build_retriever
+    except ImportError:  # supports `python src/evaluation.py`
+        from retrieval import build_retriever
 
-    # ── Main evaluation (hybrid + recursive) ──
-    print("\nRunning main evaluation on full test set...")
-    main_results = run_evaluation(
-        TEST_QUERIES,
-        components_recursive,
-        sim_model,
-        semantic_only=False,
-        chunks_strategy="recursive",
-        verbose=True,
-    )
+    print("\nBuilding retriever from the recursive prepared corpus...")
+    components = build_retriever()
+    evaluation_queries = TEST_QUERIES[:EVALUATION_QUERY_LIMIT]
+    suite = run_experiment_suite(evaluation_queries, components, sim_model)
 
-    # Print summary
-    summary = summarize_results(main_results, "Hybrid + Recursive (Best)")
-    print(f"\nOverall Faithfulness : {summary['faithfulness_mean']:.2%} "
-          f"± {summary['faithfulness_std']:.2%}")
-    print(f"Overall Relevancy    : {summary['relevancy_mean']:.4f} "
-          f"± {summary['relevancy_std']:.4f}")
-    print(f"Avg Retrieval time   : {summary['avg_retrieval_ms']:.0f} ms")
-    print(f"Avg Generation time  : {summary['avg_generation_ms']:.0f} ms")
-
-    # Show example faithfulness breakdowns (required by assignment)
-    print_example_faithfulness(main_results, n=3)
-
-    # ── Ablation study ──
-    print("\n\nRunning ablation study (4 configurations × 5 queries)...")
-    ablation = run_ablation_study(
-        TEST_QUERIES,
-        components_recursive,
-        components_fixed,
-        sim_model,
-    )
-    # Add main result to ablation table
-    ablation["BEST"] = summary
-
-    print_ablation_table(ablation)
-
-    # Save everything
-    save_results(main_results, ablation)
+    print_experiment_table(suite)
+    best_results = suite["experiments"][suite["best_configuration"]]["results"]
+    print_example_faithfulness(best_results, n=3)
+    save_results(suite)
 
     print("\nDone!")
     print("=" * 55)

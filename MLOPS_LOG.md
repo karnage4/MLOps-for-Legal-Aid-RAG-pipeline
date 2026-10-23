@@ -14,8 +14,8 @@ This file is the running record for introducing MLOps features one at a time. Up
 
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | MLflow integration | `1-mlflow-integration` | Complete | 2 of 4 feature tests passed | In testing |
-| 2 | To be selected after Phase 1 | Not created | Not started | Not started | Blocked by Phase 1 acceptance |
+| 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
+| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Complete | Three-run suite and MLflow readback passed | Ready for team review |
 
 ## Phase 1 — MLflow integration
 
@@ -62,7 +62,7 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | 2026-10-23 | Pinecone embedding and upsert | Passed | Created the approved 384-dimensional cosine index `legal-inheritance-rag`, uploaded all 3,593 vectors, and passed a three-result semantic sanity query. The pre-existing `rag-fixed-chunks` index was not changed. |
 | 2026-10-23 | Hugging Face to Groq fallback unit tests | Passed | Five tests verify provider order, no unnecessary Groq call, bounded transient-error retries, secret exclusion, MLflow provider/model/latency attributes, and compact root-chain output. |
 | 2026-10-23 | Full traced query with Groq fallback | Passed | Hybrid retrieval returned five chunks. Hugging Face was unavailable, Groq `qwen/qwen3.8-27b` generated the answer, and MLflow read back the complete three-span trace with `test_passed = 1.0`. |
-| 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
+| 2026-10-23 | Groq evaluation runs in MLflow | Moved to Phase 2 | The team accepted the MLflow foundation and separated comparative RAG evaluation into its own feature branch. |
 
 ## Phase 1 manual test plan
 
@@ -193,20 +193,67 @@ Record the result:
 
 | Date/time | Tester | Result | MLflow run IDs | Best configuration | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Pending | Pending | Pending | Pending | Pending | Pending |
+| 2026-10-23 | Codex (automated) | Passed | `fad0d83034144ec6b225b75d5317ebaa`, `15fd491ef5d54a16af4794a1067bc100`, `f9787d3e95a646baa707770c2754a17a` | `C-hybrid-top5` | All configurations completed 3/3 queries; direct MLflow readback confirmed distinct parameters, metrics, passed tags, and the best-run tag. |
 
 ## Phase 1 definition of done
 
-Phase 1 is complete only when Tests A–E pass, their tables above contain real evidence, and the updated log is committed and pushed to `1-mlflow-integration`. Do not begin Phase 2 until the team accepts those results.
+Phase 1 was accepted after the local tracking store, UI, GenAI traces, provider fallback, real Pinecone retrieval, and complete end-to-end trace were manually verified. Comparative experiment runs were deliberately moved to Phase 2 so each MLOps capability remains isolated by branch.
 
-## Phase 2 placeholder
+## Training exemption
 
-Feature, scope, branch name, and acceptance criteria will be added only after Phase 1 is verified. When Phase 2 begins:
+The team confirmed that traditional supervised model training is exempt for this RAG project. The system uses pretrained embedding, reranking, and generation models; adding an unrelated classifier or presenting index construction as model training would misrepresent the architecture. The milestone's experiment requirement is satisfied through reproducible RAG configuration evaluation instead.
 
-1. update the Phase overview table;
-2. add a dated Phase 1 completion entry;
-3. create a separate branch for the selected feature;
-4. document its test plan before implementing it.
+## Phase 2 — RAG evaluation experiments
+
+### Objective
+
+Run at least three genuine RAG configurations over the same evaluation query set, log their parameters and aggregate metrics to MLflow, select the best configuration using a documented rule, and record reproducible run IDs.
+
+### Planned configurations
+
+| Label | Retrieval mode | Top K | Purpose |
+| --- | --- | ---: | --- |
+| A | Semantic only | 5 | Dense-retrieval baseline |
+| B | Hybrid + reranking | 3 | Test smaller context selection |
+| C | Hybrid + reranking | 5 | Current production configuration |
+
+All configurations use the same recursive prepared corpus and Pinecone index so retrieval mode and `top_k` are the only changed variables.
+
+### Acceptance criteria
+
+- the retired Groq judge model is replaced by a configurable active model;
+- all configurations evaluate the same non-empty query set;
+- every configuration logs parameters, faithfulness, relevancy, retrieval latency, and generation latency to MLflow;
+- failed queries are counted and exposed instead of silently producing a successful run;
+- at least three successful MLflow runs have distinct configuration parameters;
+- the best configuration is selected by mean faithfulness, then mean relevancy, then lower total latency as tie-breakers;
+- results and run IDs are saved to a clearly named JSON artifact and summarized in `README.md` and this log;
+- focused tests pass and no secret value is committed or logged.
+
+### Implemented
+
+- Replaced the retired fixed judge with configurable Groq judge settings: `GROQ_JUDGE_MODEL=openai/gpt-oss-20b` and `GROQ_JUDGE_REASONING_EFFORT=low`.
+- Batched claim verification into one judge request per answer while preserving the original supported-claims/total-claims faithfulness formula.
+- Added bounded retry handling for rate limits and transient provider errors.
+- Ran semantic top-5, hybrid/reranked top-3, and hybrid/reranked top-5 against the same three held-out questions.
+- Logged configuration parameters, judge settings, faithfulness, relevancy, retrieval/generation/total latency, success counts, and status tags to MLflow.
+- Selected and tagged the best successful run using mean faithfulness, mean relevancy, then mean total latency.
+- Added the tracked summary artifact `artifacts/rag_evaluation_summary.json` and kept per-query responses in ignored `output/` data.
+- Added focused unit coverage for result aggregation, batched verdict parsing, incomplete judge output, deterministic best-run selection, and the three-configuration suite.
+
+### Verified results
+
+| Configuration | Retrieval mode | Top K | Faithfulness | Relevancy | Avg. total latency | Successful | MLflow run ID |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `A-semantic-top5` | Semantic only | 5 | 0.9667 | 0.7435 | 13,778.3 ms | 3/3 | `fad0d83034144ec6b225b75d5317ebaa` |
+| `B-hybrid-top3` | Hybrid + reranking | 3 | 0.9000 | 0.7481 | 7,893.3 ms | 3/3 | `15fd491ef5d54a16af4794a1067bc100` |
+| `C-hybrid-top5` | Hybrid + reranking | 5 | **0.9762** | **0.7831** | 8,226.3 ms | 3/3 | `f9787d3e95a646baa707770c2754a17a` |
+
+`C-hybrid-top5` is the selected best configuration because it has the highest mean faithfulness and mean relevancy. Direct MLflow readback confirmed all three runs are `FINISHED`, each has `success_rate=1.0` and `evaluation.status=passed`, and only the selected run has `evaluation.best_run=true`.
+
+Two earlier diagnostic attempts were not accepted as milestone evidence: one exposed rate limits from using the generation model for judging, and another exposed GPT-OSS output-budget and Windows console-encoding issues. The final suite separated the judge model, used low reasoning effort, batched verdicts, and made console output Unicode-safe.
+
+Final local verification passed on 2026-10-23: `11 passed in 32.74s` across `test_evaluation_experiments.py`, `test_generation_fallback.py`, and `test_pipeline_tracing.py`. The pre-push audit also passed `git diff --check`, confirmed `.env`, `mlflow.db`, and detailed `output/` results are ignored, and found no credential-shaped values outside excluded local files.
 
 ## Change history
 
@@ -221,3 +268,8 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | 2026-10-23 | `1-mlflow-integration` | Created and validated `legal-inheritance-rag` with 3,593 vectors. Real-query generation is blocked by Hugging Face credit/model availability. |
 | 2026-10-23 | `1-mlflow-integration` | Added tested Hugging Face-to-Groq fallback and MLflow provider/test metadata. Live Test D reached Groq but is blocked by an invalid Groq credential. |
 | 2026-10-23 | `1-mlflow-integration` | Updated the configurable Groq fallback to active model `qwen/qwen3.8-27b`, added bounded transient-error retries, made local SQLite trace writes synchronous, and passed full Test D with verified run and trace IDs. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Team accepted the supervised-training exemption, closed the MLflow-foundation phase, and created the RAG experiment branch with documented acceptance criteria. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Added three comparable RAG experiment configurations, explicit failure accounting, richer MLflow metrics/tags, deterministic best-run selection, and focused unit tests. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Diagnosed judge rate limits, hidden-reasoning truncation, and Windows console encoding; separated the GPT-OSS judge from Qwen generation, batched claim verdicts, and made output safe. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Completed three 3/3-query MLflow runs, selected `C-hybrid-top5`, saved the compact result artifact, and verified all parameters, metrics, status tags, and the best-run tag through MLflow readback. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Passed the final 11-test focused suite and pre-push secret/ignore/diff audit; partial configurations are explicitly excluded from best-run selection. |

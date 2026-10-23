@@ -8,6 +8,7 @@ rank-bm25
 tqdm
 google-genai
 requests
+numpy
 pypdf
 python-dotenv
 nltk
