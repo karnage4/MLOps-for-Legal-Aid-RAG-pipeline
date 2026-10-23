@@ -49,8 +49,9 @@ PRIMARY_MODEL   = "Qwen/Qwen2.5-72B-Instruct"
 FALLBACK_MODEL  = "Qwen/Qwen2.5-7B-Instruct"
 
 # Provider fallback — used only after both Hugging Face attempts fail.
-GROQ_FALLBACK_MODEL = "llama-3.1-8b-instant"
+GROQ_FALLBACK_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 GROQ_CHAT_URL       = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MAX_ATTEMPTS   = max(1, int(os.getenv("GROQ_MAX_ATTEMPTS", "3")))
 
 MAX_NEW_TOKENS  = 512
 TEMPERATURE     = 0.2     # low = more factual, less creative (good for legal)
@@ -304,28 +305,50 @@ def _generate_answer_impl(
         )
 
     groq_started = time.perf_counter()
+    groq_request_attempt = 0
     try:
         print(
             f"  Falling back to Groq model: {selected_groq_model} ...",
             end=" ",
             flush=True,
         )
-        response = requests.post(
-            GROQ_CHAT_URL,
-            headers={
-                "Authorization": f"Bearer {selected_groq_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": selected_groq_model,
-                "messages": prompt_messages,
-                "max_tokens": max_new_tokens,
-                "temperature": temperature,
-                "top_p": TOP_P,
-            },
-            timeout=60,
-        )
-        response.raise_for_status()
+        for groq_request_attempt in range(1, GROQ_MAX_ATTEMPTS + 1):
+            try:
+                response = requests.post(
+                    GROQ_CHAT_URL,
+                    headers={
+                        "Authorization": f"Bearer {selected_groq_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": selected_groq_model,
+                        "messages": prompt_messages,
+                        "max_tokens": max_new_tokens,
+                        "temperature": temperature,
+                        "top_p": TOP_P,
+                    },
+                    timeout=60,
+                )
+                response.raise_for_status()
+                break
+            except requests.RequestException as error:
+                status_code = (
+                    error.response.status_code if error.response is not None else None
+                )
+                retryable = status_code == 429 or (
+                    status_code is not None and status_code >= 500
+                ) or status_code is None
+                if not retryable or groq_request_attempt >= GROQ_MAX_ATTEMPTS:
+                    raise
+                retry_delay = 2 ** (groq_request_attempt - 1)
+                print(
+                    f"retrying after {status_code or 'network error'} "
+                    f"({groq_request_attempt}/{GROQ_MAX_ATTEMPTS})...",
+                    end=" ",
+                    flush=True,
+                )
+                time.sleep(retry_delay)
+
         payload = response.json()
         answer = (
             payload.get("choices", [{}])[0]
@@ -343,6 +366,7 @@ def _generate_answer_impl(
                 "model": selected_groq_model,
                 "status": "success",
                 "latency_ms": groq_latency_ms,
+                "request_attempts": groq_request_attempt,
                 "error": None,
             }
         )
@@ -370,6 +394,7 @@ def _generate_answer_impl(
                 "model": selected_groq_model,
                 "status": "failed",
                 "latency_ms": groq_latency_ms,
+                "request_attempts": groq_request_attempt,
                 "error": safe_error,
             }
         )
@@ -380,6 +405,7 @@ def _generate_answer_impl(
             context,
             attempts,
             generation_started,
+            provider_latency_ms=groq_latency_ms,
         )
 
 
@@ -389,6 +415,7 @@ def _provider_chain_error(
     context: Optional[str],
     attempts: List[Dict],
     generation_started: float,
+    provider_latency_ms: int = 0,
 ) -> Dict:
     return {
         "answer": f"[Generation error] {message}",
@@ -397,7 +424,7 @@ def _provider_chain_error(
         "prompt": str(prompt_messages) if prompt_messages else None,
         "context": context,
         "latency_ms": round((time.perf_counter() - generation_started) * 1000),
-        "provider_latency_ms": 0,
+        "provider_latency_ms": provider_latency_ms,
         "fallback_used": True,
         "attempts": attempts,
         "error": message,
@@ -451,6 +478,14 @@ def generate_answer(
         span.set_attribute("generation.fallback_used", result.get("fallback_used", False))
         span.set_attribute("generation.success", result.get("error") is None)
         span.set_attribute("generation.attempt_count", len(result.get("attempts", [])))
+        span.set_attribute(
+            "generation.groq_request_attempts",
+            sum(
+                attempt.get("request_attempts", 0)
+                for attempt in result.get("attempts", [])
+                if attempt.get("provider") == "groq"
+            ),
+        )
         span.set_outputs(result)
         return result
 

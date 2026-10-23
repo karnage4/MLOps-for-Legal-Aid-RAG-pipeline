@@ -75,6 +75,46 @@ def test_huggingface_success_does_not_call_groq():
     post.assert_not_called()
 
 
+def test_groq_retries_a_transient_provider_failure():
+    unavailable = Mock(status_code=503)
+    retry_error = generation.requests.HTTPError("temporarily unavailable")
+    retry_error.response = unavailable
+    failed_response = Mock()
+    failed_response.raise_for_status.side_effect = retry_error
+
+    successful_response = Mock()
+    successful_response.raise_for_status.return_value = None
+    successful_response.json.return_value = {
+        "choices": [{"message": {"content": "Recovered answer"}}]
+    }
+
+    with (
+        patch.object(
+            generation,
+            "_generate_huggingface",
+            return_value=generation._error_result("Hugging Face unavailable"),
+        ),
+        patch.object(
+            generation.requests,
+            "post",
+            side_effect=[failed_response, successful_response],
+        ) as post,
+        patch.object(generation.time, "sleep") as sleep,
+    ):
+        result = generation._generate_answer_impl(
+            "What is a daughter's share?",
+            CHUNKS,
+            hf_token="test-hf-secret",
+            groq_api_key="test-groq-secret",
+        )
+
+    assert result["provider"] == "groq"
+    assert result["error"] is None
+    assert result["attempts"][-1]["request_attempts"] == 2
+    assert post.call_count == 2
+    sleep.assert_called_once_with(1)
+
+
 def test_mlflow_span_records_provider_model_latency_and_result():
     traced_result = {
         "answer": "Groq answer",

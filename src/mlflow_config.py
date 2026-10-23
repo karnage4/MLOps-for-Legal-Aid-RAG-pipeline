@@ -27,6 +27,9 @@ def configure_mlflow():
     """Configure the tracking backend and return the active experiment."""
     if not os.getenv("MLFLOW_TRACKING_URI"):
         mlflow.set_tracking_uri(default_tracking_uri())
+        # SQLite trace writes are kept synchronous so a completed root span
+        # cannot be read before its children/parent relationship is persisted.
+        os.environ.setdefault("MLFLOW_ENABLE_ASYNC_TRACE_LOGGING", "false")
 
     experiment_id = os.getenv("MLFLOW_EXPERIMENT_ID")
     if experiment_id:

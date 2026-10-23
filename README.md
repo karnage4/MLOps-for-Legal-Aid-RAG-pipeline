@@ -64,7 +64,7 @@ The resultant interface is designed to migrate beyond local boundaries and is ac
 
 ## MLflow Integration — Phase 1
 
-This working copy keeps the original retrieval architecture and required environment variable names unchanged. Hugging Face remains the primary generation provider; if both Hugging Face model attempts fail, generation falls back to Groq using the existing `GROQ_API_KEY`. If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
+This working copy keeps the original retrieval architecture and required environment variable names unchanged. Hugging Face remains the primary generation provider; if both Hugging Face model attempts fail, generation falls back to Groq using the existing `GROQ_API_KEY`. The optional `GROQ_MODEL` variable selects the fallback model and currently defaults to `qwen/qwen3.8-27b`; transient Groq failures are retried up to `GROQ_MAX_ATTEMPTS` (default: 3). If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
 
 Testing status, evidence, and the handoff rules for later features are maintained in [`MLOPS_LOG.md`](MLOPS_LOG.md). Update that file immediately after each manual test and before opening the next feature branch.
 
@@ -114,6 +114,8 @@ Use the same `.env` values as the original project:
 PINECONE_API_KEY=your_pinecone_key
 HF_API_TOKEN=your_huggingface_token
 GROQ_API_KEY=your_groq_key
+GROQ_MODEL=qwen/qwen3.8-27b
+GROQ_MAX_ATTEMPTS=3
 ```
 
 Keep the original `output/bm25_corpus.json` and Pinecone index available, then start:

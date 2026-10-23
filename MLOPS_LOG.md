@@ -54,14 +54,14 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | --- | --- | --- | --- |
 | 2026-10-22 | Python bytecode compilation for `app.py` and `src/` | Passed | All changed modules produced compiled bytecode. |
 | 2026-10-22 | Credential-shaped secret scan | Passed | No token-shaped values found in the working copy. |
-| 2026-10-22 | Original environment variable names | Passed | `.env.example` still contains only the original three RAG variables. |
+| 2026-10-22 | Original environment variable names | Passed | The original three RAG variables remain unchanged; optional `GROQ_MODEL` and `GROQ_MAX_ATTEMPTS` settings make the provider fallback configurable. |
 | 2026-10-22 | Credential-free MLflow smoke test | Passed | MLflow 3.17.1 recorded run `3b2ce216871d42278f1c2542ff5c71d4` and trace `tr-733a80cdd7ad53af15152a1874324bea`; readback confirmed the CHAIN, RETRIEVER, and LLM spans. |
 | 2026-10-22 | MLflow UI and tracking API | Passed | Local UI returned HTTP 200; its API returned experiment `legal-aid-rag` and the finished smoke run with `integration_ok = 1.0`. Team browser inspection confirmed the session and evaluation run are visible. |
 | 2026-10-23 | Corpus regeneration and validation | Passed | Loaded 46 of 50 supplied files and generated 3,593 unique recursive chunks. `bm25_corpus.json` matches `chunks_recursive.json`, with non-empty texts of 30-600 characters. Four PDFs were skipped because they contained fewer than 50 extractable characters. |
 | 2026-10-23 | Python 3.12 environment | Passed | Created an ignored project-local Python 3.12.13 environment; PyTorch 2.14.1 CPU and Sentence Transformers 6.2.0 import successfully. |
 | 2026-10-23 | Pinecone embedding and upsert | Passed | Created the approved 384-dimensional cosine index `legal-inheritance-rag`, uploaded all 3,593 vectors, and passed a three-result semantic sanity query. The pre-existing `rag-fixed-chunks` index was not changed. |
-| 2026-10-23 | Hugging Face to Groq fallback unit tests | Passed | Four tests verify provider order, no unnecessary Groq call, secret exclusion from results, MLflow provider/model/latency attributes, and compact root-chain output. |
-| 2026-10-23 | Full traced query with Groq fallback | Blocked | Hybrid retrieval and both Hugging Face attempts ran, then Groq returned HTTP 401. The value currently stored as `GROQ_API_KEY` is not an accepted `gsk_...` Groq key. Test 3 must be rerun after replacing it. |
+| 2026-10-23 | Hugging Face to Groq fallback unit tests | Passed | Five tests verify provider order, no unnecessary Groq call, bounded transient-error retries, secret exclusion, MLflow provider/model/latency attributes, and compact root-chain output. |
+| 2026-10-23 | Full traced query with Groq fallback | Passed | Hybrid retrieval returned five chunks. Hugging Face was unavailable, Groq `qwen/qwen3.8-27b` generated the answer, and MLflow read back the complete three-span trace with `test_passed = 1.0`. |
 | 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
 
 ## Phase 1 manual test plan
@@ -142,7 +142,7 @@ Required before this test:
 - the populated Pinecone index named `legal-inheritance-rag`;
 - the same embedding model used for that index (`all-MiniLM-L6-v2`);
 - `output/bm25_corpus.json` produced by `python src/preprocess.py`;
-- network access to Pinecone and Hugging Face.
+- network access to Pinecone, Hugging Face, and Groq.
 
 Start the app:
 
@@ -172,6 +172,7 @@ Record the result:
 | Date/time | Tester | Query | Result | Trace ID | Retrieval mode | Model used | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-23 | Codex (automated) | What share does a daughter receive in Islamic inheritance? | Blocked at Groq authentication | `tr-9a7818f72a862414a9e090103e837a2e` was incomplete and not accepted as verification evidence | Hybrid + reranking | None | HF primary returned 402, HF fallback was unsupported, then Groq returned 401. The root output was subsequently reduced to a compact summary to prevent incomplete SQLite traces. Rerun after installing a valid `gsk_...` Groq key. |
+| 2026-10-23 07:51 PKT | Codex (automated) | What share does a daughter receive in Islamic inheritance? | Passed | `tr-cf21b2fd316af6ceccdf8484c8d34c13` | Hybrid + reranking | Groq `qwen/qwen3.8-27b` | Run `ac89ff74ca9c47ff926234efa2194d45`; 5 chunks; retrieval 3,205 ms; generation 2,014 ms; Groq 961 ms; all three spans read back; no secrets recorded. |
 
 ### Test E — log offline evaluation runs
 
@@ -219,3 +220,4 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | 2026-10-23 | `1-mlflow-integration` | Regenerated and validated 3,593 BM25 entries; added missing tokenizer dependency and Windows UTF-8 handling. Test D is now blocked only by the absent configured Pinecone index. |
 | 2026-10-23 | `1-mlflow-integration` | Created and validated `legal-inheritance-rag` with 3,593 vectors. Real-query generation is blocked by Hugging Face credit/model availability. |
 | 2026-10-23 | `1-mlflow-integration` | Added tested Hugging Face-to-Groq fallback and MLflow provider/test metadata. Live Test D reached Groq but is blocked by an invalid Groq credential. |
+| 2026-10-23 | `1-mlflow-integration` | Updated the configurable Groq fallback to active model `qwen/qwen3.8-27b`, added bounded transient-error retries, made local SQLite trace writes synchronous, and passed full Test D with verified run and trace IDs. |
