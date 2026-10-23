@@ -15,7 +15,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
-| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Steps 1-2 fixed corpus/index preparation passed | Active |
+| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Steps 1-3 data, index, and profile preparation passed | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -271,7 +271,7 @@ The target matrix combines fixed/recursive chunking, semantic/hybrid retrieval, 
 | --- | --- | --- | --- |
 | 1 | Prepare and validate fixed BM25 corpus | Complete | 883 chunks, 883 unique IDs, 46 sources, exact alignment passed |
 | 2 | Upload fixed embeddings to isolated Pinecone namespace | Complete | 883 fixed vectors; recursive/default remained 3,593; three self-query readbacks and a semantic sanity query passed |
-| 3 | Add configurable retrieval profiles | Pending | Existing recursive defaults remain unchanged |
+| 3 | Add configurable retrieval profiles | Complete | Validated strategy/mode/top-K profiles route matching BM25 artifacts and Pinecone namespaces; recursive/hybrid/top-5 remains default |
 | 4 | Retrieval-only fixed profile smoke tests | Pending | — |
 | 5 | Expand evaluation matrix to eight configurations | Pending | — |
 | 6 | Run and compare the final eight-run suite | Pending | — |
@@ -302,6 +302,22 @@ namespace-scoped semantic sanity query. The verified idempotent rerun reported
 and 4,476 vectors total. Its three sanity-query results all carried
 `strategy=fixed`.
 
+Step 3 added immutable `RetrievalProfile` configurations spanning
+`recursive`/`fixed` chunking, `semantic`/`hybrid` retrieval, and positive top-K
+values. `build_retriever()` now selects the matching BM25 artifact and returns
+the matching Pinecone namespace, while its no-argument behavior remains the
+original recursive corpus and default namespace. Pure semantic mode preserves
+Pinecone's dense order without BM25, RRF, or cross-encoder reranking; hybrid
+mode preserves the original BM25 + dense + RRF + reranking path. Both the root
+CHAIN span and child RETRIEVER span record the resolved strategy, mode,
+namespace, and top-K. Profile/component strategy or namespace mismatches fail
+before a query reaches an external service.
+
+Step 3 regression verification passed on 2026-10-23: `33 passed in 70.89s`
+across data preparation, embedding/upsert, retrieval profiles, evaluation,
+generation fallback, and pipeline tracing tests. Live fixed-profile retrieval
+is intentionally the separate Step 4 checkpoint.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -323,3 +339,4 @@ and 4,476 vectors total. Its three sanity-query results all carried
 | 2026-10-23 | `2-rag-evaluation-experiments` | Corrected evaluation tracing to reuse the application CHAIN boundary; live MLflow parent-ID readback confirmed query, retrieval, and generation are nested in trace `tr-83738135bb07f35ce078e9be0c71ae88`. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Began the eight-configuration expansion. Step 1 added validated strategy-specific BM25 preparation, generated the 883-entry fixed corpus, preserved the recursive default, and documented the 40 cross-strategy ID collisions requiring namespace isolation. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 2: cached and uploaded 883 fixed embeddings to isolated Pinecone namespace `fixed`, verified representative vectors and a semantic query, and confirmed the recursive/default namespace remained at 3,593 vectors. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 3 implementation: added validated retrieval profiles, strategy-specific BM25/Pinecone routing, true semantic versus hybrid execution paths, mismatch guards, MLflow profile metadata, and focused unit coverage while preserving recursive/hybrid/top-5 defaults. |

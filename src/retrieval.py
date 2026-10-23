@@ -23,7 +23,8 @@ import os
 import json
 import math
 import re
-from typing import List, Dict, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 import nltk
 from rank_bm25 import BM25Okapi
@@ -57,7 +58,59 @@ SEMANTIC_TOP_K      = 20    # candidates from Pinecone
 RRF_K               = 60    # RRF constant (standard value — do not change)
 FINAL_TOP_K         = 5     # chunks sent to LLM after re-ranking
 
-BM25_CORPUS_FILE    = "./output/bm25_corpus.json"
+CHUNKING_STRATEGIES = {
+    "recursive": {
+        "bm25_corpus_file": "./output/bm25_corpus.json",
+        "pinecone_namespace": None,
+    },
+    "fixed": {
+        "bm25_corpus_file": "./output/bm25_corpus_fixed.json",
+        "pinecone_namespace": "fixed",
+    },
+}
+RETRIEVAL_MODES = {"semantic", "hybrid"}
+
+
+@dataclass(frozen=True)
+class RetrievalProfile:
+    """One reproducible retrieval configuration for evaluation or serving."""
+
+    chunking_strategy: str = "recursive"
+    retrieval_mode: str = "hybrid"
+    top_k: int = FINAL_TOP_K
+
+    def __post_init__(self) -> None:
+        if self.chunking_strategy not in CHUNKING_STRATEGIES:
+            supported = ", ".join(sorted(CHUNKING_STRATEGIES))
+            raise ValueError(
+                f"Unsupported chunking strategy {self.chunking_strategy!r}; "
+                f"choose one of: {supported}"
+            )
+        if self.retrieval_mode not in RETRIEVAL_MODES:
+            supported = ", ".join(sorted(RETRIEVAL_MODES))
+            raise ValueError(
+                f"Unsupported retrieval mode {self.retrieval_mode!r}; "
+                f"choose one of: {supported}"
+            )
+        if self.top_k < 1:
+            raise ValueError("top_k must be at least 1")
+
+    @property
+    def bm25_corpus_file(self) -> str:
+        return CHUNKING_STRATEGIES[self.chunking_strategy]["bm25_corpus_file"]
+
+    @property
+    def pinecone_namespace(self) -> Optional[str]:
+        return CHUNKING_STRATEGIES[self.chunking_strategy]["pinecone_namespace"]
+
+    @property
+    def semantic_only(self) -> bool:
+        return self.retrieval_mode == "semantic"
+
+
+DEFAULT_RETRIEVAL_PROFILE = RetrievalProfile()
+# Backward-compatible alias for imports that expect the original constant.
+BM25_CORPUS_FILE = DEFAULT_RETRIEVAL_PROFILE.bm25_corpus_file
 # ─────────────────────────────────────────────
 
 
@@ -155,6 +208,8 @@ def semantic_search(
     embedder: SentenceTransformer,
     pinecone_index,
     top_k: int = SEMANTIC_TOP_K,
+    namespace: Optional[str] = None,
+    expected_strategy: Optional[str] = None,
 ) -> List[Dict]:
     """
     Semantic vector search via Pinecone.
@@ -162,19 +217,30 @@ def semantic_search(
     """
     query_vec = embedder.encode(query, normalize_embeddings=True).tolist()
 
-    response = pinecone_index.query(
-        vector=query_vec,
-        top_k=top_k,
-        include_metadata=True,
-    )
+    query_args = {
+        "vector": query_vec,
+        "top_k": top_k,
+        "include_metadata": True,
+    }
+    if namespace:
+        query_args["namespace"] = namespace
+    response = pinecone_index.query(**query_args)
 
     results = []
     for match in response["matches"]:
+        metadata = match["metadata"]
+        strategy = metadata.get("strategy")
+        if expected_strategy and strategy != expected_strategy:
+            raise RuntimeError(
+                f"Pinecone returned strategy {strategy!r} while querying "
+                f"the {expected_strategy!r} retrieval profile"
+            )
         results.append({
             "id":             match["id"],
-            "text":           match["metadata"].get("text", ""),
-            "source":         match["metadata"].get("source", "unknown"),
-            "chunk_index":    match["metadata"].get("chunk_index", 0),
+            "text":           metadata.get("text", ""),
+            "source":         metadata.get("source", "unknown"),
+            "chunk_index":    metadata.get("chunk_index", 0),
+            "strategy":       strategy,
             "semantic_score": float(match["score"]),
         })
 
@@ -282,13 +348,15 @@ def _retrieve_impl(
     pinecone_index,
     top_k: int = FINAL_TOP_K,
     semantic_only: bool = False,   # for ablation study
+    pinecone_namespace: Optional[str] = None,
+    chunking_strategy: str = "recursive",
 ) -> Dict:
     """
     Full hybrid retrieval pipeline.
 
     Args:
         query          : user's question
-        semantic_only  : if True, skips BM25 and RRF (ablation baseline)
+        semantic_only  : if True, uses dense retrieval without reranking
         top_k          : number of final chunks to return
 
     Returns dict with:
@@ -302,16 +370,25 @@ def _retrieve_impl(
         bm25_results = []
 
     # Step B: Semantic search
-    sem_results = semantic_search(query, embedder, pinecone_index)
+    sem_results = semantic_search(
+        query,
+        embedder,
+        pinecone_index,
+        namespace=pinecone_namespace,
+        expected_strategy=chunking_strategy,
+    )
 
-    # Step C: RRF fusion (or just use semantic if ablation)
-    if not semantic_only and bm25_results:
+    # Pure semantic retrieval keeps Pinecone's dense ranking. Hybrid retrieval
+    # fuses sparse+dense candidates and then applies cross-encoder reranking.
+    if semantic_only:
+        fused = sem_results
+        final_chunks = sem_results[:top_k]
+    elif bm25_results:
         fused = reciprocal_rank_fusion(bm25_results, sem_results)
+        final_chunks = rerank(query, fused, reranker, top_k=top_k)
     else:
-        fused = sem_results  # semantic-only baseline
-
-    # Step D: Cross-encoder re-ranking
-    final_chunks = rerank(query, fused, reranker, top_k=top_k)
+        fused = sem_results
+        final_chunks = rerank(query, fused, reranker, top_k=top_k)
 
     return {
         "chunks": final_chunks,
@@ -320,7 +397,10 @@ def _retrieve_impl(
             "semantic_count": len(sem_results),
             "fused_count":    len(fused),
             "final_count":    len(final_chunks),
-            "mode":           "semantic_only" if semantic_only else "hybrid",
+            "mode":           "semantic" if semantic_only else "hybrid",
+            "chunking_strategy": chunking_strategy,
+            "pinecone_namespace": pinecone_namespace or "__default__",
+            "top_k": top_k,
         }
     }
 
@@ -335,6 +415,8 @@ def retrieve(
     pinecone_index,
     top_k: int = FINAL_TOP_K,
     semantic_only: bool = False,
+    pinecone_namespace: Optional[str] = None,
+    chunking_strategy: str = "recursive",
 ) -> Dict:
     """Run retrieval while recording inputs and full retrieved content in MLflow."""
     configure_mlflow()
@@ -344,6 +426,9 @@ def retrieve(
                 "query": query,
                 "top_k": top_k,
                 "semantic_only": semantic_only,
+                "retrieval_mode": "semantic" if semantic_only else "hybrid",
+                "chunking_strategy": chunking_strategy,
+                "pinecone_namespace": pinecone_namespace or "__default__",
                 "bm25_top_k": BM25_TOP_K,
                 "semantic_top_k": SEMANTIC_TOP_K,
                 "rrf_k": RRF_K,
@@ -361,6 +446,8 @@ def retrieve(
             pinecone_index,
             top_k=top_k,
             semantic_only=semantic_only,
+            pinecone_namespace=pinecone_namespace,
+            chunking_strategy=chunking_strategy,
         )
         span.set_outputs(result)
         return result
@@ -370,14 +457,15 @@ def retrieve(
 # 7.  BUILDER FUNCTION (for Streamlit app)
 # ─────────────────────────────────────────────
 
-def build_retriever():
+def build_retriever(chunking_strategy: str = "recursive"):
     """
     Initialize all retrieval components.
     Call this ONCE at app startup (use st.cache_resource in Streamlit).
 
     Returns a dict of components to pass into retrieve().
     """
-    bm25, bm25_ids, bm25_texts = build_bm25_index(BM25_CORPUS_FILE)
+    profile = RetrievalProfile(chunking_strategy=chunking_strategy)
+    bm25, bm25_ids, bm25_texts = build_bm25_index(profile.bm25_corpus_file)
     pinecone_index = init_pinecone(PINECONE_API_KEY, PINECONE_INDEX_NAME)
     embedder, reranker = init_models(EMBEDDING_MODEL, RERANKER_MODEL)
 
@@ -388,6 +476,8 @@ def build_retriever():
         "embedder":      embedder,
         "reranker":      reranker,
         "pinecone_index": pinecone_index,
+        "pinecone_namespace": profile.pinecone_namespace,
+        "chunking_strategy": profile.chunking_strategy,
     }
 
 

@@ -73,6 +73,39 @@ The pipeline must be engaged consecutively to ensure structural integrity across
    streamlit run app.py
    ```
 
+### Configurable retrieval profiles
+
+`RetrievalProfile` keeps the three experiment dimensions together and validates
+them before a query runs:
+
+| Chunking strategy | BM25 artifact | Pinecone namespace |
+| --- | --- | --- |
+| `recursive` | `output/bm25_corpus.json` | default (`__default__`) |
+| `fixed` | `output/bm25_corpus_fixed.json` | `fixed` |
+
+Retrieval mode is either `semantic` (Pinecone dense ranking only) or `hybrid`
+(BM25 + Pinecone + RRF + cross-encoder reranking), and `top_k` must be at least
+one. With no arguments, the application continues to use
+`recursive` + `hybrid` + top-5.
+
+```python
+from src.pipeline import run_rag_query
+from src.retrieval import RetrievalProfile, build_retriever
+
+profile = RetrievalProfile("fixed", "semantic", 3)
+components = build_retriever(profile.chunking_strategy)
+result = run_rag_query(
+    "Who inherits property when there is no will?",
+    components,
+    temperature=0.2,
+    profile=profile,
+)
+```
+
+The profile verifies that its chunking strategy matches both the loaded BM25
+artifact and Pinecone namespace. The selected strategy, mode, namespace, and
+top-K are also recorded on the nested MLflow trace.
+
 ## Evaluation and Validation
 
 The project evaluates three reproducible configurations over the same query set: semantic retrieval with five chunks, hybrid retrieval with three reranked chunks, and hybrid retrieval with five reranked chunks. `src/evaluation.py` aggregates faithfulness, relevancy, success rate, and latency metrics, logs every configuration to MLflow, and selects the best run by mean faithfulness, then mean relevancy, then lower total latency.

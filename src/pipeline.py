@@ -3,32 +3,72 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import mlflow
 from mlflow.entities import SpanType
 
 from src.generation import generate_answer
 from src.mlflow_config import configure_mlflow
-from src.retrieval import retrieve
+from src.retrieval import RetrievalProfile, retrieve
 
 
 def run_rag_query(
     query: str,
     retriever_components: Dict[str, Any],
     *,
-    top_k: int,
-    semantic_only: bool,
+    top_k: Optional[int] = None,
+    semantic_only: Optional[bool] = None,
     temperature: float,
+    profile: Optional[RetrievalProfile] = None,
 ) -> Dict[str, Any]:
     """Run one query and store a nested chain -> retriever -> LLM trace."""
+    if profile is None:
+        effective_top_k = 5 if top_k is None else top_k
+        effective_semantic_only = (
+            False if semantic_only is None else semantic_only
+        )
+        chunking_strategy = retriever_components.get(
+            "chunking_strategy", "recursive"
+        )
+    else:
+        if top_k is not None and top_k != profile.top_k:
+            raise ValueError("top_k conflicts with the supplied retrieval profile")
+        if semantic_only is not None and semantic_only != profile.semantic_only:
+            raise ValueError(
+                "semantic_only conflicts with the supplied retrieval profile"
+            )
+        component_strategy = retriever_components.get("chunking_strategy")
+        if component_strategy and component_strategy != profile.chunking_strategy:
+            raise ValueError(
+                "Retriever components were built for "
+                f"{component_strategy!r}, not profile strategy "
+                f"{profile.chunking_strategy!r}"
+            )
+        component_namespace = retriever_components.get("pinecone_namespace")
+        if component_namespace != profile.pinecone_namespace:
+            raise ValueError(
+                "Retriever component namespace does not match the supplied "
+                "retrieval profile"
+            )
+        effective_top_k = profile.top_k
+        effective_semantic_only = profile.semantic_only
+        chunking_strategy = profile.chunking_strategy
+
     configure_mlflow()
     with mlflow.start_span(name="legal_aid_rag_query", span_type=SpanType.CHAIN) as span:
         span.set_inputs(
             {
                 "query": query,
-                "top_k": top_k,
-                "semantic_only": semantic_only,
+                "top_k": effective_top_k,
+                "semantic_only": effective_semantic_only,
+                "retrieval_mode": (
+                    "semantic" if effective_semantic_only else "hybrid"
+                ),
+                "chunking_strategy": chunking_strategy,
+                "pinecone_namespace": retriever_components.get(
+                    "pinecone_namespace"
+                ) or "__default__",
                 "temperature": temperature,
             }
         )
@@ -38,8 +78,8 @@ def run_rag_query(
         retrieval = retrieve(
             query,
             **retriever_components,
-            top_k=top_k,
-            semantic_only=semantic_only,
+            top_k=effective_top_k,
+            semantic_only=effective_semantic_only,
         )
         retrieval_ms = round((time.perf_counter() - retrieval_started) * 1000)
 
@@ -77,6 +117,9 @@ def run_rag_query(
                 ),
                 "retrieved_chunks": len(chunks),
                 "retrieval_mode": retrieval.get("debug", {}).get("mode"),
+                "chunking_strategy": retrieval.get("debug", {}).get(
+                    "chunking_strategy", chunking_strategy
+                ),
                 "timings": result["timings"],
             }
         )
