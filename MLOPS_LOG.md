@@ -31,6 +31,8 @@ Add experiment tracking and GenAI tracing to the original Streamlit/Pinecone/Hug
 - Added a root RAG chain in `src/pipeline.py`.
 - Added a `RETRIEVER` span around BM25 + Pinecone + RRF + reranking.
 - Added an `LLM` span around Hugging Face generation while excluding `HF_API_TOKEN`.
+- Added a provider-neutral `legal_generation` span and Groq fallback after both Hugging Face attempts fail; neither provider token is traced.
+- Added `real-rag-smoke-test` run logging for provider/model, fallback usage, latency, retrieved-chunk count, pass/fail status, and trace ID.
 - Added offline evaluation-run logging for configuration parameters, faithfulness, relevancy, and latency.
 - Updated the Streamlit application to use the traced pipeline.
 - Ignored local MLflow state (`mlflow.db`, its SQLite journal files, and `mlruns/`) in Git.
@@ -58,7 +60,8 @@ The Pinecone index name remains `legal-inheritance-rag`. Embedding, reranking, g
 | 2026-10-23 | Corpus regeneration and validation | Passed | Loaded 46 of 50 supplied files and generated 3,593 unique recursive chunks. `bm25_corpus.json` matches `chunks_recursive.json`, with non-empty texts of 30-600 characters. Four PDFs were skipped because they contained fewer than 50 extractable characters. |
 | 2026-10-23 | Python 3.12 environment | Passed | Created an ignored project-local Python 3.12.13 environment; PyTorch 2.14.1 CPU and Sentence Transformers 6.2.0 import successfully. |
 | 2026-10-23 | Pinecone embedding and upsert | Passed | Created the approved 384-dimensional cosine index `legal-inheritance-rag`, uploaded all 3,593 vectors, and passed a three-result semantic sanity query. The pre-existing `rag-fixed-chunks` index was not changed. |
-| 2026-10-23 | Full Pinecone + Hugging Face traced query | Blocked | Hybrid retrieval and reranking reached generation. Hugging Face returned HTTP 402 for the primary model because the account has no remaining provider credits; the fallback model is not supported by an enabled provider. MLflow flushed the failed-attempt trace. |
+| 2026-10-23 | Hugging Face to Groq fallback unit tests | Passed | Four tests verify provider order, no unnecessary Groq call, secret exclusion from results, MLflow provider/model/latency attributes, and compact root-chain output. |
+| 2026-10-23 | Full traced query with Groq fallback | Blocked | Hybrid retrieval and both Hugging Face attempts ran, then Groq returned HTTP 401. The value currently stored as `GROQ_API_KEY` is not an accepted `gsk_...` Groq key. Test 3 must be rerun after replacing it. |
 | 2026-10-22 | Groq evaluation runs in MLflow | Pending | Requires the complete RAG setup and keys. |
 
 ## Phase 1 manual test plan
@@ -135,7 +138,7 @@ Current result:
 
 Required before this test:
 
-- a `.env` file containing valid `PINECONE_API_KEY` and `HF_API_TOKEN` values (`GROQ_API_KEY` is needed for Test E, not this test);
+- a `.env` file containing valid `PINECONE_API_KEY`, `HF_API_TOKEN`, and `GROQ_API_KEY` values (Groq is used only if Hugging Face is unavailable);
 - the populated Pinecone index named `legal-inheritance-rag`;
 - the same embedding model used for that index (`all-MiniLM-L6-v2`);
 - `output/bm25_corpus.json` produced by `python src/preprocess.py`;
@@ -160,14 +163,15 @@ Pass conditions:
 - the Streamlit response still works as it did in the original project;
 - the trace root is `legal_aid_rag_query`;
 - `hybrid_legal_retrieval` contains the retrieved chunks and scores;
-- `huggingface_legal_generation` contains the prompt inputs and generated result;
+- `legal_generation` contains the prompt inputs, generated result, provider/model, latency, fallback flag, and sanitized attempt outcomes;
+- the `real-rag-smoke-test` run has `test_passed = 1.0` and records the trace ID;
 - no API token appears in span inputs, outputs, attributes, or tags.
 
 Record the result:
 
 | Date/time | Tester | Query | Result | Trace ID | Retrieval mode | Model used | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-23 | Codex (automated) | What share does a daughter receive in Islamic inheritance? | Blocked at generation | Failed attempt was flushed; rerun required to capture verified ID | Hybrid + reranking | None | Retrieval reached Hugging Face after the 3,593-vector Pinecone index was built. Primary returned HTTP 402 due to exhausted credits; fallback was unsupported. No secret value was printed or committed. |
+| 2026-10-23 | Codex (automated) | What share does a daughter receive in Islamic inheritance? | Blocked at Groq authentication | `tr-9a7818f72a862414a9e090103e837a2e` was incomplete and not accepted as verification evidence | Hybrid + reranking | None | HF primary returned 402, HF fallback was unsupported, then Groq returned 401. The root output was subsequently reduced to a compact summary to prevent incomplete SQLite traces. Rerun after installing a valid `gsk_...` Groq key. |
 
 ### Test E — log offline evaluation runs
 
@@ -214,3 +218,4 @@ Feature, scope, branch name, and acceptance criteria will be added only after Ph
 | 2026-10-22 | `1-mlflow-integration` | Test D prerequisite audit completed; real-query verification is blocked by missing local keys and corpus artifacts. |
 | 2026-10-23 | `1-mlflow-integration` | Regenerated and validated 3,593 BM25 entries; added missing tokenizer dependency and Windows UTF-8 handling. Test D is now blocked only by the absent configured Pinecone index. |
 | 2026-10-23 | `1-mlflow-integration` | Created and validated `legal-inheritance-rag` with 3,593 vectors. Real-query generation is blocked by Hugging Face credit/model availability. |
+| 2026-10-23 | `1-mlflow-integration` | Added tested Hugging Face-to-Groq fallback and MLflow provider/test metadata. Live Test D reached Groq but is blocked by an invalid Groq credential. |

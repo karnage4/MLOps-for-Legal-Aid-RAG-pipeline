@@ -11,4 +11,5 @@ requests
 pypdf
 python-dotenv
 nltk
+pytest
 mlflow>=3.8,<4

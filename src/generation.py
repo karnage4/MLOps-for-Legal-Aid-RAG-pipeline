@@ -1,13 +1,13 @@
 """
-Step 4 - LLM Generation via HuggingFace Inference API
-======================================================
+Step 4 - LLM Generation via Hugging Face with Groq fallback
+============================================================
 Takes retrieved chunks from Step 3 and generates a grounded answer
-using a hosted LLM (Mistral-7B-Instruct or Llama-3-8B).
+using Hugging Face first and Groq only when Hugging Face is unavailable.
 
 Also handles:
   - Prompt construction  (system + context + query)
   - Timing measurement   (for latency reporting in your report)
-  - Graceful fallback    (if primary model is overloaded, try backup)
+  - Graceful fallback    (Hugging Face model fallback, then Groq)
 
 Usage (standalone test):
   pip install requests
@@ -21,6 +21,7 @@ import os
 import time
 from typing import List, Dict, Optional
 
+import requests
 from huggingface_hub import InferenceClient
 import mlflow
 from mlflow.entities import SpanType
@@ -38,13 +39,18 @@ load_dotenv()
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+HF_API_TOKEN   = os.getenv("HF_API_TOKEN")
+GROQ_API_KEY  = os.getenv("GROQ_API_KEY")
 
 # Primary model — Strong instruction following
 PRIMARY_MODEL   = "Qwen/Qwen2.5-72B-Instruct"
 
 # Fallback model — smaller, almost always available on free tier
 FALLBACK_MODEL  = "Qwen/Qwen2.5-7B-Instruct"
+
+# Provider fallback — used only after both Hugging Face attempts fail.
+GROQ_FALLBACK_MODEL = "llama-3.1-8b-instant"
+GROQ_CHAT_URL       = "https://api.groq.com/openai/v1/chat/completions"
 
 MAX_NEW_TOKENS  = 512
 TEMPERATURE     = 0.2     # low = more factual, less creative (good for legal)
@@ -111,7 +117,7 @@ Answer:"""
 # 3.  MAIN GENERATION FUNCTION
 # ─────────────────────────────────────────────
 
-def _generate_answer_impl(
+def _generate_huggingface(
     query: str,
     chunks: List[Dict],
     hf_token: Optional[str]  = None,
@@ -206,25 +212,221 @@ def _error_result(message: str) -> Dict:
     }
 
 
+def _safe_provider_error(message: str) -> str:
+    """Keep provider diagnostics useful without storing large response bodies."""
+    return " ".join(str(message).split())[:500]
+
+
+def _generate_answer_impl(
+    query: str,
+    chunks: List[Dict],
+    hf_token: Optional[str] = None,
+    model: Optional[str] = None,
+    groq_api_key: Optional[str] = None,
+    groq_model: Optional[str] = None,
+    max_new_tokens: int = MAX_NEW_TOKENS,
+    temperature: float = TEMPERATURE,
+) -> Dict:
+    """Use Hugging Face first, then fall back to Groq without changing retrieval."""
+    generation_started = time.perf_counter()
+    model_to_use = model or PRIMARY_MODEL
+    selected_groq_model = groq_model or GROQ_FALLBACK_MODEL
+    selected_groq_key = groq_api_key or GROQ_API_KEY
+    prompt_messages = build_messages(query, chunks) if chunks else None
+    context = format_context(chunks[:CONTEXT_CHUNKS]) if chunks else None
+    attempts = []
+
+    selected_hf_token = hf_token or HF_API_TOKEN
+    hf_started = time.perf_counter()
+    if selected_hf_token and selected_hf_token != "YOUR_HF_TOKEN_HERE":
+        hf_result = _generate_huggingface(
+            query,
+            chunks,
+            hf_token=selected_hf_token,
+            model=model_to_use,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+        )
+    else:
+        hf_result = _error_result("HF_API_TOKEN is not configured.")
+    hf_latency_ms = round((time.perf_counter() - hf_started) * 1000)
+
+    if hf_result["error"] is None:
+        hf_fallback_used = hf_result["model_used"] != model_to_use
+        attempts.append(
+            {
+                "provider": "huggingface",
+                "model": hf_result["model_used"],
+                "status": "success",
+                "latency_ms": hf_latency_ms,
+                "error": None,
+            }
+        )
+        hf_result.update(
+            {
+                "provider": "huggingface",
+                "provider_latency_ms": hf_latency_ms,
+                "latency_ms": round(
+                    (time.perf_counter() - generation_started) * 1000
+                ),
+                "fallback_used": hf_fallback_used,
+                "attempts": attempts,
+            }
+        )
+        return hf_result
+
+    attempts.append(
+        {
+            "provider": "huggingface",
+            "model": f"{model_to_use} -> {FALLBACK_MODEL}",
+            "status": "failed",
+            "latency_ms": hf_latency_ms,
+            "error": _safe_provider_error(hf_result["error"]),
+        }
+    )
+
+    if not chunks:
+        return _provider_chain_error(
+            "No chunks retrieved — cannot generate an answer.",
+            prompt_messages,
+            context,
+            attempts,
+            generation_started,
+        )
+
+    if not selected_groq_key:
+        return _provider_chain_error(
+            "Hugging Face failed and GROQ_API_KEY is not configured.",
+            prompt_messages,
+            context,
+            attempts,
+            generation_started,
+        )
+
+    groq_started = time.perf_counter()
+    try:
+        print(
+            f"  Falling back to Groq model: {selected_groq_model} ...",
+            end=" ",
+            flush=True,
+        )
+        response = requests.post(
+            GROQ_CHAT_URL,
+            headers={
+                "Authorization": f"Bearer {selected_groq_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": selected_groq_model,
+                "messages": prompt_messages,
+                "max_tokens": max_new_tokens,
+                "temperature": temperature,
+                "top_p": TOP_P,
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        answer = (
+            payload.get("choices", [{}])[0]
+            .get("message", {})
+            .get("content", "")
+            .strip()
+        )
+        if not answer:
+            raise ValueError("Groq returned an empty response")
+
+        groq_latency_ms = round((time.perf_counter() - groq_started) * 1000)
+        attempts.append(
+            {
+                "provider": "groq",
+                "model": selected_groq_model,
+                "status": "success",
+                "latency_ms": groq_latency_ms,
+                "error": None,
+            }
+        )
+        print(f"done ({groq_latency_ms} ms)")
+        return {
+            "answer": answer,
+            "provider": "groq",
+            "model_used": selected_groq_model,
+            "prompt": str(prompt_messages),
+            "context": context,
+            "latency_ms": round(
+                (time.perf_counter() - generation_started) * 1000
+            ),
+            "provider_latency_ms": groq_latency_ms,
+            "fallback_used": True,
+            "attempts": attempts,
+            "error": None,
+        }
+    except Exception as error:
+        groq_latency_ms = round((time.perf_counter() - groq_started) * 1000)
+        safe_error = _safe_provider_error(error)
+        attempts.append(
+            {
+                "provider": "groq",
+                "model": selected_groq_model,
+                "status": "failed",
+                "latency_ms": groq_latency_ms,
+                "error": safe_error,
+            }
+        )
+        print(f"\n  Groq fallback failed: {safe_error}")
+        return _provider_chain_error(
+            f"All generation providers failed. Last error: {safe_error}",
+            prompt_messages,
+            context,
+            attempts,
+            generation_started,
+        )
+
+
+def _provider_chain_error(
+    message: str,
+    prompt_messages: Optional[List[Dict]],
+    context: Optional[str],
+    attempts: List[Dict],
+    generation_started: float,
+) -> Dict:
+    return {
+        "answer": f"[Generation error] {message}",
+        "provider": None,
+        "model_used": None,
+        "prompt": str(prompt_messages) if prompt_messages else None,
+        "context": context,
+        "latency_ms": round((time.perf_counter() - generation_started) * 1000),
+        "provider_latency_ms": 0,
+        "fallback_used": True,
+        "attempts": attempts,
+        "error": message,
+    }
+
+
 def generate_answer(
     query: str,
     chunks: List[Dict],
     hf_token: Optional[str] = None,
     model: Optional[str] = None,
+    groq_api_key: Optional[str] = None,
+    groq_model: Optional[str] = None,
     max_new_tokens: int = MAX_NEW_TOKENS,
     temperature: float = TEMPERATURE,
 ) -> Dict:
-    """Generate an answer inside a sanitized MLflow LLM span.
+    """Generate through Hugging Face/Groq inside a sanitized MLflow LLM span.
 
-    The Hugging Face token is deliberately never written to the trace.
+    Provider tokens are deliberately never written to the trace.
     """
     configure_mlflow()
-    with mlflow.start_span(name="huggingface_legal_generation", span_type=SpanType.LLM) as span:
+    with mlflow.start_span(name="legal_generation", span_type=SpanType.LLM) as span:
         span.set_inputs(
             {
                 "query": query,
                 "chunks": chunks,
-                "requested_model": model or PRIMARY_MODEL,
+                "provider_priority": ["huggingface", "groq"],
+                "requested_huggingface_model": model or PRIMARY_MODEL,
+                "groq_fallback_model": groq_model or GROQ_FALLBACK_MODEL,
                 "max_new_tokens": max_new_tokens,
                 "temperature": temperature,
             }
@@ -234,9 +436,21 @@ def generate_answer(
             chunks,
             hf_token=hf_token,
             model=model,
+            groq_api_key=groq_api_key,
+            groq_model=groq_model,
             max_new_tokens=max_new_tokens,
             temperature=temperature,
         )
+        span.set_attribute("generation.provider", result.get("provider") or "none")
+        span.set_attribute("generation.model", result.get("model_used") or "none")
+        span.set_attribute("generation.latency_ms", result.get("latency_ms", 0))
+        span.set_attribute(
+            "generation.provider_latency_ms",
+            result.get("provider_latency_ms", 0),
+        )
+        span.set_attribute("generation.fallback_used", result.get("fallback_used", False))
+        span.set_attribute("generation.success", result.get("error") is None)
+        span.set_attribute("generation.attempt_count", len(result.get("attempts", [])))
         span.set_outputs(result)
         return result
 

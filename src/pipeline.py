@@ -61,5 +61,23 @@ def run_rag_query(
                 "total_ms": round((time.perf_counter() - started) * 1000),
             },
         }
-        span.set_outputs(result)
+        # Detailed retrieval and generation payloads live on their child spans.
+        # Keep the root summary compact so SQLite trace persistence is reliable.
+        span.set_outputs(
+            {
+                "answer": generation.get("answer") if generation else None,
+                "generation_provider": (
+                    generation.get("provider") if generation else None
+                ),
+                "generation_model": (
+                    generation.get("model_used") if generation else None
+                ),
+                "generation_error": (
+                    generation.get("error") if generation else None
+                ),
+                "retrieved_chunks": len(chunks),
+                "retrieval_mode": retrieval.get("debug", {}).get("mode"),
+                "timings": result["timings"],
+            }
+        )
         return result

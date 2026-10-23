@@ -64,7 +64,7 @@ The resultant interface is designed to migrate beyond local boundaries and is ac
 
 ## MLflow Integration — Phase 1
 
-This working copy keeps the original RAG architecture, models, API providers, and required environment variables unchanged. The only required dependency added in this phase is MLflow. If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
+This working copy keeps the original retrieval architecture and required environment variable names unchanged. Hugging Face remains the primary generation provider; if both Hugging Face model attempts fail, generation falls back to Groq using the existing `GROQ_API_KEY`. If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
 
 Testing status, evidence, and the handoff rules for later features are maintained in [`MLOPS_LOG.md`](MLOPS_LOG.md). Update that file immediately after each manual test and before opening the next feature branch.
 
@@ -72,7 +72,8 @@ The integration records:
 
 - a root `legal_aid_rag_query` CHAIN span for each Streamlit question;
 - a nested `hybrid_legal_retrieval` RETRIEVER span with the actual retrieved chunks;
-- a nested `huggingface_legal_generation` LLM span without recording the Hugging Face token;
+- a nested `legal_generation` LLM span recording the selected provider, model, latency, fallback status, and sanitized attempt results without recording either provider token;
+- a `real-rag-smoke-test` run recording the Test 3 result, provider/model tags, retrieval and generation latency, fallback usage, and trace ID;
 - one conventional MLflow run per offline evaluation configuration, including faithfulness, relevancy, and latency metrics.
 
 ### Manual test 1: MLflow only — no cloud keys needed
@@ -121,7 +122,13 @@ Keep the original `output/bm25_corpus.json` and Pinecone index available, then s
 streamlit run app.py
 ```
 
-Submit one question and refresh the MLflow Traces tab. The query should appear as one chain containing retrieval and generation spans. Retrieval content and the generated response are stored for debugging; secret values are not logged.
+Or run the repeatable Test 3 check directly:
+
+```bash
+python -m src.mlflow_rag_smoke_test
+```
+
+Submit one question and refresh the MLflow Traces tab. The query should appear as one chain containing retrieval and generation spans. Hugging Face is attempted first and Groq is used only after Hugging Face fails. Retrieval content, provider/model selection, latency, and the generated response are stored for debugging; secret values are not logged.
 
 ### Manual test 4: evaluation-run logging
 
