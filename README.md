@@ -50,10 +50,22 @@ The pipeline must be engaged consecutively to ensure structural integrity across
    This produces `output/bm25_corpus_fixed.json` and verifies required fields, strategy labels, chunk-index ranges, unique IDs, non-empty text, and exact BM25 ID/text alignment. It does not access or modify Pinecone.
 
 2. **Embedding and Upsert Phase**:
-   Transforms and uploads processed textual boundaries.
+   Transforms and uploads one validated chunking strategy at a time. The
+   no-argument/default profile remains recursive and writes to Pinecone's
+   default namespace. Fixed chunks use their own cache and the isolated
+   `fixed` namespace, so their overlapping IDs cannot replace recursive
+   vectors.
+
    ```bash
-   python3 src/embed_upsert.py
+   python -m src.embed_upsert --strategy recursive
+   python -m src.embed_upsert --strategy fixed
    ```
+
+   The fixed command reads `output/chunks_fixed.json`, caches embeddings in
+   ignored `output/embeddings_fixed.json`, validates the 384-dimensional
+   cosine index, requires exactly 883 vectors in `fixed`, self-queries three
+   representative vectors, and confirms the recursive namespace count did
+   not change. It is safe to rerun because Pinecone upserts are idempotent.
 
 3. **Application Interface**:
    Boots the interactive frontend layer locally.

@@ -15,7 +15,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
-| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Step 1 fixed BM25 preparation passed | Active |
+| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Steps 1-2 fixed corpus/index preparation passed | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -258,6 +258,11 @@ Nested-trace correction was verified live on 2026-10-23 with evaluation run `428
 
 Final local verification passed on 2026-10-23 after Step 1: `16 passed in 187.61s` across `test_prepare_bm25.py`, `test_evaluation_experiments.py`, `test_generation_fallback.py`, and `test_pipeline_tracing.py`. The pre-push audit also passed `git diff --check`, confirmed `.env`, `mlflow.db`, and generated `output/` artifacts are ignored, and found no credential-shaped values outside excluded local files.
 
+Step 2 regression verification passed on 2026-10-23: `21 passed in
+203.88s` across `test_prepare_bm25.py`, `test_embed_upsert.py`,
+`test_evaluation_experiments.py`, `test_generation_fallback.py`, and
+`test_pipeline_tracing.py`.
+
 ### Eight-configuration expansion
 
 The target matrix combines fixed/recursive chunking, semantic/hybrid retrieval, and top K values 3/5. It is being introduced in isolated checkpoints so the recursive production default remains usable throughout.
@@ -265,7 +270,7 @@ The target matrix combines fixed/recursive chunking, semantic/hybrid retrieval, 
 | Step | Scope | Status | Verification |
 | --- | --- | --- | --- |
 | 1 | Prepare and validate fixed BM25 corpus | Complete | 883 chunks, 883 unique IDs, 46 sources, exact alignment passed |
-| 2 | Upload fixed embeddings to isolated Pinecone namespace | Pending | No Pinecone change made in Step 1 |
+| 2 | Upload fixed embeddings to isolated Pinecone namespace | Complete | 883 fixed vectors; recursive/default remained 3,593; three self-query readbacks and a semantic sanity query passed |
 | 3 | Add configurable retrieval profiles | Pending | Existing recursive defaults remain unchanged |
 | 4 | Retrieval-only fixed profile smoke tests | Pending | — |
 | 5 | Expand evaluation matrix to eight configurations | Pending | — |
@@ -280,6 +285,22 @@ python -m src.prepare_bm25 --strategy fixed
 Step 1 real-data validation produced `output/bm25_corpus_fixed.json` with SHA-256 `e878377705440dc9e599ecd3e3c2b55cd69299a072d23b7f1d806fd9736a7f15`. Fixed chunk texts range from 52 to 5,314 characters with an average of 1,783.25. The existing recursive `output/bm25_corpus.json` was not rewritten; it still aligns with 3,593 recursive chunks and has SHA-256 `51c8b6cd081f954f3e5d94d4676e98ffccb46556c6bc5fd88a736207447dcdc2`.
 
 There are 40 IDs shared between the fixed and recursive chunk files because the original stable-ID function does not include the strategy name. This is safe for separate local BM25 artifacts, but it makes the isolated `fixed` Pinecone namespace mandatory in Step 2; uploading fixed vectors to the default namespace would risk overwriting recursive vectors.
+
+Step 2 command:
+
+```bash
+python -m src.embed_upsert --strategy fixed
+```
+
+Step 2 preserved the original recursive defaults while adding an explicit
+fixed profile backed by `output/embeddings_fixed.json` and Pinecone namespace
+`fixed`. The implementation validates the index dimension and metric, chunk
+and embedding alignment, unique Pinecone IDs, full-text metadata size, exact
+namespace vector count, three representative self-query readbacks, and a
+namespace-scoped semantic sanity query. The verified idempotent rerun reported
+883 fixed vectors, 3,593 recursive/default vectors before and after the upload,
+and 4,476 vectors total. Its three sanity-query results all carried
+`strategy=fixed`.
 
 ## Change history
 
@@ -301,3 +322,4 @@ There are 40 IDs shared between the fixed and recursive chunk files because the 
 | 2026-10-23 | `2-rag-evaluation-experiments` | Passed the final 11-test focused suite and pre-push secret/ignore/diff audit; partial configurations are explicitly excluded from best-run selection. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Corrected evaluation tracing to reuse the application CHAIN boundary; live MLflow parent-ID readback confirmed query, retrieval, and generation are nested in trace `tr-83738135bb07f35ce078e9be0c71ae88`. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Began the eight-configuration expansion. Step 1 added validated strategy-specific BM25 preparation, generated the 883-entry fixed corpus, preserved the recursive default, and documented the 40 cross-strategy ID collisions requiring namespace isolation. |
+| 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 2: cached and uploaded 883 fixed embeddings to isolated Pinecone namespace `fixed`, verified representative vectors and a semantic query, and confirmed the recursive/default namespace remained at 3,593 vectors. |
