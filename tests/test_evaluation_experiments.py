@@ -62,6 +62,70 @@ def test_batch_claim_verification_rejects_incomplete_judge_output():
     assert verdicts is None
 
 
+def test_run_evaluation_uses_traced_rag_boundary():
+    rag_result = {
+        "retrieval": {
+            "chunks": [{"source": "law.txt", "text": "Legal context"}],
+            "debug": {"mode": "hybrid"},
+        },
+        "generation": {
+            "answer": "Grounded answer",
+            "model_used": "test-model",
+            "error": None,
+        },
+        "timings": {
+            "retrieval_ms": 100,
+            "generation_ms": 200,
+            "total_ms": 300,
+        },
+    }
+    faithfulness = {
+        "score": 1.0,
+        "total_claims": 1,
+        "supported_claims": 1,
+        "claims": ["Grounded claim"],
+        "verifications": [{"claim": "Grounded claim", "supported": True}],
+        "error": None,
+    }
+    relevancy = {
+        "score": 0.9,
+        "generated_questions": ["Question?"],
+        "similarities": [0.9],
+        "error": None,
+    }
+
+    with (
+        patch.object(evaluation, "run_rag_query", return_value=rag_result) as traced_rag,
+        patch.object(
+            evaluation, "evaluate_faithfulness", return_value=faithfulness
+        ),
+        patch.object(evaluation, "evaluate_relevancy", return_value=relevancy),
+        patch.object(evaluation, "log_evaluation_summary", return_value="run-id"),
+        patch.object(evaluation.time, "sleep"),
+    ):
+        experiment = evaluation.run_evaluation(
+            ["Legal question?"],
+            {"component": "value"},
+            object(),
+            config_label="trace-test",
+            semantic_only=False,
+            top_k=5,
+            temperature=0.2,
+        )
+
+    traced_rag.assert_called_once_with(
+        "Legal question?",
+        {"component": "value"},
+        top_k=5,
+        semantic_only=False,
+        temperature=0.2,
+    )
+    result = experiment["results"][0]
+    assert result["answer"] == "Grounded answer"
+    assert result["timings"]["retrieval_ms"] == 100
+    assert result["timings"]["generation_ms"] == 200
+
+
 def test_best_configuration_uses_documented_tie_breakers():
     experiments = {
         "A": {"summary": _summary(0.7, 0.9, 1000)},

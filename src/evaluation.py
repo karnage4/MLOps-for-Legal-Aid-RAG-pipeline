@@ -37,8 +37,10 @@ from dotenv import load_dotenv
 
 try:
     from src.mlflow_config import log_evaluation_summary, mark_best_evaluation_run
+    from src.pipeline import run_rag_query
 except ImportError:  # supports `python src/evaluation.py`
     from mlflow_config import log_evaluation_summary, mark_best_evaluation_run
+    from pipeline import run_rag_query
 
 load_dotenv()
 
@@ -452,13 +454,6 @@ def run_evaluation(
 
     Returns the configuration, per-query results, summary, and MLflow run ID.
     """
-    try:
-        from src.retrieval import retrieve
-        from src.generation import generate_answer
-    except ImportError:  # supports `python src/evaluation.py`
-        from retrieval import retrieve
-        from generation import generate_answer
-
     results = []
     mode = "semantic_only" if semantic_only else "hybrid_rerank"
 
@@ -476,38 +471,43 @@ def run_evaluation(
 
         t_start = time.time()
 
-        # 1. Retrieve
-        print("  Retrieving...", end=" ", flush=True)
-        t0 = time.time()
-        retrieval = retrieve(
+        # Retrieval and generation share the same parent CHAIN span so one
+        # evaluation query appears as one nested MLflow GenAI trace.
+        print("  Running traced RAG chain...", end=" ", flush=True)
+        rag_result = run_rag_query(
             query,
-            **retriever_components,
+            retriever_components,
             top_k=top_k,
             semantic_only=semantic_only,
+            temperature=temperature,
         )
-        retrieval_ms = round((time.time() - t0) * 1000)
-        print(f"{retrieval_ms} ms — {len(retrieval['chunks'])} chunks")
-
+        retrieval = rag_result["retrieval"]
+        gen = rag_result["generation"]
+        rag_timings = rag_result["timings"]
+        retrieval_ms = rag_timings["retrieval_ms"]
+        generation_ms = rag_timings["generation_ms"]
         chunks  = retrieval["chunks"]
         context = "\n\n".join(c["text"] for c in chunks)
+        print(
+            f"{retrieval_ms} ms retrieval, {generation_ms} ms generation "
+            f"— {len(chunks)} chunks"
+        )
 
-        # 2. Generate
-        print("  Generating answer...", end=" ", flush=True)
-        t0 = time.time()
-        gen = generate_answer(query, chunks, temperature=temperature)
-        generation_ms = round((time.time() - t0) * 1000)
-        print(f"{generation_ms} ms")
-
-        answer = gen["answer"]
-        if gen["error"]:
-            print(f"  Generation failed: {gen['error']}")
+        generation_error = (
+            gen.get("error") if gen else "No context was retrieved for generation"
+        )
+        if generation_error:
+            print(f"  Generation failed: {generation_error}")
             results.append({
-                "query": query, "error": gen["error"],
+                "query": query, "error": generation_error,
                 "faithfulness": _empty_faithfulness(),
                 "relevancy":    _empty_relevancy(),
+                "timings": rag_timings,
             })
             time.sleep(EVALUATION_COOLDOWN_SECONDS)
             continue
+
+        answer = gen["answer"]
 
         # 3. Faithfulness
         print("  Evaluating faithfulness...")
