@@ -5,7 +5,8 @@ Handles: PDF and TXT files
 Outputs:
   - chunks_fixed.json       (Fixed-size chunking)
   - chunks_recursive.json   (Recursive chunking)
-  - bm25_corpus.json        (Plain text list for BM25 index)
+  - bm25_corpus_fixed.json  (Fixed-chunk BM25 corpus)
+  - bm25_corpus.json        (Recursive BM25 corpus; production default)
 
 Usage:
   pip install pypdf langchain-text-splitters tiktoken
@@ -25,6 +26,11 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     CharacterTextSplitter,
 )
+
+try:
+    from src.prepare_bm25 import build_bm25_data
+except ImportError:  # supports `python src/preprocess.py`
+    from prepare_bm25 import build_bm25_data
 
 
 # Windows terminals may default to a legacy code page that cannot print the
@@ -224,15 +230,16 @@ def save_chunks(chunks: List[Dict], filename: str):
     print(f"  Saved {len(chunks):,} chunks → {out_path}")
 
 
-def save_bm25_corpus(chunks: List[Dict], filename: str):
+def save_bm25_corpus(
+    chunks: List[Dict],
+    filename: str,
+    expected_strategy: str,
+):
     """
     Save a plain list of chunk texts for BM25 indexing.
     Also saves the matching IDs so results map back to full metadata.
     """
-    bm25_data = {
-        "ids":   [c["id"]   for c in chunks],
-        "texts": [c["text"] for c in chunks],
-    }
+    bm25_data, _ = build_bm25_data(chunks, expected_strategy)
     out_path = os.path.join(OUTPUT_DIR, filename)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(bm25_data, f, ensure_ascii=False, indent=2)
@@ -286,9 +293,10 @@ def main():
     save_chunks(fixed_chunks,     "chunks_fixed.json")
     save_chunks(recursive_chunks, "chunks_recursive.json")
 
-    # BM25 corpus uses the recursive chunks by default
-    # (you'll compare both strategies in your ablation study later)
-    save_bm25_corpus(recursive_chunks, "bm25_corpus.json")
+    # Keep the recursive filename as the production-compatible default while
+    # generating a separate fixed corpus for controlled evaluation.
+    save_bm25_corpus(fixed_chunks, "bm25_corpus_fixed.json", "fixed")
+    save_bm25_corpus(recursive_chunks, "bm25_corpus.json", "recursive")
 
     print("\nDone!")
     print("=" * 55)

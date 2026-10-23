@@ -7,6 +7,7 @@ This repository contains the source code, offline evaluation scripts, and deploy
 The codebase is logically split into modular stages corresponding to the data ingestion pipeline and final deployment.
 
 - `src/preprocess.py`: Extracts and recursively chunks raw legal documents from PDF formats.
+- `src/prepare_bm25.py`: Builds and validates strategy-specific BM25 artifacts from existing fixed or recursive chunks without contacting Pinecone.
 - `src/embed_upsert.py`: Processes continuous text chunks into dense mathematical vectors locally using Sentence Transformers and upserts them to a remote Pinecone Serverless matrix.
 - `src/retrieval.py`: Houses the mathematical logic for querying. It executes parallel sparse (BM25) and dense (Pinecone) queries, merging their outputs systematically via Reciprocal Rank Fusion (RRF). 
 - `src/generation.py`: Sends retrieved context to Hugging Face first and cleanly falls back to the configured Groq Qwen model when Hugging Face is unavailable.
@@ -35,10 +36,18 @@ Note: The `requirements.txt` includes advanced dependencies natively required fo
 The pipeline must be engaged consecutively to ensure structural integrity across the Vector DB and local sparse matrices before opening the application loop.
 
 1. **Preprocessing Phase**:
-   Combines and validates raw input documents, then creates the local chunk and BM25 artifacts.
+   Combines and validates raw input documents, then creates fixed and recursive chunk/BM25 artifacts. The existing `bm25_corpus.json` remains the recursive production default.
    ```bash
    python3 src/preprocess.py
    ```
+
+   If the chunk files already exist, regenerate only the fixed BM25 artifact with:
+
+   ```bash
+   python -m src.prepare_bm25 --strategy fixed
+   ```
+
+   This produces `output/bm25_corpus_fixed.json` and verifies required fields, strategy labels, chunk-index ranges, unique IDs, non-empty text, and exact BM25 ID/text alignment. It does not access or modify Pinecone.
 
 2. **Embedding and Upsert Phase**:
    Transforms and uploads processed textual boundaries.

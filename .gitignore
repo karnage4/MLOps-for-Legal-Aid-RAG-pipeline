@@ -11,6 +11,7 @@ ablation_results.json
 mlflow.db
 mlflow.db-*
 mlruns/
+artifacts/test-tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
