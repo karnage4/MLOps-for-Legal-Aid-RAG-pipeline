@@ -106,6 +106,30 @@ The profile verifies that its chunking strategy matches both the loaded BM25
 artifact and Pinecone namespace. The selected strategy, mode, namespace, and
 top-K are also recorded on the nested MLflow trace.
 
+### Fixed-profile retrieval smoke test
+
+Run all four fixed retrieval combinations without calling a generation model
+or evaluation judge:
+
+```bash
+python -m src.retrieval_smoke_test
+```
+
+The command builds the fixed BM25 index once, queries only Pinecone namespace
+`fixed`, requires exact top-3/top-5 result counts and fixed-strategy metadata,
+and reads each MLflow trace back to confirm that `hybrid_legal_retrieval` is a
+child of `fixed_retrieval_smoke`. Its detailed local report is written to the
+ignored file `output/fixed_retrieval_smoke.json`.
+
+Verified on 2026-10-24:
+
+| Profile | BM25 candidates | Semantic candidates | Returned | Latency | MLflow trace |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Fixed semantic top-3 | 0 | 20 | 3 | 8,917.83 ms | `tr-16bab80442459f2254969c872c1a390c` |
+| Fixed semantic top-5 | 0 | 20 | 5 | 590.65 ms | `tr-884b12d2036c6a7cf570125ef276dd6d` |
+| Fixed hybrid top-3 | 20 | 20 | 3 | 11,540.70 ms | `tr-94b7ab775813e06c3e57a2a011297335` |
+| Fixed hybrid top-5 | 20 | 20 | 5 | 10,989.34 ms | `tr-477c416ffed26dff909042d956c8735a` |
+
 ## Evaluation and Validation
 
 The project evaluates three reproducible configurations over the same query set: semantic retrieval with five chunks, hybrid retrieval with three reranked chunks, and hybrid retrieval with five reranked chunks. `src/evaluation.py` aggregates faithfulness, relevancy, success rate, and latency metrics, logs every configuration to MLflow, and selects the best run by mean faithfulness, then mean relevancy, then lower total latency.

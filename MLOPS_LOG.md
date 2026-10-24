@@ -15,7 +15,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
-| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Steps 1-3 data, index, and profile preparation passed | Active |
+| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Steps 1-4 preparation and fixed retrieval smoke tests passed | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -272,7 +272,7 @@ The target matrix combines fixed/recursive chunking, semantic/hybrid retrieval, 
 | 1 | Prepare and validate fixed BM25 corpus | Complete | 883 chunks, 883 unique IDs, 46 sources, exact alignment passed |
 | 2 | Upload fixed embeddings to isolated Pinecone namespace | Complete | 883 fixed vectors; recursive/default remained 3,593; three self-query readbacks and a semantic sanity query passed |
 | 3 | Add configurable retrieval profiles | Complete | Validated strategy/mode/top-K profiles route matching BM25 artifacts and Pinecone namespaces; recursive/hybrid/top-5 remains default |
-| 4 | Retrieval-only fixed profile smoke tests | Pending | — |
+| 4 | Retrieval-only fixed profile smoke tests | Complete | All four semantic/hybrid top-3/top-5 profiles passed against namespace `fixed`; nested MLflow traces verified |
 | 5 | Expand evaluation matrix to eight configurations | Pending | — |
 | 6 | Run and compare the final eight-run suite | Pending | — |
 
@@ -318,6 +318,33 @@ across data preparation, embedding/upsert, retrieval profiles, evaluation,
 generation fallback, and pipeline tracing tests. Live fixed-profile retrieval
 is intentionally the separate Step 4 checkpoint.
 
+Step 4 command:
+
+```bash
+python -m src.retrieval_smoke_test
+```
+
+The retrieval-only command reuses one fixed BM25/model bundle and does not call
+Hugging Face generation, Groq generation, or the Groq judge. On 2026-10-24 all
+four profiles returned the exact requested number of non-empty, unique, fixed
+chunks from Pinecone namespace `fixed`:
+
+| Profile | BM25 | Semantic | Fused | Returned | Latency | Trace ID |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `fixed-semantic-top3` | 0 | 20 | 20 | 3 | 8,917.83 ms | `tr-16bab80442459f2254969c872c1a390c` |
+| `fixed-semantic-top5` | 0 | 20 | 20 | 5 | 590.65 ms | `tr-884b12d2036c6a7cf570125ef276dd6d` |
+| `fixed-hybrid-top3` | 20 | 20 | 38 | 3 | 11,540.70 ms | `tr-94b7ab775813e06c3e57a2a011297335` |
+| `fixed-hybrid-top5` | 20 | 20 | 38 | 5 | 10,989.34 ms | `tr-477c416ffed26dff909042d956c8735a` |
+
+Immediate MLflow readback verified that every trace contains exactly one
+`fixed_retrieval_smoke` CHAIN root and one `hybrid_legal_retrieval` RETRIEVER
+child whose `parent_id` equals the root `span_id`. The ignored detailed report
+is `output/fixed_retrieval_smoke.json`.
+
+Step 4 regression verification passed on 2026-10-24: `40 passed in 46.82s`
+across all seven focused test modules. The smoke test made no Pinecone writes
+and no generation or judge requests.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -340,3 +367,4 @@ is intentionally the separate Step 4 checkpoint.
 | 2026-10-23 | `2-rag-evaluation-experiments` | Began the eight-configuration expansion. Step 1 added validated strategy-specific BM25 preparation, generated the 883-entry fixed corpus, preserved the recursive default, and documented the 40 cross-strategy ID collisions requiring namespace isolation. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 2: cached and uploaded 883 fixed embeddings to isolated Pinecone namespace `fixed`, verified representative vectors and a semantic query, and confirmed the recursive/default namespace remained at 3,593 vectors. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 3 implementation: added validated retrieval profiles, strategy-specific BM25/Pinecone routing, true semantic versus hybrid execution paths, mismatch guards, MLflow profile metadata, and focused unit coverage while preserving recursive/hybrid/top-5 defaults. |
+| 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 4: all four fixed semantic/hybrid top-3/top-5 retrieval profiles passed live namespace, strategy, count, content, and nested MLflow trace validation without generation or judge calls. |

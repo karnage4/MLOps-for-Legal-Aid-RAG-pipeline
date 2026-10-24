@@ -390,6 +390,18 @@ def _retrieve_impl(
         fused = sem_results
         final_chunks = rerank(query, fused, reranker, top_k=top_k)
 
+    # BM25-only hybrid candidates do not carry Pinecone metadata. They still
+    # come from the strategy-specific BM25 corpus, so attach that resolved
+    # strategy while rejecting any contradictory Pinecone metadata.
+    for chunk in final_chunks:
+        observed_strategy = chunk.get("strategy")
+        if observed_strategy and observed_strategy != chunking_strategy:
+            raise RuntimeError(
+                f"Retrieved chunk {chunk.get('id')!r} has strategy "
+                f"{observed_strategy!r}; expected {chunking_strategy!r}"
+            )
+        chunk["strategy"] = chunking_strategy
+
     return {
         "chunks": final_chunks,
         "debug": {
