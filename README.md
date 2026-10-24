@@ -150,28 +150,43 @@ latency.
 | Fixed | Hybrid + reranking | 5 | `fixed` |
 
 The two BM25 indexes remain separate, while the Pinecone client, embedding
-model, and reranker are shared in memory. Step 5 configures and tests this
-matrix; the real eight-run execution and comparison are reserved for Step 6.
+model, and reranker are shared in memory. The complete matrix was executed and
+verified in Step 6 as described below.
 
 Every evaluation query is executed through the same traced `run_rag_query` boundary as the application. MLflow therefore stores one `legal_aid_rag_query` parent trace containing the `hybrid_legal_retrieval` and `legal_generation` child spans, rather than separate root traces for retrieval and generation.
 
 The Groq judge model is configured through `GROQ_JUDGE_MODEL` and defaults to the currently verified `openai/gpt-oss-20b`, keeping judge quota separate from the Qwen generation fallback. `EVALUATION_QUERY_LIMIT` controls the common evaluation-set size and defaults to three queries; `EVALUATION_COOLDOWN_SECONDS` defaults to five seconds between queries.
 
-### Historical three-run baseline (verified 2026-10-23)
+### Final eight-run comparison (verified 2026-10-24)
 
-These three recursive-only configurations evaluated the same three held-out
-questions with no failed queries. The current
-[`artifacts/rag_evaluation_summary.json`](artifacts/rag_evaluation_summary.json)
-retains this verified baseline until Step 6 successfully completes and writes
-the new eight-run result.
+All eight configurations evaluated the same three held-out questions, for 24
+successful queries and no failures. Direct MLflow readback confirmed that all
+runs are `FINISHED`, their recorded parameters match the actual retrievers,
+and every run has `success_rate=1.0` and `evaluation.status=passed`. The
+reviewable result is stored in
+[`artifacts/rag_evaluation_summary.json`](artifacts/rag_evaluation_summary.json).
 
-| Configuration | Retrieval | Top K | Mean faithfulness | Mean relevancy | Mean total latency | MLflow run ID |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| A | Semantic only | 5 | 0.9667 | 0.7435 | 13,778.3 ms | `fad0d83034144ec6b225b75d5317ebaa` |
-| B | Hybrid + reranking | 3 | 0.9000 | 0.7481 | 7,893.3 ms | `15fd491ef5d54a16af4794a1067bc100` |
-| C | Hybrid + reranking | 5 | **0.9762** | **0.7831** | 8,226.3 ms | `f9787d3e95a646baa707770c2754a17a` |
+| Configuration | Mean faithfulness | Mean relevancy | Mean total latency | Successful | MLflow run ID |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `recursive-semantic-top3` | 0.8889 | 0.7717 | 17,208.0 ms | 3/3 | `db8bf52010044b47a262af5e8add6dda` |
+| `recursive-semantic-top5` | 0.7556 | 0.4809 | 6,851.3 ms | 3/3 | `de06c99b5b9d41d89333459657065f59` |
+| `recursive-hybrid-top3` | 0.9667 | **0.7860** | 11,799.0 ms | 3/3 | `07be884a244d41c99f5f8540611a07f1` |
+| `recursive-hybrid-top5` | 0.7778 | 0.7723 | 9,374.7 ms | 3/3 | `6d8ff2c40dce4ba48aa2bc77f98d95b3` |
+| `fixed-semantic-top3` | **1.0000** | 0.7228 | 10,589.7 ms | 3/3 | `73841e75f54b4a968339b8b63943d5d4` |
+| `fixed-semantic-top5` | 0.7963 | 0.7501 | 16,014.0 ms | 3/3 | `cc8313f367b7424eba49bf45328803f9` |
+| **`fixed-hybrid-top3`** | **1.0000** | 0.7700 | 17,530.0 ms | 3/3 | `ba6464e78f014a6db1d21af5c39d508f` |
+| `fixed-hybrid-top5` | 0.6667 | 0.7402 | 15,932.7 ms | 3/3 | `84ec54970978451fb33ace36af25c730` |
 
-Configuration C is the selected best run because it has the highest mean faithfulness; it also has the highest mean relevancy. The deterministic selection rule compares mean faithfulness first, then mean relevancy, then lower mean total latency. MLflow tags this run with `evaluation.best_run=true`.
+`fixed-hybrid-top3` is selected because it ties for the highest mean
+faithfulness and has higher mean relevancy than the other 1.0000-faithfulness
+configuration. The deterministic rule compares mean faithfulness first, then
+mean relevancy, then lower mean total latency. MLflow identifies the selected
+run with `evaluation.best_run=true`.
+
+Hugging Face remained the primary generation provider during the suite. Its
+requests were unavailable because of account credit/provider availability, so
+all successful answers used the configured Groq fallback. Transient judge
+rate limits were handled by the bounded retry logic.
 
 ### Training exemption for this RAG project
 

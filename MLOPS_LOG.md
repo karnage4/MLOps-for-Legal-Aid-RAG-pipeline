@@ -15,7 +15,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
-| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Eight-configuration suite prepared | Steps 1-5 passed; final eight-run execution pending | Active |
+| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Complete | All six steps and final eight-run suite passed | Accepted |
 
 ## Phase 1 — MLflow integration
 
@@ -209,15 +209,12 @@ The team confirmed that traditional supervised model training is exempt for this
 
 Run at least three genuine RAG configurations over the same evaluation query set, log their parameters and aggregate metrics to MLflow, select the best configuration using a documented rule, and record reproducible run IDs.
 
-### Planned configurations
+### Evaluated configurations
 
-| Label | Retrieval mode | Top K | Purpose |
-| --- | --- | ---: | --- |
-| A | Semantic only | 5 | Dense-retrieval baseline |
-| B | Hybrid + reranking | 3 | Test smaller context selection |
-| C | Hybrid + reranking | 5 | Current production configuration |
-
-All configurations use the same recursive prepared corpus and Pinecone index so retrieval mode and `top_k` are the only changed variables.
+The final matrix crosses recursive/fixed chunking, semantic/hybrid retrieval,
+and top-K values 3/5. Every configuration uses the same three held-out queries;
+strategy-specific BM25 artifacts and isolated Pinecone namespaces prevent
+fixed chunks from replacing recursive chunks.
 
 ### Acceptance criteria
 
@@ -235,22 +232,39 @@ All configurations use the same recursive prepared corpus and Pinecone index so 
 - Replaced the retired fixed judge with configurable Groq judge settings: `GROQ_JUDGE_MODEL=openai/gpt-oss-20b` and `GROQ_JUDGE_REASONING_EFFORT=low`.
 - Batched claim verification into one judge request per answer while preserving the original supported-claims/total-claims faithfulness formula.
 - Added bounded retry handling for rate limits and transient provider errors.
-- Ran semantic top-5, hybrid/reranked top-3, and hybrid/reranked top-5 against the same three held-out questions.
+- Ran the complete eight-profile chunking/retrieval/top-K matrix against the same three held-out questions.
 - Logged configuration parameters, judge settings, faithfulness, relevancy, retrieval/generation/total latency, success counts, and status tags to MLflow.
 - Selected and tagged the best successful run using mean faithfulness, mean relevancy, then mean total latency.
 - Routed evaluation queries through the application-level `run_rag_query` boundary so each query, retrieval operation, and generated answer form one nested MLflow trace.
 - Added the tracked summary artifact `artifacts/rag_evaluation_summary.json` and kept per-query responses in ignored `output/` data.
-- Added focused unit coverage for result aggregation, batched verdict parsing, incomplete judge output, deterministic best-run selection, and the three-configuration suite.
+- Added focused unit coverage for result aggregation, batched verdict parsing, incomplete judge output, deterministic best-run selection, and the eight-configuration suite.
 
-### Verified results
+### Verified final results
 
-| Configuration | Retrieval mode | Top K | Faithfulness | Relevancy | Avg. total latency | Successful | MLflow run ID |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `A-semantic-top5` | Semantic only | 5 | 0.9667 | 0.7435 | 13,778.3 ms | 3/3 | `fad0d83034144ec6b225b75d5317ebaa` |
-| `B-hybrid-top3` | Hybrid + reranking | 3 | 0.9000 | 0.7481 | 7,893.3 ms | 3/3 | `15fd491ef5d54a16af4794a1067bc100` |
-| `C-hybrid-top5` | Hybrid + reranking | 5 | **0.9762** | **0.7831** | 8,226.3 ms | 3/3 | `f9787d3e95a646baa707770c2754a17a` |
+| Configuration | Faithfulness | Relevancy | Avg. total latency | Successful | MLflow run ID |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `recursive-semantic-top3` | 0.8889 | 0.7717 | 17,208.0 ms | 3/3 | `db8bf52010044b47a262af5e8add6dda` |
+| `recursive-semantic-top5` | 0.7556 | 0.4809 | 6,851.3 ms | 3/3 | `de06c99b5b9d41d89333459657065f59` |
+| `recursive-hybrid-top3` | 0.9667 | **0.7860** | 11,799.0 ms | 3/3 | `07be884a244d41c99f5f8540611a07f1` |
+| `recursive-hybrid-top5` | 0.7778 | 0.7723 | 9,374.7 ms | 3/3 | `6d8ff2c40dce4ba48aa2bc77f98d95b3` |
+| `fixed-semantic-top3` | **1.0000** | 0.7228 | 10,589.7 ms | 3/3 | `73841e75f54b4a968339b8b63943d5d4` |
+| `fixed-semantic-top5` | 0.7963 | 0.7501 | 16,014.0 ms | 3/3 | `cc8313f367b7424eba49bf45328803f9` |
+| **`fixed-hybrid-top3`** | **1.0000** | 0.7700 | 17,530.0 ms | 3/3 | `ba6464e78f014a6db1d21af5c39d508f` |
+| `fixed-hybrid-top5` | 0.6667 | 0.7402 | 15,932.7 ms | 3/3 | `84ec54970978451fb33ace36af25c730` |
 
-`C-hybrid-top5` is the selected best configuration because it has the highest mean faithfulness and mean relevancy. Direct MLflow readback confirmed all three runs are `FINISHED`, each has `success_rate=1.0` and `evaluation.status=passed`, and only the selected run has `evaluation.best_run=true`.
+`fixed-hybrid-top3` is the selected best configuration. It ties
+`fixed-semantic-top3` at the highest mean faithfulness (1.0000), then wins the
+documented second criterion with higher mean relevancy (0.7700 versus 0.7228).
+Direct MLflow readback confirmed all eight runs are `FINISHED`, each has
+`success_rate=1.0` and `evaluation.status=passed`, and only the selected run in
+this suite has `evaluation.best_run=true`.
+
+The 24 newest evaluation traces were also read back from MLflow. Every trace
+has state `OK` and contains exactly one `legal_aid_rag_query` root plus nested
+`hybrid_legal_retrieval` and `legal_generation` spans. Hugging Face remained
+first in the generation order; account credit/provider errors caused the
+configured Groq fallback `qwen/qwen3.8-27b` to serve the successful answers.
+Occasional judge 429 responses recovered within the bounded retry policy.
 
 Two earlier diagnostic attempts were not accepted as milestone evidence: one exposed rate limits from using the generation model for judging, and another exposed GPT-OSS output-budget and Windows console-encoding issues. The final suite separated the judge model, used low reasoning effort, batched verdicts, and made console output Unicode-safe.
 
@@ -274,7 +288,7 @@ The target matrix combines fixed/recursive chunking, semantic/hybrid retrieval, 
 | 3 | Add configurable retrieval profiles | Complete | Validated strategy/mode/top-K profiles route matching BM25 artifacts and Pinecone namespaces; recursive/hybrid/top-5 remains default |
 | 4 | Retrieval-only fixed profile smoke tests | Complete | All four semantic/hybrid top-3/top-5 profiles passed against namespace `fixed`; nested MLflow traces verified |
 | 5 | Expand evaluation matrix to eight configurations | Complete | Exact recursive/fixed × semantic/hybrid × top-3/top-5 Cartesian matrix validated; real runs deferred to Step 6 |
-| 6 | Run and compare the final eight-run suite | Pending | — |
+| 6 | Run and compare the final eight-run suite | Complete | 8/8 runs `FINISHED`; 24/24 queries and nested traces passed; best run tagged and artifact updated |
 
 Step 1 command:
 
@@ -361,12 +375,31 @@ MLflow parameters and tags therefore reflect the real retriever rather than a
 hardcoded recursive label. Suite startup requires components for both
 strategies. The two BM25 indexes are built independently, while one Pinecone
 client, embedding model, and cross-encoder are shared to avoid duplicate model
-memory. The existing three-run summary artifact was intentionally not changed;
-Step 6 will replace it only after all eight real runs complete successfully.
+memory. The existing three-run summary artifact was intentionally not changed
+in this implementation-only checkpoint; Step 6 replaced it after all eight
+real runs completed successfully.
 
 Step 5 regression verification passed on 2026-10-24: `43 passed in 123.27s`
 across all seven focused test modules. No Pinecone, Hugging Face, or Groq call
 was made by the Step 5 matrix tests.
+
+Step 6 command:
+
+```bash
+python -m src.evaluation
+```
+
+Step 6 completed all eight runs and all 24 query evaluations on 2026-10-24.
+Direct tracking-store readback verified the exact chunking strategy, retrieval
+mode, top-K, and Pinecone namespace on every run, along with the aggregate
+metrics and pass tags. The selected run is
+`ba6464e78f014a6db1d21af5c39d508f` (`fixed-hybrid-top3`). The tracked compact
+result is `artifacts/rag_evaluation_summary.json`; full per-query answers remain
+in the ignored `output/rag_evaluation_details.json` file.
+
+Step 6 regression verification passed on 2026-10-24: `43 passed in 133.54s`
+across all seven focused test modules after the live evaluation artifact and
+documentation were updated.
 
 ## Change history
 
@@ -392,3 +425,4 @@ was made by the Step 5 matrix tests.
 | 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 3 implementation: added validated retrieval profiles, strategy-specific BM25/Pinecone routing, true semantic versus hybrid execution paths, mismatch guards, MLflow profile metadata, and focused unit coverage while preserving recursive/hybrid/top-5 defaults. |
 | 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 4: all four fixed semantic/hybrid top-3/top-5 retrieval profiles passed live namespace, strategy, count, content, and nested MLflow trace validation without generation or judge calls. |
 | 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 5 implementation: expanded evaluation to the exact eight-profile Cartesian matrix, removed hardcoded recursive run metadata, routed profiles through nested RAG traces, shared dense resources across strategy-specific BM25 retrievers, and kept real execution isolated to Step 6. |
+| 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 6: executed and verified all eight MLflow runs and 24 nested RAG traces, selected `fixed-hybrid-top3`, updated the tracked evaluation artifact, and recorded the final comparison. |

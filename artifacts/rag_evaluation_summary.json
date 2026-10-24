@@ -1,86 +1,220 @@
 {
   "query_count": 3,
+  "configuration_count": 8,
   "judge_model": "openai/gpt-oss-20b",
   "judge_reasoning_effort": "low",
   "similarity_model": "all-MiniLM-L6-v2",
-  "best_configuration": "C-hybrid-top5",
-  "best_run_id": "f9787d3e95a646baa707770c2754a17a",
+  "best_configuration": "fixed-hybrid-top3",
+  "best_run_id": "ba6464e78f014a6db1d21af5c39d508f",
   "selection_reason": "Highest mean faithfulness, then mean relevancy, then lower average total latency.",
   "experiments": {
-    "A-semantic-top5": {
+    "recursive-semantic-top3": {
       "config": {
-        "label": "A-semantic-top5",
-        "retrieval_mode": "semantic_only",
+        "label": "recursive-semantic-top3",
+        "retrieval_mode": "semantic",
+        "semantic_only": true,
+        "top_k": 3,
+        "generation_temperature": 0.2,
+        "chunking_strategy": "recursive",
+        "pinecone_namespace": "__default__"
+      },
+      "summary": {
+        "label": "recursive-semantic-top3",
+        "n_queries": 3,
+        "successful_queries": 3,
+        "failed_queries": 0,
+        "success_rate": 1.0,
+        "faithfulness_mean": 0.8889,
+        "faithfulness_std": 0.1571,
+        "relevancy_mean": 0.7717,
+        "relevancy_std": 0.0829,
+        "avg_retrieval_ms": 3587.0,
+        "avg_generation_ms": 1862.7,
+        "avg_total_ms": 17208.0
+      },
+      "run_id": "db8bf52010044b47a262af5e8add6dda"
+    },
+    "recursive-semantic-top5": {
+      "config": {
+        "label": "recursive-semantic-top5",
+        "retrieval_mode": "semantic",
         "semantic_only": true,
         "top_k": 5,
         "generation_temperature": 0.2,
-        "chunking_strategy": "recursive"
+        "chunking_strategy": "recursive",
+        "pinecone_namespace": "__default__"
       },
       "summary": {
-        "label": "A-semantic-top5",
+        "label": "recursive-semantic-top5",
+        "n_queries": 3,
+        "successful_queries": 3,
+        "failed_queries": 0,
+        "success_rate": 1.0,
+        "faithfulness_mean": 0.7556,
+        "faithfulness_std": 0.175,
+        "relevancy_mean": 0.4809,
+        "relevancy_std": 0.3739,
+        "avg_retrieval_ms": 1787.0,
+        "avg_generation_ms": 1560.0,
+        "avg_total_ms": 6851.3
+      },
+      "run_id": "de06c99b5b9d41d89333459657065f59"
+    },
+    "recursive-hybrid-top3": {
+      "config": {
+        "label": "recursive-hybrid-top3",
+        "retrieval_mode": "hybrid",
+        "semantic_only": false,
+        "top_k": 3,
+        "generation_temperature": 0.2,
+        "chunking_strategy": "recursive",
+        "pinecone_namespace": "__default__"
+      },
+      "summary": {
+        "label": "recursive-hybrid-top3",
         "n_queries": 3,
         "successful_queries": 3,
         "failed_queries": 0,
         "success_rate": 1.0,
         "faithfulness_mean": 0.9667,
         "faithfulness_std": 0.0471,
-        "relevancy_mean": 0.7435,
-        "relevancy_std": 0.1275,
-        "avg_retrieval_ms": 8366.0,
-        "avg_generation_ms": 2328.0,
-        "avg_total_ms": 13778.3
+        "relevancy_mean": 0.786,
+        "relevancy_std": 0.0805,
+        "avg_retrieval_ms": 5096.0,
+        "avg_generation_ms": 1999.7,
+        "avg_total_ms": 11799.0
       },
-      "run_id": "fad0d83034144ec6b225b75d5317ebaa"
+      "run_id": "07be884a244d41c99f5f8540611a07f1"
     },
-    "B-hybrid-top3": {
+    "recursive-hybrid-top5": {
       "config": {
-        "label": "B-hybrid-top3",
-        "retrieval_mode": "hybrid_rerank",
-        "semantic_only": false,
-        "top_k": 3,
-        "generation_temperature": 0.2,
-        "chunking_strategy": "recursive"
-      },
-      "summary": {
-        "label": "B-hybrid-top3",
-        "n_queries": 3,
-        "successful_queries": 3,
-        "failed_queries": 0,
-        "success_rate": 1.0,
-        "faithfulness_mean": 0.9,
-        "faithfulness_std": 0.1414,
-        "relevancy_mean": 0.7481,
-        "relevancy_std": 0.0721,
-        "avg_retrieval_ms": 3506.3,
-        "avg_generation_ms": 2009.0,
-        "avg_total_ms": 7893.3
-      },
-      "run_id": "15fd491ef5d54a16af4794a1067bc100"
-    },
-    "C-hybrid-top5": {
-      "config": {
-        "label": "C-hybrid-top5",
-        "retrieval_mode": "hybrid_rerank",
+        "label": "recursive-hybrid-top5",
+        "retrieval_mode": "hybrid",
         "semantic_only": false,
         "top_k": 5,
         "generation_temperature": 0.2,
-        "chunking_strategy": "recursive"
+        "chunking_strategy": "recursive",
+        "pinecone_namespace": "__default__"
       },
       "summary": {
-        "label": "C-hybrid-top5",
+        "label": "recursive-hybrid-top5",
         "n_queries": 3,
         "successful_queries": 3,
         "failed_queries": 0,
         "success_rate": 1.0,
-        "faithfulness_mean": 0.9762,
-        "faithfulness_std": 0.0337,
-        "relevancy_mean": 0.7831,
-        "relevancy_std": 0.0865,
-        "avg_retrieval_ms": 4167.3,
-        "avg_generation_ms": 1835.0,
-        "avg_total_ms": 8226.3
+        "faithfulness_mean": 0.7778,
+        "faithfulness_std": 0.1571,
+        "relevancy_mean": 0.7723,
+        "relevancy_std": 0.0958,
+        "avg_retrieval_ms": 3714.7,
+        "avg_generation_ms": 2557.3,
+        "avg_total_ms": 9374.7
       },
-      "run_id": "f9787d3e95a646baa707770c2754a17a"
+      "run_id": "6d8ff2c40dce4ba48aa2bc77f98d95b3"
+    },
+    "fixed-semantic-top3": {
+      "config": {
+        "label": "fixed-semantic-top3",
+        "retrieval_mode": "semantic",
+        "semantic_only": true,
+        "top_k": 3,
+        "generation_temperature": 0.2,
+        "chunking_strategy": "fixed",
+        "pinecone_namespace": "fixed"
+      },
+      "summary": {
+        "label": "fixed-semantic-top3",
+        "n_queries": 3,
+        "successful_queries": 3,
+        "failed_queries": 0,
+        "success_rate": 1.0,
+        "faithfulness_mean": 1.0,
+        "faithfulness_std": 0.0,
+        "relevancy_mean": 0.7228,
+        "relevancy_std": 0.1168,
+        "avg_retrieval_ms": 1602.7,
+        "avg_generation_ms": 2368.7,
+        "avg_total_ms": 10589.7
+      },
+      "run_id": "73841e75f54b4a968339b8b63943d5d4"
+    },
+    "fixed-semantic-top5": {
+      "config": {
+        "label": "fixed-semantic-top5",
+        "retrieval_mode": "semantic",
+        "semantic_only": true,
+        "top_k": 5,
+        "generation_temperature": 0.2,
+        "chunking_strategy": "fixed",
+        "pinecone_namespace": "fixed"
+      },
+      "summary": {
+        "label": "fixed-semantic-top5",
+        "n_queries": 3,
+        "successful_queries": 3,
+        "failed_queries": 0,
+        "success_rate": 1.0,
+        "faithfulness_mean": 0.7963,
+        "faithfulness_std": 0.2144,
+        "relevancy_mean": 0.7501,
+        "relevancy_std": 0.1379,
+        "avg_retrieval_ms": 1495.7,
+        "avg_generation_ms": 2358.7,
+        "avg_total_ms": 16014.0
+      },
+      "run_id": "cc8313f367b7424eba49bf45328803f9"
+    },
+    "fixed-hybrid-top3": {
+      "config": {
+        "label": "fixed-hybrid-top3",
+        "retrieval_mode": "hybrid",
+        "semantic_only": false,
+        "top_k": 3,
+        "generation_temperature": 0.2,
+        "chunking_strategy": "fixed",
+        "pinecone_namespace": "fixed"
+      },
+      "summary": {
+        "label": "fixed-hybrid-top3",
+        "n_queries": 3,
+        "successful_queries": 3,
+        "failed_queries": 0,
+        "success_rate": 1.0,
+        "faithfulness_mean": 1.0,
+        "faithfulness_std": 0.0,
+        "relevancy_mean": 0.77,
+        "relevancy_std": 0.1314,
+        "avg_retrieval_ms": 8597.0,
+        "avg_generation_ms": 2129.0,
+        "avg_total_ms": 17530.0
+      },
+      "run_id": "ba6464e78f014a6db1d21af5c39d508f"
+    },
+    "fixed-hybrid-top5": {
+      "config": {
+        "label": "fixed-hybrid-top5",
+        "retrieval_mode": "hybrid",
+        "semantic_only": false,
+        "top_k": 5,
+        "generation_temperature": 0.2,
+        "chunking_strategy": "fixed",
+        "pinecone_namespace": "fixed"
+      },
+      "summary": {
+        "label": "fixed-hybrid-top5",
+        "n_queries": 3,
+        "successful_queries": 3,
+        "failed_queries": 0,
+        "success_rate": 1.0,
+        "faithfulness_mean": 0.6667,
+        "faithfulness_std": 0.4714,
+        "relevancy_mean": 0.7402,
+        "relevancy_std": 0.0978,
+        "avg_retrieval_ms": 9106.7,
+        "avg_generation_ms": 2441.7,
+        "avg_total_ms": 15932.7
+      },
+      "run_id": "84ec54970978451fb33ace36af25c730"
     }
   }
 }
