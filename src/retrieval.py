@@ -24,7 +24,7 @@ import json
 import math
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import nltk
 from rank_bm25 import BM25Okapi
@@ -469,6 +469,41 @@ def retrieve(
 # 7.  BUILDER FUNCTION (for Streamlit app)
 # ─────────────────────────────────────────────
 
+def build_retrievers(
+    chunking_strategies: Iterable[str] = ("recursive", "fixed"),
+) -> Dict[str, Dict]:
+    """Build strategy-specific BM25 indexes with shared dense resources."""
+    strategies = list(dict.fromkeys(chunking_strategies))
+    if not strategies:
+        raise ValueError("At least one chunking strategy is required")
+
+    profiles = {
+        strategy: RetrievalProfile(chunking_strategy=strategy)
+        for strategy in strategies
+    }
+    sparse_components = {
+        strategy: build_bm25_index(profile.bm25_corpus_file)
+        for strategy, profile in profiles.items()
+    }
+    pinecone_index = init_pinecone(PINECONE_API_KEY, PINECONE_INDEX_NAME)
+    embedder, reranker = init_models(EMBEDDING_MODEL, RERANKER_MODEL)
+
+    retrievers = {}
+    for strategy, profile in profiles.items():
+        bm25, bm25_ids, bm25_texts = sparse_components[strategy]
+        retrievers[strategy] = {
+            "bm25": bm25,
+            "bm25_ids": bm25_ids,
+            "bm25_texts": bm25_texts,
+            "embedder": embedder,
+            "reranker": reranker,
+            "pinecone_index": pinecone_index,
+            "pinecone_namespace": profile.pinecone_namespace,
+            "chunking_strategy": profile.chunking_strategy,
+        }
+    return retrievers
+
+
 def build_retriever(chunking_strategy: str = "recursive"):
     """
     Initialize all retrieval components.
@@ -476,21 +511,7 @@ def build_retriever(chunking_strategy: str = "recursive"):
 
     Returns a dict of components to pass into retrieve().
     """
-    profile = RetrievalProfile(chunking_strategy=chunking_strategy)
-    bm25, bm25_ids, bm25_texts = build_bm25_index(profile.bm25_corpus_file)
-    pinecone_index = init_pinecone(PINECONE_API_KEY, PINECONE_INDEX_NAME)
-    embedder, reranker = init_models(EMBEDDING_MODEL, RERANKER_MODEL)
-
-    return {
-        "bm25":          bm25,
-        "bm25_ids":      bm25_ids,
-        "bm25_texts":    bm25_texts,
-        "embedder":      embedder,
-        "reranker":      reranker,
-        "pinecone_index": pinecone_index,
-        "pinecone_namespace": profile.pinecone_namespace,
-        "chunking_strategy": profile.chunking_strategy,
-    }
+    return build_retrievers((chunking_strategy,))[chunking_strategy]
 
 
 # ─────────────────────────────────────────────

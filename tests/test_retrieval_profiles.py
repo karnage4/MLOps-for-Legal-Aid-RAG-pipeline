@@ -1,6 +1,6 @@
 """Tests for strategy-isolated, reproducible retrieval profiles."""
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
@@ -193,6 +193,48 @@ def test_build_retriever_selects_fixed_bm25_and_namespace():
     build_bm25.assert_called_once_with("./output/bm25_corpus_fixed.json")
     assert components["chunking_strategy"] == "fixed"
     assert components["pinecone_namespace"] == "fixed"
+
+
+def test_build_retrievers_shares_dense_models_and_keeps_bm25_isolated():
+    recursive_bm25 = (Mock(), ["recursive-1"], ["recursive text"])
+    fixed_bm25 = (Mock(), ["fixed-1"], ["fixed text"])
+    shared_index = Mock()
+    shared_embedder = Mock()
+    shared_reranker = Mock()
+
+    with (
+        patch.object(
+            retrieval,
+            "build_bm25_index",
+            side_effect=[recursive_bm25, fixed_bm25],
+        ) as build_bm25,
+        patch.object(
+            retrieval, "init_pinecone", return_value=shared_index
+        ) as init_pinecone,
+        patch.object(
+            retrieval,
+            "init_models",
+            return_value=(shared_embedder, shared_reranker),
+        ) as init_models,
+    ):
+        retrievers = retrieval.build_retrievers(("recursive", "fixed"))
+
+    assert build_bm25.call_args_list == [
+        call("./output/bm25_corpus.json"),
+        call("./output/bm25_corpus_fixed.json"),
+    ]
+    init_pinecone.assert_called_once()
+    init_models.assert_called_once()
+    assert retrievers["recursive"]["bm25"] is recursive_bm25[0]
+    assert retrievers["fixed"]["bm25"] is fixed_bm25[0]
+    assert retrievers["recursive"]["embedder"] is shared_embedder
+    assert retrievers["fixed"]["embedder"] is shared_embedder
+    assert retrievers["recursive"]["reranker"] is shared_reranker
+    assert retrievers["fixed"]["reranker"] is shared_reranker
+    assert retrievers["recursive"]["pinecone_index"] is shared_index
+    assert retrievers["fixed"]["pinecone_index"] is shared_index
+    assert retrievers["recursive"]["pinecone_namespace"] is None
+    assert retrievers["fixed"]["pinecone_namespace"] == "fixed"
 
 
 def test_pipeline_accepts_profile_and_routes_its_query_options():

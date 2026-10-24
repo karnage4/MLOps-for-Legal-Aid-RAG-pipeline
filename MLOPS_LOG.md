@@ -15,7 +15,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | Phase | Feature | Branch | Implementation | Manual verification | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
-| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Expanding to eight configurations | Steps 1-4 preparation and fixed retrieval smoke tests passed | Active |
+| 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Eight-configuration suite prepared | Steps 1-5 passed; final eight-run execution pending | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -273,7 +273,7 @@ The target matrix combines fixed/recursive chunking, semantic/hybrid retrieval, 
 | 2 | Upload fixed embeddings to isolated Pinecone namespace | Complete | 883 fixed vectors; recursive/default remained 3,593; three self-query readbacks and a semantic sanity query passed |
 | 3 | Add configurable retrieval profiles | Complete | Validated strategy/mode/top-K profiles route matching BM25 artifacts and Pinecone namespaces; recursive/hybrid/top-5 remains default |
 | 4 | Retrieval-only fixed profile smoke tests | Complete | All four semantic/hybrid top-3/top-5 profiles passed against namespace `fixed`; nested MLflow traces verified |
-| 5 | Expand evaluation matrix to eight configurations | Pending | — |
+| 5 | Expand evaluation matrix to eight configurations | Complete | Exact recursive/fixed × semantic/hybrid × top-3/top-5 Cartesian matrix validated; real runs deferred to Step 6 |
 | 6 | Run and compare the final eight-run suite | Pending | — |
 
 Step 1 command:
@@ -345,6 +345,29 @@ Step 4 regression verification passed on 2026-10-24: `40 passed in 46.82s`
 across all seven focused test modules. The smoke test made no Pinecone writes
 and no generation or judge requests.
 
+Step 5 replaced the recursive-only evaluation orchestration with eight
+validated `RetrievalProfile` configurations:
+
+| Chunking | Retrieval | Top K values | Namespace |
+| --- | --- | --- | --- |
+| Recursive | Semantic | 3, 5 | `__default__` |
+| Recursive | Hybrid + reranking | 3, 5 | `__default__` |
+| Fixed | Semantic | 3, 5 | `fixed` |
+| Fixed | Hybrid + reranking | 3, 5 | `fixed` |
+
+Every evaluation run now derives strategy, mode, top-K, and namespace from its
+profile and sends that same profile through the traced application boundary.
+MLflow parameters and tags therefore reflect the real retriever rather than a
+hardcoded recursive label. Suite startup requires components for both
+strategies. The two BM25 indexes are built independently, while one Pinecone
+client, embedding model, and cross-encoder are shared to avoid duplicate model
+memory. The existing three-run summary artifact was intentionally not changed;
+Step 6 will replace it only after all eight real runs complete successfully.
+
+Step 5 regression verification passed on 2026-10-24: `43 passed in 123.27s`
+across all seven focused test modules. No Pinecone, Hugging Face, or Groq call
+was made by the Step 5 matrix tests.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -368,3 +391,4 @@ and no generation or judge requests.
 | 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 2: cached and uploaded 883 fixed embeddings to isolated Pinecone namespace `fixed`, verified representative vectors and a semantic query, and confirmed the recursive/default namespace remained at 3,593 vectors. |
 | 2026-10-23 | `2-rag-evaluation-experiments` | Completed Step 3 implementation: added validated retrieval profiles, strategy-specific BM25/Pinecone routing, true semantic versus hybrid execution paths, mismatch guards, MLflow profile metadata, and focused unit coverage while preserving recursive/hybrid/top-5 defaults. |
 | 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 4: all four fixed semantic/hybrid top-3/top-5 retrieval profiles passed live namespace, strategy, count, content, and nested MLflow trace validation without generation or judge calls. |
+| 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 5 implementation: expanded evaluation to the exact eight-profile Cartesian matrix, removed hardcoded recursive run metadata, routed profiles through nested RAG traces, shared dense resources across strategy-specific BM25 retrievers, and kept real execution isolated to Step 6. |

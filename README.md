@@ -132,15 +132,38 @@ Verified on 2026-10-24:
 
 ## Evaluation and Validation
 
-The project evaluates three reproducible configurations over the same query set: semantic retrieval with five chunks, hybrid retrieval with three reranked chunks, and hybrid retrieval with five reranked chunks. `src/evaluation.py` aggregates faithfulness, relevancy, success rate, and latency metrics, logs every configuration to MLflow, and selects the best run by mean faithfulness, then mean relevancy, then lower total latency.
+`src/evaluation.py` defines the complete eight-configuration Cartesian matrix
+over the same held-out query set. It aggregates faithfulness, relevancy,
+success rate, and latency, logs every configuration to MLflow, and selects the
+best complete run by mean faithfulness, then mean relevancy, then lower total
+latency.
+
+| Chunking | Retrieval | Top K | Pinecone namespace |
+| --- | --- | ---: | --- |
+| Recursive | Semantic | 3 | default (`__default__`) |
+| Recursive | Semantic | 5 | default (`__default__`) |
+| Recursive | Hybrid + reranking | 3 | default (`__default__`) |
+| Recursive | Hybrid + reranking | 5 | default (`__default__`) |
+| Fixed | Semantic | 3 | `fixed` |
+| Fixed | Semantic | 5 | `fixed` |
+| Fixed | Hybrid + reranking | 3 | `fixed` |
+| Fixed | Hybrid + reranking | 5 | `fixed` |
+
+The two BM25 indexes remain separate, while the Pinecone client, embedding
+model, and reranker are shared in memory. Step 5 configures and tests this
+matrix; the real eight-run execution and comparison are reserved for Step 6.
 
 Every evaluation query is executed through the same traced `run_rag_query` boundary as the application. MLflow therefore stores one `legal_aid_rag_query` parent trace containing the `hybrid_legal_retrieval` and `legal_generation` child spans, rather than separate root traces for retrieval and generation.
 
 The Groq judge model is configured through `GROQ_JUDGE_MODEL` and defaults to the currently verified `openai/gpt-oss-20b`, keeping judge quota separate from the Qwen generation fallback. `EVALUATION_QUERY_LIMIT` controls the common evaluation-set size and defaults to three queries; `EVALUATION_COOLDOWN_SECONDS` defaults to five seconds between queries.
 
-### Verified experiment results (2026-10-23)
+### Historical three-run baseline (verified 2026-10-23)
 
-All three configurations evaluated the same three held-out questions with no failed queries. The compact, reviewable result is stored in [`artifacts/rag_evaluation_summary.json`](artifacts/rag_evaluation_summary.json).
+These three recursive-only configurations evaluated the same three held-out
+questions with no failed queries. The current
+[`artifacts/rag_evaluation_summary.json`](artifacts/rag_evaluation_summary.json)
+retains this verified baseline until Step 6 successfully completes and writes
+the new eight-run result.
 
 | Configuration | Retrieval | Top K | Mean faithfulness | Mean relevancy | Mean total latency | MLflow run ID |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
@@ -234,13 +257,18 @@ Submit one question and refresh the MLflow Traces tab. The query should appear a
 
 ### Manual test 4: evaluation-run logging
 
-After the original corpus, Pinecone index, and provider keys are available:
+After both BM25 artifacts, both Pinecone namespaces, and provider keys are
+available:
 
 ```bash
 python -m src.evaluation
 ```
 
-The command logs the three configurations shown above. A passing suite reports `3/3` successful queries for each run, writes `artifacts/rag_evaluation_summary.json`, tags the selected run with `evaluation.best_run=true`, and creates one nested three-span trace per evaluated query.
+The command logs all eight configurations shown above. A passing suite reports
+`3/3` successful queries for each run, writes
+`artifacts/rag_evaluation_summary.json`, tags the selected run with
+`evaluation.best_run=true`, and creates one nested three-span trace per
+evaluated query.
 
 ### Optional shared tracking server
 

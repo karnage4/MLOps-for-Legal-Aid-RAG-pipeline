@@ -11,6 +11,7 @@ Implements the two evaluation metrics required by the assignment:
                   Score = mean similarity of 3 generated questions
 
 Also runs comparable experiments across:
+  - Chunking strategies   (recursive vs fixed)
   - Retrieval modes      (semantic-only vs hybrid + re-ranking)
   - Retrieved context    (top-3 vs top-5)
 
@@ -38,9 +39,11 @@ from dotenv import load_dotenv
 try:
     from src.mlflow_config import log_evaluation_summary, mark_best_evaluation_run
     from src.pipeline import run_rag_query
+    from src.retrieval import RetrievalProfile, build_retrievers
 except ImportError:  # supports `python src/evaluation.py`
     from mlflow_config import log_evaluation_summary, mark_best_evaluation_run
     from pipeline import run_rag_query
+    from retrieval import RetrievalProfile, build_retrievers
 
 load_dotenv()
 
@@ -437,8 +440,7 @@ def run_evaluation(
     retriever_components: Dict,
     similarity_model: SentenceTransformer,
     config_label: str,
-    semantic_only: bool = False,
-    top_k: int = 5,
+    profile: RetrievalProfile,
     temperature: float = 0.2,
     verbose: bool = False,
 ) -> Dict:
@@ -447,22 +449,30 @@ def run_evaluation(
 
     Args:
         config_label     : stable experiment label
-        semantic_only    : if True, uses semantic-only retrieval
-        top_k            : number of reranked chunks returned
+        profile          : validated strategy/mode/top-K configuration
         temperature      : answer-generation temperature
         verbose          : print per-claim verification
 
     Returns the configuration, per-query results, summary, and MLflow run ID.
     """
     results = []
-    mode = "semantic_only" if semantic_only else "hybrid_rerank"
+    mode = profile.retrieval_mode
+    profile_config = {
+        "chunking_strategy": profile.chunking_strategy,
+        "retrieval_mode": profile.retrieval_mode,
+        "semantic_only": profile.semantic_only,
+        "top_k": profile.top_k,
+        "pinecone_namespace": profile.pinecone_namespace or "__default__",
+        "temperature": temperature,
+    }
 
     if not test_queries:
         raise ValueError("Evaluation query set must not be empty")
-    if top_k < 1:
-        raise ValueError("top_k must be at least 1")
 
-    print(f"\nRunning evaluation {config_label} — mode: {mode}, top_k: {top_k}")
+    print(
+        f"\nRunning evaluation {config_label} — strategy: "
+        f"{profile.chunking_strategy}, mode: {mode}, top_k: {profile.top_k}"
+    )
     print(f"Queries: {len(test_queries)}")
     print("-" * 55)
 
@@ -477,9 +487,8 @@ def run_evaluation(
         rag_result = run_rag_query(
             query,
             retriever_components,
-            top_k=top_k,
-            semantic_only=semantic_only,
             temperature=temperature,
+            profile=profile,
         )
         retrieval = rag_result["retrieval"]
         gen = rag_result["generation"]
@@ -503,6 +512,7 @@ def run_evaluation(
                 "faithfulness": _empty_faithfulness(),
                 "relevancy":    _empty_relevancy(),
                 "timings": rag_timings,
+                "config": dict(profile_config),
             })
             time.sleep(EVALUATION_COOLDOWN_SECONDS)
             continue
@@ -543,12 +553,7 @@ def run_evaluation(
                 "generation_ms": generation_ms,
                 "total_ms":      total_ms,
             },
-            "config": {
-                "mode": mode,
-                "chunking_strategy": "recursive",
-                "top_k": top_k,
-                "temperature": temperature,
-            },
+            "config": dict(profile_config),
             "error": evaluation_error,
         })
 
@@ -560,10 +565,11 @@ def run_evaluation(
         run_name=f"evaluation-{config_label}",
         params={
             "config_label": config_label,
-            "chunking_strategy": "recursive",
+            "chunking_strategy": profile.chunking_strategy,
             "retrieval_mode": mode,
-            "semantic_only": semantic_only,
-            "top_k": top_k,
+            "semantic_only": profile.semantic_only,
+            "top_k": profile.top_k,
+            "pinecone_namespace": profile.pinecone_namespace or "__default__",
             "generation_temperature": temperature,
             "query_count": len(test_queries),
             "judge_model": JUDGE_MODEL,
@@ -573,6 +579,8 @@ def run_evaluation(
         summary=summary,
         tags={
             "evaluation.config": config_label,
+            "evaluation.chunking_strategy": profile.chunking_strategy,
+            "evaluation.retrieval_mode": profile.retrieval_mode,
             "evaluation.status": (
                 "passed" if summary["failed_queries"] == 0 else "partial"
             ),
@@ -583,10 +591,11 @@ def run_evaluation(
         "config": {
             "label": config_label,
             "retrieval_mode": mode,
-            "semantic_only": semantic_only,
-            "top_k": top_k,
+            "semantic_only": profile.semantic_only,
+            "top_k": profile.top_k,
             "generation_temperature": temperature,
-            "chunking_strategy": "recursive",
+            "chunking_strategy": profile.chunking_strategy,
+            "pinecone_namespace": profile.pinecone_namespace or "__default__",
         },
         "results": results,
         "summary": summary,
@@ -600,49 +609,50 @@ def run_evaluation(
 
 EXPERIMENT_CONFIGS = [
     {
-        "label": "A-semantic-top5",
-        "semantic_only": True,
-        "top_k": 5,
+        "label": f"{strategy}-{mode}-top{top_k}",
+        "profile": RetrievalProfile(strategy, mode, top_k),
         "temperature": 0.2,
-    },
-    {
-        "label": "B-hybrid-top3",
-        "semantic_only": False,
-        "top_k": 3,
-        "temperature": 0.2,
-    },
-    {
-        "label": "C-hybrid-top5",
-        "semantic_only": False,
-        "top_k": 5,
-        "temperature": 0.2,
-    },
+    }
+    for strategy in ("recursive", "fixed")
+    for mode in ("semantic", "hybrid")
+    for top_k in (3, 5)
 ]
 
 
 def run_experiment_suite(
     test_queries: List[str],
-    retriever_components: Dict,
+    retrievers_by_strategy: Dict[str, Dict],
     similarity_model: SentenceTransformer,
 ) -> Dict:
-    """Run the same evaluation set across three genuine RAG configurations."""
+    """Run one held-out query set across the complete eight-profile matrix."""
     if not test_queries:
         raise ValueError("Evaluation query set must not be empty")
+
+    required_strategies = {
+        config["profile"].chunking_strategy
+        for config in EXPERIMENT_CONFIGS
+    }
+    missing_strategies = required_strategies.difference(retrievers_by_strategy)
+    if missing_strategies:
+        raise ValueError(
+            "Missing retriever components for strategies: "
+            + ", ".join(sorted(missing_strategies))
+        )
 
     experiments = {}
     for config in EXPERIMENT_CONFIGS:
         config_name = config["label"]
+        profile = config["profile"]
         print(f"\n{'='*55}")
         print(f"  RAG experiment {config_name}")
         print(f"{'='*55}")
 
         experiments[config_name] = run_evaluation(
             test_queries,
-            retriever_components,
+            retrievers_by_strategy[profile.chunking_strategy],
             similarity_model,
             config_label=config_name,
-            semantic_only=config["semantic_only"],
-            top_k=config["top_k"],
+            profile=profile,
             temperature=config["temperature"],
             verbose=False,
         )
@@ -657,6 +667,7 @@ def run_experiment_suite(
 
     return {
         "query_count": len(test_queries),
+        "configuration_count": len(EXPERIMENT_CONFIGS),
         "judge_model": JUDGE_MODEL,
         "judge_reasoning_effort": JUDGE_REASONING_EFFORT,
         "similarity_model": SIMILARITY_MODEL,
@@ -809,6 +820,9 @@ def save_results(suite: Dict):
 
     compact_summary = {
         "query_count": suite["query_count"],
+        "configuration_count": suite.get(
+            "configuration_count", len(suite["experiments"])
+        ),
         "judge_model": suite["judge_model"],
         "judge_reasoning_effort": suite["judge_reasoning_effort"],
         "similarity_model": suite["similarity_model"],
@@ -845,15 +859,10 @@ def main():
     print(f"\nLoading similarity model: {SIMILARITY_MODEL}")
     sim_model = SentenceTransformer(SIMILARITY_MODEL)
 
-    try:
-        from src.retrieval import build_retriever
-    except ImportError:  # supports `python src/evaluation.py`
-        from retrieval import build_retriever
-
-    print("\nBuilding retriever from the recursive prepared corpus...")
-    components = build_retriever()
+    print("\nBuilding recursive and fixed retrievers with shared models...")
+    retrievers = build_retrievers(("recursive", "fixed"))
     evaluation_queries = TEST_QUERIES[:EVALUATION_QUERY_LIMIT]
-    suite = run_experiment_suite(evaluation_queries, components, sim_model)
+    suite = run_experiment_suite(evaluation_queries, retrievers, sim_model)
 
     print_experiment_table(suite)
     best_results = suite["experiments"][suite["best_configuration"]]["results"]
