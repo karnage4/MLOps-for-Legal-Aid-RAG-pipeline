@@ -14,9 +14,11 @@ from typing import Any, Literal, Sequence
 
 from mlflow.genai.judges import make_judge
 from mlflow.genai.scorers import (
+    Correctness,
     RelevanceToQuery,
     RetrievalGroundedness,
     RetrievalRelevance,
+    RetrievalSufficiency,
     list_scorers,
 )
 
@@ -28,6 +30,8 @@ JUDGE_NAMES = (
     "relevance_to_query",
     "retrieval_groundedness",
     "retrieval_relevance",
+    "correctness",
+    "retrieval_sufficiency",
     "legal_answer_quality",
 )
 
@@ -58,12 +62,14 @@ def resolve_judge_model(model: str | None = None) -> str:
 
 
 def build_judges(model: str | None = None) -> list[Any]:
-    """Build the four expectation-free judges without invoking them."""
+    """Build the registered judges without invoking them."""
     model_uri = resolve_judge_model(model)
     return [
         RelevanceToQuery(model=model_uri),
         RetrievalGroundedness(model=model_uri),
         RetrievalRelevance(model=model_uri),
+        Correctness(model=model_uri),
+        RetrievalSufficiency(model=model_uri),
         make_judge(
             name="legal_answer_quality",
             instructions=LEGAL_ANSWER_QUALITY_INSTRUCTIONS,

@@ -37,7 +37,7 @@ def test_resolve_judge_model_normalizes_groq_uri(monkeypatch):
         genai_judges.resolve_judge_model("openai:/gpt-4o")
 
 
-def test_build_judges_are_expectation_free_and_use_configured_model():
+def test_build_judges_use_configured_model_and_limit_expectation_usage():
     judges = genai_judges.build_judges("openai/gpt-oss-20b")
 
     assert tuple(judge.name for judge in judges) == genai_judges.JUDGE_NAMES
@@ -45,10 +45,8 @@ def test_build_judges_are_expectation_free_and_use_configured_model():
         genai_judges._judge_model(judge) == "groq:/openai/gpt-oss-20b"
         for judge in judges
     )
-    serialized = " ".join(
-        str(judge.model_dump()) for judge in judges
-    )
-    assert "{{ expectations }}" not in serialized
+    expectation_dependent = {"correctness", "retrieval_sufficiency"}
+    assert expectation_dependent.issubset({judge.name for judge in judges})
     assert "{{ trace }}" in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
 
 

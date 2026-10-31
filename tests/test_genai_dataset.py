@@ -24,6 +24,7 @@ class FakeDataset:
         self.queries = list(queries)
         self.created_by = "test-user"
         self.last_updated_by = "test-user"
+        self.tags = {}
 
     def to_df(self):
         return pd.DataFrame(
@@ -105,6 +106,31 @@ def test_ensure_dataset_is_idempotent(monkeypatch):
     assert report["created"] is False
     assert report["records_added"] == 0
     assert report["persisted_record_count"] == 3
+
+
+def test_ensure_dataset_preserves_human_reviewed_label(monkeypatch):
+    dataset = FakeDataset(queries=QUERIES)
+    dataset.tags = {
+        "label_status": "human-reviewed",
+        "expectation_version": "1",
+        "reviewed_by": "Karam Hussain",
+    }
+    tag_calls = []
+    monkeypatch.setattr(genai_dataset, "search_datasets", lambda **_: [dataset])
+    monkeypatch.setattr(
+        genai_dataset,
+        "set_dataset_tags",
+        lambda **kwargs: tag_calls.append(kwargs),
+    )
+    monkeypatch.setattr(genai_dataset, "get_dataset", lambda **_: dataset)
+
+    genai_dataset.ensure_evaluation_dataset(
+        QUERIES,
+        experiment=SimpleNamespace(experiment_id="7"),
+    )
+
+    assert tag_calls[0]["tags"]["label_status"] == "human-reviewed"
+    assert tag_calls[0]["tags"]["reviewed_by"] == "Karam Hussain"
 
 
 def test_ensure_dataset_links_existing_dataset_to_experiment(monkeypatch):

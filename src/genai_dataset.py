@@ -104,11 +104,16 @@ def ensure_evaluation_dataset(
         delete_dataset(dataset_id=matches[0].dataset_id)
         matches = []
 
+    created = not matches
+    existing_dataset = matches[0] if matches else None
     dataset_tags = dict(BASE_DATASET_TAGS)
+    if existing_dataset is not None and getattr(existing_dataset, "tags", None):
+        for key in ("label_status", "expectation_version", "reviewed_by"):
+            if value := existing_dataset.tags.get(key):
+                dataset_tags[key] = value
     if creator:
         dataset_tags["mlflow.user"] = creator
 
-    created = not matches
     dataset = (
         create_dataset(
             name=dataset_name,
@@ -116,7 +121,7 @@ def ensure_evaluation_dataset(
             tags=dataset_tags,
         )
         if created
-        else matches[0]
+        else existing_dataset
     )
 
     if experiment_id not in {str(value) for value in dataset.experiment_ids}:

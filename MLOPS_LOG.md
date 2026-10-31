@@ -415,8 +415,8 @@ register versioned judges, and run reproducible MLflow GenAI evaluations.
 
 | Step | Scope | Status | Verification |
 | --- | --- | --- | --- |
-| 1 | Register the shared held-out dataset | Complete | Dataset and 89 traces visible in the correct UI; 3 records; named creator; idempotent rerun added 0 |
-| 2 | Define and register versioned judges | Complete | 4 version-1 judges visible in UI; idempotent rerun reused all 4; 0 inference calls |
+| 1 | Register and label the shared held-out dataset | Complete | 3 human-reviewed records and expectations visible in UI; digest `1f570963`; idempotent label rerun updated 0 |
+| 2 | Define and register versioned judges | Complete | 6 version-1 judges visible in UI; idempotent rerun reused all 6; 0 inference calls |
 | 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Pending | — |
 | 4 | Compare additional profiles with the same dataset and judges | Pending | — |
 
@@ -438,7 +438,7 @@ python -m src.genai_dataset --creator "Karam Hussain"
 Verified locally on 2026-10-31:
 
 - dataset ID: `d-fee7335515b9445dbb7feddfd68de247`;
-- dataset digest: `b4225320`;
+- initial unlabeled dataset digest: `b4225320`;
 - linked experiment ID: `1` (`legal-aid-rag`);
 - three expected queries persisted;
 - `label_status=unlabeled`;
@@ -447,8 +447,13 @@ Verified locally on 2026-10-31:
 - final full regression suite: `48 passed` in 152.657 seconds after adding the
   supported creator-recreation path.
 
-The dataset contains no model-generated ground truth. Human-reviewed legal
-expectations can be added later before enabling correctness-based judges.
+The dataset contains no model-generated ground truth. On 2026-10-31, Karam
+Hussain approved version-1 structured expected facts for all three queries.
+`src/genai_expectations.py` upserted those facts into the existing input-keyed
+records, changing the digest to `1f570963` without changing the dataset ID or
+record count. The dataset is now tagged `label_status=human-reviewed`,
+`expectation_version=1`, and `reviewed_by=Karam Hussain`. The first invocation
+updated three records; an immediate rerun updated zero.
 
 The first UI launch was diagnosed as pointing at a different `mlflow.db` in
 the parent workspace: that database contained 32 experiment traces and no
@@ -459,7 +464,7 @@ URI. Because MLflow 3.17.2 has no supported in-place creator update, the still
 unscored dataset was recreated through MLflow's API with the reserved
 `mlflow.user` tag; no trace was deleted or changed.
 
-### Step 2 — versioned expectation-free judges
+### Step 2 — versioned judges
 
 `src/genai_judges.py` defines and registers these scorers under experiment ID
 `1` (`legal-aid-rag`):
@@ -467,13 +472,14 @@ unscored dataset was recreated through MLflow's API with the reserved
 - `relevance_to_query`;
 - `retrieval_relevance`;
 - `retrieval_groundedness`;
+- `correctness`;
+- `retrieval_sufficiency`;
 - `legal_answer_quality`, a custom judge for evidence use, uncertainty, and
   responsible legal-information framing.
 
-All four use `groq:/openai/gpt-oss-20b` and can operate before reference
-answers exist. Correctness and retrieval-sufficiency scorers were deliberately
-excluded until the dataset receives human-reviewed expectations. The setup is
-registration-only and recorded `inference_calls=0`, so it did not query Groq,
+All six use `groq:/openai/gpt-oss-20b`. Correctness and retrieval sufficiency
+were registered only after the dataset received approved expectations. The
+setup is registration-only and recorded `inference_calls=0`, so it did not query Groq,
 Pinecone, Hugging Face, or the RAG application.
 
 Run:
@@ -482,14 +488,17 @@ Run:
 python -m src.genai_judges
 ```
 
-Local SDK verification on 2026-10-31 registered all four judges as version 1.
-An immediate second invocation returned `action=reused` for all four, proving
+Local SDK verification on 2026-10-31 registered all six judges as version 1.
+An immediate second invocation returned `action=reused` for all six, proving
 that an unchanged setup does not create redundant versions. Manual inspection
-confirmed that all four version-1 judges are visible in **GenAI -> Judges**.
+confirmed that all six version-1 judges are visible in **GenAI -> Judges** and
+that the approved `expected_facts` are visible on all three dataset records.
 Their **Evaluating traces** setting remains intentionally `OFF`: Step 3 will
 invoke the registered versions explicitly against the managed dataset instead
 of enabling continuous background sampling and unplanned provider usage. The
-full regression suite passed with `53 passed` in 116.38 seconds.
+earlier four-judge regression suite passed with `53 passed` in 116.38 seconds;
+the final expectation-and-six-judge suite passed with `58 passed` in 194.99
+seconds.
 
 ## Change history
 
@@ -520,3 +529,5 @@ full regression suite passed with `53 passed` in 116.38 seconds.
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed Step 1 UI verification, diagnosed an incorrect parent tracking database, preserved all 89 project traces, and recreated the unscored dataset with `Karam Hussain` as its MLflow creator. |
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Implemented Step 2 registration for four expectation-free, Groq-backed MLflow judges; SDK verification registered version 1 and an idempotent rerun reused every version without inference. |
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed Step 2 UI verification: all four version-1 judges are visible; automatic trace evaluation remains intentionally off until controlled dataset evaluation in Step 3. |
+| 2026-10-31 | `3-mlflow-genai-datasets-judges` | Added Karam Hussain's approved version-1 expected facts to the same three dataset records, marked them human-reviewed, and registered correctness plus retrieval-sufficiency judges without inference. |
+| 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed the label-extension UI verification: expectations are visible on all three records and all six version-1 judges are visible before Step 3. |
