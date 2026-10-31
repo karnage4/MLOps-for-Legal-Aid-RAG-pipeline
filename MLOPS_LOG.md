@@ -16,6 +16,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
 | 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Complete | All six steps and final eight-run suite passed | Accepted |
+| 3 | GenAI datasets and judges | `3-mlflow-genai-datasets-judges` | Managed dataset implemented | SDK and UI verification passed | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -115,8 +116,9 @@ Record the result here immediately after testing:
 
 Keep the virtual environment active and run:
 
-```bash
-python -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```powershell
+$trackingUri = & ".\.venv\Scripts\python.exe" -c "from src.mlflow_config import default_tracking_uri; print(default_tracking_uri())"
+& ".\.venv\Scripts\python.exe" -m mlflow ui --backend-store-uri $trackingUri --port 5000
 ```
 
 Open `http://127.0.0.1:5000` and select the `legal-aid-rag` experiment.
@@ -401,6 +403,62 @@ Step 6 regression verification passed on 2026-10-24: `43 passed in 133.54s`
 across all seven focused test modules after the live evaluation artifact and
 documentation were updated.
 
+## Phase 3 — MLflow GenAI datasets and judges
+
+### Objective
+
+Use MLflow's native GenAI evaluation features without changing the existing
+RAG retrieval or generation architecture: manage a reusable held-out dataset,
+register versioned judges, and run reproducible MLflow GenAI evaluations.
+
+### Step plan
+
+| Step | Scope | Status | Verification |
+| --- | --- | --- | --- |
+| 1 | Register the shared held-out dataset | Complete | Dataset and 89 traces visible in the correct UI; 3 records; named creator; idempotent rerun added 0 |
+| 2 | Define and register versioned judges | Pending | — |
+| 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Pending | — |
+| 4 | Compare additional profiles with the same dataset and judges | Pending | — |
+
+### Step 1 — managed dataset
+
+`src/genai_dataset.py` creates or reuses
+`legal-aid-rag-held-out-v1`, links it to the active `legal-aid-rag`
+experiment, applies provenance and label-status tags, merges only missing
+records, and reads the dataset back for verification. The shared query list
+was moved to lightweight `src/evaluation_queries.py` so dataset setup does not
+initialize embedding, reranking, retrieval, or generation dependencies.
+
+Run:
+
+```bash
+python -m src.genai_dataset --creator "Karam Hussain"
+```
+
+Verified locally on 2026-10-31:
+
+- dataset ID: `d-fee7335515b9445dbb7feddfd68de247`;
+- dataset digest: `b4225320`;
+- linked experiment ID: `1` (`legal-aid-rag`);
+- three expected queries persisted;
+- `label_status=unlabeled`;
+- `created_by=Karam Hussain` and `last_updated_by=Karam Hussain`;
+- immediate rerun returned `created=false` and `records_added=0`;
+- final full regression suite: `48 passed` in 152.657 seconds after adding the
+  supported creator-recreation path.
+
+The dataset contains no model-generated ground truth. Human-reviewed legal
+expectations can be added later before enabling correctness-based judges.
+
+The first UI launch was diagnosed as pointing at a different `mlflow.db` in
+the parent workspace: that database contained 32 experiment traces and no
+evaluation dataset. The correct project database contained all 89 traces and
+the managed dataset. Manual inspection confirmed the 89 traces and all three
+query inputs. The UI instructions now resolve the absolute project tracking
+URI. Because MLflow 3.17.2 has no supported in-place creator update, the still
+unscored dataset was recreated through MLflow's API with the reserved
+`mlflow.user` tag; no trace was deleted or changed.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -426,3 +484,5 @@ documentation were updated.
 | 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 4: all four fixed semantic/hybrid top-3/top-5 retrieval profiles passed live namespace, strategy, count, content, and nested MLflow trace validation without generation or judge calls. |
 | 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 5 implementation: expanded evaluation to the exact eight-profile Cartesian matrix, removed hardcoded recursive run metadata, routed profiles through nested RAG traces, shared dense resources across strategy-specific BM25 retrievers, and kept real execution isolated to Step 6. |
 | 2026-10-24 | `2-rag-evaluation-experiments` | Completed Step 6: executed and verified all eight MLflow runs and 24 nested RAG traces, selected `fixed-hybrid-top3`, updated the tracked evaluation artifact, and recorded the final comparison. |
+| 2026-10-31 | `3-mlflow-genai-datasets-judges` | Began Phase 3 Step 1: created and verified the reusable three-record MLflow GenAI evaluation dataset, added idempotent setup and tests, and preserved the existing RAG pipeline. |
+| 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed Step 1 UI verification, diagnosed an incorrect parent tracking database, preserved all 89 project traces, and recreated the unscored dataset with `Karam Hussain` as its MLflow creator. |

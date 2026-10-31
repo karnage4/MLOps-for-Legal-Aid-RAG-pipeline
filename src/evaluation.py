@@ -37,10 +37,12 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
 try:
+    from src.evaluation_queries import TEST_QUERIES
     from src.mlflow_config import log_evaluation_summary, mark_best_evaluation_run
     from src.pipeline import run_rag_query
     from src.retrieval import RetrievalProfile, build_retrievers
 except ImportError:  # supports `python src/evaluation.py`
+    from evaluation_queries import TEST_QUERIES
     from mlflow_config import log_evaluation_summary, mark_best_evaluation_run
     from pipeline import run_rag_query
     from retrieval import RetrievalProfile, build_retrievers
@@ -78,23 +80,6 @@ EVALUATION_COOLDOWN_SECONDS = max(
 
 # Test set — 15 queries covering key inheritance law topics
 # Replace / extend with queries relevant to YOUR corpus
-TEST_QUERIES = [
-    "Who inherits property when a person dies without a will?",
-    "What is the share of a daughter in Islamic inheritance?",
-    "Can a non-Muslim inherit from a Muslim's estate?",
-    "How is the estate divided when there are multiple heirs?",
-    "What rights does a spouse have over inherited property?",
-    "Can a person be disinherited under Pakistani inheritance law?",
-    "What is the difference between a will and intestate succession?",
-    "How are debts handled before distributing an inheritance?",
-    "What happens to property if all direct heirs are deceased?",
-    "Can a minor child be an heir?",
-    "What is the role of an executor in inheritance proceedings?",
-    "How is agricultural land treated differently in inheritance?",
-    "What documents are required to claim inheritance?",
-    "Can a gift given during lifetime affect inheritance share?",
-    "What is the waiting period before inheritance can be claimed?",
-]
 # ─────────────────────────────────────────────
 
 
