@@ -1,4 +1,4 @@
-"""Run the controlled MLflow GenAI evaluation for fixed-hybrid-top3."""
+"""Run one controlled MLflow GenAI evaluation profile."""
 
 from __future__ import annotations
 
@@ -23,26 +23,47 @@ from src.mlflow_config import configure_mlflow
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_PATH = PROJECT_ROOT / "output" / "genai_evaluation_fixed_hybrid_top3.json"
-ARTIFACT_PATH = PROJECT_ROOT / "artifacts" / "genai_evaluation_fixed_hybrid_top3.json"
+
 
 @dataclass(frozen=True)
 class EvaluationProfile:
-    """Lightweight fixed profile compatible with the existing RAG boundary."""
+    """Lightweight evaluation profile compatible with the existing RAG boundary."""
 
     chunking_strategy: str = "fixed"
     retrieval_mode: str = "hybrid"
     top_k: int = 3
-    pinecone_namespace: str = "fixed"
+
+    def __post_init__(self) -> None:
+        if self.chunking_strategy not in {"recursive", "fixed"}:
+            raise ValueError("chunking_strategy must be 'recursive' or 'fixed'")
+        if self.retrieval_mode not in {"semantic", "hybrid"}:
+            raise ValueError("retrieval_mode must be 'semantic' or 'hybrid'")
+        if self.top_k not in {3, 5}:
+            raise ValueError("Step 4 evaluation top_k must be 3 or 5")
+
+    @property
+    def pinecone_namespace(self) -> str | None:
+        return "fixed" if self.chunking_strategy == "fixed" else None
 
     @property
     def semantic_only(self) -> bool:
         return self.retrieval_mode == "semantic"
 
+    @property
+    def label(self) -> str:
+        return f"{self.chunking_strategy}-{self.retrieval_mode}-top{self.top_k}"
+
 
 PROFILE = EvaluationProfile()
-CONFIG_LABEL = "fixed-hybrid-top3"
 GENERATION_TEMPERATURE = 0.2
+
+
+def evaluation_output_path(profile: EvaluationProfile) -> Path:
+    return PROJECT_ROOT / "output" / f"genai_evaluation_{profile.label.replace('-', '_')}.json"
+
+
+def evaluation_artifact_path(profile: EvaluationProfile) -> Path:
+    return PROJECT_ROOT / "artifacts" / f"genai_evaluation_{profile.label.replace('-', '_')}.json"
 
 
 def run_rag_query(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -57,6 +78,15 @@ def build_retriever(chunking_strategy: str) -> dict[str, Any]:
     from src.retrieval import build_retriever as implementation
 
     return implementation(chunking_strategy)
+
+
+def build_retrievers(
+    chunking_strategies: Sequence[str] = ("recursive", "fixed"),
+) -> dict[str, dict[str, Any]]:
+    """Lazy adapter that shares dense resources across evaluation profiles."""
+    from src.retrieval import build_retrievers as implementation
+
+    return implementation(chunking_strategies)
 
 
 def _decode_mapping(value: Any) -> dict[str, Any]:
@@ -227,7 +257,12 @@ def _generation_summary(call_records: Sequence[Mapping[str, Any]]) -> dict[str, 
 
 def run_controlled_evaluation(
     *,
+    profile: EvaluationProfile = PROFILE,
     dataset: Any | None = None,
+    judges: Sequence[Any] | None = None,
+    evaluation_scorers: Sequence[Any] | None = None,
+    scorer_max_attempts: int = 1,
+    scorer_timeout_seconds: int = 300,
     retriever_components: Mapping[str, Any] | None = None,
     evaluate_fn: Callable[..., Any] = mlflow_genai_evaluate,
 ) -> dict[str, Any]:
@@ -237,34 +272,43 @@ def run_controlled_evaluation(
     experiment_id = str(experiment.experiment_id)
     dataset = dataset or get_managed_dataset()
     dataset_report = validate_managed_dataset(dataset)
-    judges = load_registered_judges(experiment_id)
-    components = retriever_components or build_retriever("fixed")
+    judges = list(judges) if judges is not None else load_registered_judges(experiment_id)
+    scorers = list(evaluation_scorers) if evaluation_scorers is not None else judges
+    if [scorer.name for scorer in scorers] != [judge.name for judge in judges]:
+        raise ValueError("Evaluation scorer names must match the registered judge lineage")
+    components = retriever_components or build_retriever(profile.chunking_strategy)
+    config_label = profile.label
 
     # The direct Groq judge provider is quota-sensitive. Keep both prediction
     # and scoring deterministic and sequential for this controlled milestone run.
     os.environ["MLFLOW_GENAI_EVAL_MAX_WORKERS"] = "1"
+    os.environ["MLFLOW_GENAI_EVAL_MAX_SCORER_WORKERS"] = "1"
     os.environ["MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION"] = "true"
     call_records: list[dict[str, Any]] = []
-    predict_fn = build_predict_fn(components, call_records=call_records)
+    predict_fn = build_predict_fn(
+        components,
+        call_records=call_records,
+        profile=profile,
+    )
 
     run_tags = {
         "evaluation.type": "mlflow-genai-managed-dataset",
-        "evaluation.config": CONFIG_LABEL,
+        "evaluation.config": config_label,
         "evaluation.dataset_id": dataset.dataset_id,
         "evaluation.expectation_version": EXPECTATION_VERSION,
         "evaluation.judge_count": str(len(judges)),
     }
     with mlflow.start_run(
-        run_name=f"genai-evaluation-{CONFIG_LABEL}",
+        run_name=f"genai-evaluation-{config_label}",
         tags=run_tags,
     ) as active_run:
         mlflow.log_params(
             {
-                "config_label": CONFIG_LABEL,
-                "chunking_strategy": PROFILE.chunking_strategy,
-                "retrieval_mode": PROFILE.retrieval_mode,
-                "top_k": PROFILE.top_k,
-                "pinecone_namespace": PROFILE.pinecone_namespace,
+                "config_label": config_label,
+                "chunking_strategy": profile.chunking_strategy,
+                "retrieval_mode": profile.retrieval_mode,
+                "top_k": profile.top_k,
+                "pinecone_namespace": profile.pinecone_namespace or "__default__",
                 "generation_temperature": GENERATION_TEMPERATURE,
                 "dataset_name": dataset.name,
                 "dataset_digest": dataset.digest,
@@ -273,13 +317,16 @@ def run_controlled_evaluation(
                     f"{judge.name}:v{judge.scorer_version}" for judge in judges
                 ),
                 "evaluation_workers": 1,
+                "scorer_workers": 1,
+                "scorer_max_attempts": scorer_max_attempts,
+                "scorer_timeout_seconds": scorer_timeout_seconds,
                 "trace_validation_skipped": True,
             }
         )
         result = evaluate_fn(
             data=dataset,
             predict_fn=predict_fn,
-            scorers=judges,
+            scorers=scorers,
         )
         if result.run_id != active_run.info.run_id:
             raise RuntimeError("MLflow GenAI evaluation did not reuse the named run")
@@ -322,11 +369,11 @@ def run_controlled_evaluation(
             "run_id": result.run_id,
             "experiment_id": experiment_id,
             "config": {
-                "label": CONFIG_LABEL,
-                "chunking_strategy": PROFILE.chunking_strategy,
-                "retrieval_mode": PROFILE.retrieval_mode,
-                "top_k": PROFILE.top_k,
-                "pinecone_namespace": PROFILE.pinecone_namespace,
+                "label": config_label,
+                "chunking_strategy": profile.chunking_strategy,
+                "retrieval_mode": profile.retrieval_mode,
+                "top_k": profile.top_k,
+                "pinecone_namespace": profile.pinecone_namespace or "__default__",
                 "generation_temperature": GENERATION_TEMPERATURE,
             },
             "dataset": dataset_report,
@@ -350,10 +397,12 @@ def run_controlled_evaluation(
         mlflow.set_tag("evaluation.status", report["status"])
         mlflow.log_dict(report, "genai_evaluation_summary.json")
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    ARTIFACT_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    output_path = evaluation_output_path(profile)
+    artifact_path = evaluation_artifact_path(profile)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     if report["scorer_failures"]:
         raise RuntimeError(
             "MLflow GenAI evaluation was partial: "
@@ -364,10 +413,14 @@ def run_controlled_evaluation(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run MLflow GenAI evaluation for fixed-hybrid-top3."
+        description="Run one controlled MLflow GenAI evaluation profile."
     )
-    parser.parse_args()
-    print(json.dumps(run_controlled_evaluation(), indent=2))
+    parser.add_argument("--chunking", choices=("recursive", "fixed"), default="fixed")
+    parser.add_argument("--retrieval", choices=("semantic", "hybrid"), default="hybrid")
+    parser.add_argument("--top-k", choices=(3, 5), type=int, default=3)
+    args = parser.parse_args()
+    profile = EvaluationProfile(args.chunking, args.retrieval, args.top_k)
+    print(json.dumps(run_controlled_evaluation(profile=profile), indent=2))
 
 
 if __name__ == "__main__":

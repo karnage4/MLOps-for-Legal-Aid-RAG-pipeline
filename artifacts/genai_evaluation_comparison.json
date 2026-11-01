@@ -1,0 +1,115 @@
+{
+  "status": "interrupted",
+  "dataset": {
+    "dataset_id": "d-fee7335515b9445dbb7feddfd68de247",
+    "dataset_name": "legal-aid-rag-held-out-v1",
+    "dataset_digest": "1f570963",
+    "record_count": 3,
+    "expectation_version": "1"
+  },
+  "judges": [
+    {
+      "name": "relevance_to_query",
+      "version": 1
+    },
+    {
+      "name": "retrieval_groundedness",
+      "version": 2
+    },
+    {
+      "name": "retrieval_relevance",
+      "version": 2
+    },
+    {
+      "name": "correctness",
+      "version": 1
+    },
+    {
+      "name": "retrieval_sufficiency",
+      "version": 1
+    },
+    {
+      "name": "legal_answer_quality",
+      "version": 2
+    }
+  ],
+  "selection_rule": "Highest correctness, retrieval sufficiency, legal answer quality, retrieval groundedness, retrieval relevance, relevance to query, and retrieval precision in that order; then lowest average total latency.",
+  "requested_profiles": [
+    "recursive-semantic-top3",
+    "recursive-semantic-top5",
+    "recursive-hybrid-top3",
+    "recursive-hybrid-top5",
+    "fixed-semantic-top3",
+    "fixed-semantic-top5",
+    "fixed-hybrid-top3",
+    "fixed-hybrid-top5"
+  ],
+  "completed_profiles": [
+    "fixed-hybrid-top3",
+    "recursive-hybrid-top3",
+    "recursive-semantic-top3",
+    "recursive-semantic-top5"
+  ],
+  "remaining_profiles": [
+    "fixed-hybrid-top5",
+    "fixed-semantic-top3",
+    "fixed-semantic-top5",
+    "recursive-hybrid-top5"
+  ],
+  "best_profile": null,
+  "ranking": [
+    {
+      "label": "fixed-hybrid-top3",
+      "run_id": "9fcc1af514b046078f04bc2202c5f60a",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.3333333333333333,
+      "legal_answer_quality": 0.3333333333333333,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.7777777777777778,
+      "retrieval_relevance_precision": 0.7777777777777777,
+      "relevance_to_query": 1.0,
+      "avg_total_ms": 13511.666666666666,
+      "fallback_rate": 1.0
+    },
+    {
+      "label": "recursive-hybrid-top3",
+      "run_id": "98e7838d135f43fcb830c1d824e9581a",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.0,
+      "legal_answer_quality": 1.0,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.8888888888888888,
+      "retrieval_relevance_precision": 0.8888888888888888,
+      "relevance_to_query": 1.0,
+      "avg_total_ms": 9424.333333333334,
+      "fallback_rate": 1.0
+    },
+    {
+      "label": "recursive-semantic-top5",
+      "run_id": "a130d951e9ce446d9238848c24dd8986",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.0,
+      "legal_answer_quality": 0.3333333333333333,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.4666666666666667,
+      "retrieval_relevance_precision": 0.4666666666666666,
+      "relevance_to_query": 0.3333333333333333,
+      "avg_total_ms": 4557.666666666667,
+      "fallback_rate": 1.0
+    },
+    {
+      "label": "recursive-semantic-top3",
+      "run_id": "5e585a134b844a0a8e50ae4693cee229",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.0,
+      "legal_answer_quality": 0.3333333333333333,
+      "retrieval_groundedness": 0.3333333333333333,
+      "retrieval_relevance": 0.4444444444444444,
+      "retrieval_relevance_precision": 0.4444444444444444,
+      "relevance_to_query": 0.3333333333333333,
+      "avg_total_ms": 3933.6666666666665,
+      "fallback_rate": 1.0
+    }
+  ],
+  "error": "Groq judge quota/rate limiting persisted under fully sequential scoring; one scorer exceeded the bounded 900-second timeout. Resume after quota reset."
+}

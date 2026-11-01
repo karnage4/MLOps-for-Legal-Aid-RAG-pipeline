@@ -418,7 +418,7 @@ register versioned judges, and run reproducible MLflow GenAI evaluations.
 | 1 | Register and label the shared held-out dataset | Complete | 3 human-reviewed records and expectations visible in UI; digest `1f570963`; idempotent label rerun updated 0 |
 | 2 | Define and register versioned judges | Complete | 6 judges registered; latest pinned versions reuse cleanly; 0 setup inference calls |
 | 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Complete | Run `9fcc1af514b046078f04bc2202c5f60a` confirmed in UI; 3 nested traces; 6 successful assessments per row |
-| 4 | Compare additional profiles with the same dataset and judges | Pending | — |
+| 4 | Compare additional profiles with the same dataset and judges | In progress (4/8 valid) | Four completed profiles are checkpointed; the remaining four are resumable after the Groq judge quota resets |
 
 ### Step 1 — managed dataset
 
@@ -548,6 +548,47 @@ cover every approved fact for two queries, and no response covered every strict
 expected fact. Manual UI inspection confirmed the corrected evaluation run,
 all three rows, six assessment columns, and nested retrieval/generation spans.
 
+### Step 4 — resumable eight-profile GenAI comparison
+
+`src/genai_comparison.py` applies the same managed dataset, approved
+expectations, generation temperature, and pinned six-judge lineage to the exact
+recursive/fixed × semantic/hybrid × top-3/top-5 matrix. It reuses only reports
+whose dataset ID, digest, expectation version, judge versions, row count, and
+completion status all match. Each successful profile is checkpointed before the
+next begins, and the final best profile will be selected by the documented
+quality-first rule with latency used only as a later tie-breaker.
+
+The runner keeps both dataset rows and judge calls sequential
+(`MLFLOW_GENAI_EVAL_MAX_WORKERS=1` and
+`MLFLOW_GENAI_EVAL_MAX_SCORER_WORKERS=1`) and uses bounded per-judge retries for
+transient structured-output failures. The existing `fixed-hybrid-top3` Step 3
+result was reused rather than rerun.
+
+Verified completed profiles on 2026-11-01:
+
+| Profile | Run ID | Correctness | Retrieval sufficiency | Legal quality pass rate | Retrieval groundedness | Retrieval relevance | Query relevance | Mean total latency |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `fixed-hybrid-top3` | `9fcc1af514b046078f04bc2202c5f60a` | 0.0000 | 0.3333 | 0.3333 | 1.0000 | 0.7778 | 1.0000 | 13,511.7 ms |
+| `recursive-hybrid-top3` | `98e7838d135f43fcb830c1d824e9581a` | 0.0000 | 0.0000 | 1.0000 | 1.0000 | 0.8889 | 1.0000 | 9,424.3 ms |
+| `recursive-semantic-top5` | `a130d951e9ce446d9238848c24dd8986` | 0.0000 | 0.0000 | 0.3333 | 1.0000 | 0.4667 | 0.3333 | 4,557.7 ms |
+| `recursive-semantic-top3` | `5e585a134b844a0a8e50ae4693cee229` | 0.0000 | 0.0000 | 0.3333 | 0.3333 | 0.4444 | 0.3333 | 3,933.7 ms |
+
+Still required: `recursive-hybrid-top5`, `fixed-semantic-top3`,
+`fixed-semantic-top5`, and `fixed-hybrid-top5`. Partial attempts are excluded
+from reuse and ranking. The live continuation was stopped after Groq repeatedly
+rate-limited the registered `openai/gpt-oss-20b` judges and a scorer exceeded
+the bounded timeout; one row took more than 90 minutes and could no longer
+produce a complete profile. This is an external judge-quota blocker, not a RAG
+retrieval or generation failure. Resume without repeating valid profiles with:
+
+```bash
+python -m src.genai_comparison
+```
+
+Implementation verification passes all 11 focused comparison and
+controlled-evaluation tests. The final full local regression after the
+quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -581,3 +622,4 @@ all three rows, six assessment columns, and nested retrieval/generation spans.
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed the label-extension UI verification: expectations are visible on all three records and all six version-1 judges are visible before Step 3. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Implemented Step 3 managed-dataset evaluation, used a diagnostic run to correct MLflow retriever-output and Groq custom-judge adapters, then completed and SDK-verified the three-trace six-judge run `9fcc1af514b046078f04bc2202c5f60a`. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Completed Step 3 UI verification: the successful evaluation run, all three rows, all six assessment columns, and nested RAG spans are visible in MLflow. |
+| 2026-11-01 | `3-mlflow-genai-datasets-judges` | Began Step 4 with a resumable eight-profile runner, strict lineage checks, deterministic ranking, sequential judge execution, and bounded scorer retries; 4/8 profiles are valid and checkpointed, while the remaining four are paused after sustained Groq judge rate limiting. |
