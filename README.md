@@ -12,6 +12,7 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/retrieval.py`: Houses the mathematical logic for querying. It executes parallel sparse (BM25) and dense (Pinecone) queries, merging their outputs systematically via Reciprocal Rank Fusion (RRF). 
 - `src/generation.py`: Sends retrieved context to Hugging Face first and cleanly falls back to the configured Groq Qwen model when Hugging Face is unavailable.
 - `src/evaluation.py`: Runs reproducible RAG experiments and measures faithfulness and relevancy with a configurable Groq judge.
+- `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 
 ## Setup and Dependencies
@@ -71,6 +72,38 @@ The pipeline must be engaged consecutively to ensure structural integrity across
    Boots the interactive frontend layer locally.
    ```bash
    streamlit run app.py
+   ```
+
+4. **Prediction API**:
+   Starts the FastAPI service with one cached recursive retriever. The serving
+   default remains the existing recursive + hybrid + top-5 architecture.
+
+   ```bash
+   uvicorn src.app:app --host 127.0.0.1 --port 8000
+   ```
+
+   Open `http://127.0.0.1:8000/docs` for the generated interactive API
+   documentation or check readiness at `http://127.0.0.1:8000/health`.
+
+   Example prediction request:
+
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{"query":"Who inherits without a will?","retrieval_mode":"hybrid","top_k":5,"temperature":0.2}'
+   ```
+
+   `query` is required and limited to 1,000 characters. `retrieval_mode` must
+   be `semantic` or `hybrid`, `top_k` must be between 3 and 10, and
+   `temperature` must be between 0 and 1. Unknown request fields are rejected.
+   Responses include the answer, provider/model and fallback metadata, unique
+   source names, retrieved chunk count, and retrieval/generation/total latency;
+   full prompts, documents, and credentials are never returned.
+
+   Run the API tests without cloud calls:
+
+   ```bash
+   pytest tests/test_api.py -q
    ```
 
 ### Configurable retrieval profiles

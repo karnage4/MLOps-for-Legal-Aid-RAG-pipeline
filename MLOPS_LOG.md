@@ -599,6 +599,55 @@ Implementation verification passes all 11 focused comparison and
 controlled-evaluation tests. The final full local regression after the
 quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
 
+## Phase 4 — FastAPI prediction service
+
+### Objective
+
+Serve the unchanged MLflow-traced RAG pipeline through a validated HTTP API
+without coupling deployment to the deferred GenAI comparison winner.
+
+### Implementation checkpoint
+
+- Added `src/app.py` with `/predict`, `/health`, generated `/docs`, and an
+  independently testable application factory.
+- Kept the current serving default at recursive + hybrid + top-5; requests may
+  select semantic/hybrid mode, top-K from 3 to 10, and temperature from 0 to 1.
+- Loads and validates the recursive retriever once during application startup,
+  then reuses the same components for every request.
+- Calls the existing `src.pipeline.run_rag_query` boundary, preserving nested
+  MLflow query/retrieval/generation tracing and the Hugging Face-to-Groq
+  generation fallback.
+- Returns compact provider, model, fallback, source, chunk-count, and latency
+  metadata without returning prompts, full retrieved documents, or secrets.
+- Maps missing context to HTTP 404, provider generation failure to HTTP 502,
+  unavailable startup state to HTTP 503, unexpected pipeline failures to HTTP
+  500, and Pydantic validation failures to HTTP 422.
+- Added explicit FastAPI, Uvicorn, and HTTPX dependencies.
+- Focused credential-free verification initially passed `4` tests in 3.53
+  seconds; component completeness coverage was then added before the final
+  regression run.
+- Real startup-loader verification passed without a retrieval or generation
+  call: 3,593 recursive BM25 documents, recursive/default Pinecone namespace,
+  embedding model, reranker, and Pinecone index client all initialized.
+- Full local regression after the API implementation passed all 75 tests in
+  172.52 seconds with only the existing SQLAlchemy deprecation warning.
+- Real Uvicorn startup passed on `127.0.0.1:8000`: `/health` returned HTTP 200
+  with `retriever_loaded=true` and `chunking_strategy=recursive`, `/docs`
+  returned HTTP 200, and `/openapi.json` identified version `1.0.0` with both
+  `/health` and `/predict` paths.
+- Real `/predict` verification passed for "What share does a daughter receive
+  in Islamic inheritance?": HTTP 200, recursive hybrid top-5, five chunks from
+  two unique sources, Groq fallback `qwen/qwen3.8-27b`, retrieval 11,333 ms,
+  generation 2,789 ms, and total RAG time 14,122 ms.
+- MLflow readback confirmed trace `tr-27666fc0cfcd18e5d7811d72fda40089`
+  is `OK` with one `legal_aid_rag_query` root and nested
+  `hybrid_legal_retrieval` and `legal_generation` spans.
+
+The live service and prediction endpoint are verified. User browser inspection
+of `/docs` remains an optional manual confirmation; predictions require the
+existing Pinecone and generation credentials but do not invoke the deferred
+MLflow judge suite.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -634,3 +683,4 @@ quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Completed Step 3 UI verification: the successful evaluation run, all three rows, all six assessment columns, and nested RAG spans are visible in MLflow. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Began Step 4 with a resumable eight-profile runner, strict lineage checks, deterministic ranking, sequential judge execution, and bounded scorer retries; 4/8 profiles are valid and checkpointed, while the remaining four are paused after sustained Groq judge rate limiting. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Retested Step 4 continuation after an 11.11-second minimal judge preflight; the first full-context assessment still timed out at 300 seconds, so the attempt was marked `KILLED` and the recommendation remains to wait for the Groq quota window to reset. |
+| 2026-11-01 | `4-fastapi-service` | Began the API phase: added a startup-cached retriever, validated `/predict`, `/health`, generated `/docs`, compact response/error contracts, explicit service dependencies, documentation, and four credential-free tests while preserving the existing traced RAG pipeline. |
