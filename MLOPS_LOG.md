@@ -585,6 +585,16 @@ retrieval or generation failure. Resume without repeating valid profiles with:
 python -m src.genai_comparison
 ```
 
+A continuation check later on 2026-11-01 showed that a minimal
+`relevance_to_query:v1` request could succeed in 11.11 seconds, but that was not
+sufficient evidence of full quota recovery: the first full-context assessment
+in `recursive-hybrid-top5` still exceeded the 300-second scorer timeout. The
+attempt was stopped immediately and MLflow run
+`1269f225f5c04632a40aa60442a10edc` was marked `KILLED` with
+`evaluation.status=interrupted-provider-quota`. No completed profile was
+repeated or replaced. Wait for the Groq judge quota window to reset before the
+next resume.
+
 Implementation verification passes all 11 focused comparison and
 controlled-evaluation tests. The final full local regression after the
 quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
@@ -623,3 +633,4 @@ quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Implemented Step 3 managed-dataset evaluation, used a diagnostic run to correct MLflow retriever-output and Groq custom-judge adapters, then completed and SDK-verified the three-trace six-judge run `9fcc1af514b046078f04bc2202c5f60a`. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Completed Step 3 UI verification: the successful evaluation run, all three rows, all six assessment columns, and nested RAG spans are visible in MLflow. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Began Step 4 with a resumable eight-profile runner, strict lineage checks, deterministic ranking, sequential judge execution, and bounded scorer retries; 4/8 profiles are valid and checkpointed, while the remaining four are paused after sustained Groq judge rate limiting. |
+| 2026-11-01 | `3-mlflow-genai-datasets-judges` | Retested Step 4 continuation after an 11.11-second minimal judge preflight; the first full-context assessment still timed out at 300 seconds, so the attempt was marked `KILLED` and the recommendation remains to wait for the Groq quota window to reset. |
