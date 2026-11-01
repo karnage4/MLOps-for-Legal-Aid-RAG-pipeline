@@ -416,8 +416,8 @@ register versioned judges, and run reproducible MLflow GenAI evaluations.
 | Step | Scope | Status | Verification |
 | --- | --- | --- | --- |
 | 1 | Register and label the shared held-out dataset | Complete | 3 human-reviewed records and expectations visible in UI; digest `1f570963`; idempotent label rerun updated 0 |
-| 2 | Define and register versioned judges | Complete | 6 version-1 judges visible in UI; idempotent rerun reused all 6; 0 inference calls |
-| 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Pending | — |
+| 2 | Define and register versioned judges | Complete | 6 judges registered; latest pinned versions reuse cleanly; 0 setup inference calls |
+| 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Complete | Run `9fcc1af514b046078f04bc2202c5f60a` confirmed in UI; 3 nested traces; 6 successful assessments per row |
 | 4 | Compare additional profiles with the same dataset and judges | Pending | — |
 
 ### Step 1 — managed dataset
@@ -488,8 +488,14 @@ Run:
 python -m src.genai_judges
 ```
 
-Local SDK verification on 2026-10-31 registered all six judges as version 1.
-An immediate second invocation returned `action=reused` for all six, proving
+Initial SDK verification on 2026-10-31 registered all six judges as version 1.
+Step 3 uses `relevance_to_query:v1`, `retrieval_groundedness:v2`,
+`retrieval_relevance:v2`, `correctness:v1`, `retrieval_sufficiency:v1`, and
+`legal_answer_quality:v2`. The custom v2 removes trace-tool calling because the
+direct Groq provider rejects JSON mode combined with tool calling. The two
+retrieval scorers were reserialized after live use. Registration now explicitly
+selects the highest version regardless of API list order; an immediate invocation
+returned `action=reused` for all six, proving
 that an unchanged setup does not create redundant versions. Manual inspection
 confirmed that all six version-1 judges are visible in **GenAI -> Judges** and
 that the approved `expected_facts` are visible on all three dataset records.
@@ -499,6 +505,48 @@ of enabling continuous background sampling and unplanned provider usage. The
 earlier four-judge regression suite passed with `53 passed` in 116.38 seconds;
 the final expectation-and-six-judge suite passed with `58 passed` in 194.99
 seconds.
+
+### Step 3 — controlled managed-dataset evaluation
+
+`src/genai_evaluation.py` validates the exact three human-reviewed records,
+loads the latest six registered judges, builds only the fixed retriever, and
+runs the existing RAG boundary with profile `fixed-hybrid-top3`. It forces one
+evaluation worker to protect Groq quota and skips MLflow's extra prevalidation
+prediction so the final run contains exactly three evaluated generation calls.
+
+The first live attempt, run `390e08774cc0409788bcf79fb1728e45`, diagnosed two
+adapter issues and is tagged `evaluation.status=diagnostic-invalid`: the
+project's RETRIEVER span originally serialized a wrapper object instead of the
+document list MLflow judges require, and the trace-aware custom judge triggered
+a Groq JSON-mode/tool-calling conflict. The fixes changed trace serialization
+only—not retrieval ranking or returned application data—and made the custom
+judge expectation-free without trace tools.
+
+Corrected run `9fcc1af514b046078f04bc2202c5f60a` completed on 2026-11-01:
+
+- linked managed dataset: `legal-aid-rag-held-out-v1`, digest `1f570963`;
+- exactly three traces, each nested as `legal_aid_rag_query` →
+  `hybrid_legal_retrieval` → `legal_generation`;
+- all six scorer invocations succeeded for all three rows;
+- query relevance `1.0000`;
+- retrieval groundedness `1.0000`;
+- retrieval relevance and precision `0.7778`;
+- retrieval sufficiency `0.3333`;
+- strict all-facts correctness `0.0000`;
+- custom legal-answer quality passed `1/3` rows;
+- Hugging Face remained primary but was unavailable, so Groq
+  `qwen/qwen3.8-27b` handled all three generations (`fallback_rate=1.0`);
+- mean retrieval, generation, and total RAG latency were `11,307.0 ms`,
+  `2,204.7 ms`, and `13,511.7 ms` respectively;
+- compact tracked evidence is stored in
+  `artifacts/genai_evaluation_fixed_hybrid_top3.json`;
+- final regression suite: `65 passed` in 90.85 seconds.
+
+The low sufficiency and correctness values are valid findings, not scorer
+errors: the retrieved chunks fully grounded the generated claims, but did not
+cover every approved fact for two queries, and no response covered every strict
+expected fact. Manual UI inspection confirmed the corrected evaluation run,
+all three rows, six assessment columns, and nested retrieval/generation spans.
 
 ## Change history
 
@@ -531,3 +579,5 @@ seconds.
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed Step 2 UI verification: all four version-1 judges are visible; automatic trace evaluation remains intentionally off until controlled dataset evaluation in Step 3. |
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Added Karam Hussain's approved version-1 expected facts to the same three dataset records, marked them human-reviewed, and registered correctness plus retrieval-sufficiency judges without inference. |
 | 2026-10-31 | `3-mlflow-genai-datasets-judges` | Completed the label-extension UI verification: expectations are visible on all three records and all six version-1 judges are visible before Step 3. |
+| 2026-11-01 | `3-mlflow-genai-datasets-judges` | Implemented Step 3 managed-dataset evaluation, used a diagnostic run to correct MLflow retriever-output and Groq custom-judge adapters, then completed and SDK-verified the three-trace six-judge run `9fcc1af514b046078f04bc2202c5f60a`. |
+| 2026-11-01 | `3-mlflow-genai-datasets-judges` | Completed Step 3 UI verification: the successful evaluation run, all three rows, all six assessment columns, and nested RAG spans are visible in MLflow. |

@@ -461,7 +461,11 @@ def retrieve(
             pinecone_namespace=pinecone_namespace,
             chunking_strategy=chunking_strategy,
         )
-        span.set_outputs(result)
+        # MLflow's built-in RAG judges expect a RETRIEVER span to output the
+        # document list directly. Each existing chunk already contains a
+        # recognized ``text`` field, so this changes trace serialization only;
+        # the retrieval result returned to the application remains unchanged.
+        span.set_outputs(result["chunks"])
         return result
 
 

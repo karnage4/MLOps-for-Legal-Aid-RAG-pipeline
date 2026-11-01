@@ -36,17 +36,17 @@ JUDGE_NAMES = (
 )
 
 LEGAL_ANSWER_QUALITY_INSTRUCTIONS = """
-Evaluate the response using only {{ inputs }}, {{ outputs }}, and {{ trace }}.
+Evaluate the response using only {{ inputs }} and {{ outputs }}.
 Return "pass" only when all of the following are true:
 1. The answer directly addresses the user's legal-information question.
-2. Legal claims are consistent with the retrieved evidence visible in the trace;
-   the answer does not invent a statute, citation, entitlement, or factual detail.
-3. If the retrieved evidence is incomplete or conflicting, the answer clearly
-   communicates that limitation instead of presenting an unsupported conclusion.
+2. The answer distinguishes conditional rules from universal rules and avoids
+   presenting an unsupported guarantee or personalized conclusion.
+3. The answer communicates material uncertainty or fact dependence where needed.
 4. The response is framed as general legal information and does not pretend to
    be personalized legal advice or guarantee a legal outcome.
 Otherwise return "fail" and explain the most important problem in the rationale.
-Do not use external legal knowledge and do not require a reference answer.
+Do not use external legal knowledge, tools, or a reference answer. Groundedness
+against retrieved documents is evaluated by a separate registered judge.
 """.strip()
 
 
@@ -109,10 +109,13 @@ def ensure_registered_judges(
     if len(names) != len(set(names)):
         raise ValueError("Judge names must be unique")
 
-    latest_by_name = {
-        scorer.name: scorer
-        for scorer in list_scorers(experiment_id=experiment_id)
-    }
+    latest_by_name: dict[str, Any] = {}
+    for scorer in list_scorers(experiment_id=experiment_id):
+        current = latest_by_name.get(scorer.name)
+        if current is None or (scorer.scorer_version or 0) > (
+            current.scorer_version or 0
+        ):
+            latest_by_name[scorer.name] = scorer
     judge_reports = []
     for judge in desired:
         existing = latest_by_name.get(judge.name)
@@ -144,7 +147,7 @@ def ensure_registered_judges(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Define and register expectation-free MLflow GenAI judges."
+        description="Define and register the versioned MLflow GenAI judges."
     )
     parser.add_argument(
         "--model",

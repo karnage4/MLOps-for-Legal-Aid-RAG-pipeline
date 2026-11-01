@@ -238,7 +238,7 @@ experiment without running the RAG pipeline or calling a judge model:
 | `relevance_to_query` | Checks whether the answer addresses the question | No |
 | `retrieval_relevance` | Checks whether retrieved chunks are relevant | No |
 | `retrieval_groundedness` | Checks whether the answer is supported by retrieval | No |
-| `legal_answer_quality` | Checks evidence use, uncertainty, and responsible legal framing | No |
+| `legal_answer_quality` | Checks conditionality, uncertainty, and responsible legal framing | No |
 | `correctness` | Checks whether the answer covers the reviewed expected facts | Yes |
 | `retrieval_sufficiency` | Checks whether retrieval can support the reviewed facts | Yes |
 
@@ -251,12 +251,49 @@ python -m src.genai_judges
 The command uses `GROQ_JUDGE_MODEL` (default `openai/gpt-oss-20b`) through
 MLflow's `groq:/` provider URI. Registration is idempotent: an unchanged
 definition reuses its latest version, while a changed definition creates a
-new version. Registration itself makes no provider inference call. All six
-definitions were verified as version 1 in experiment ID `1`; an immediate
-rerun reused all six versions. Open **GenAI -> Judges** in the
+new version. Registration itself makes no provider inference call. The versions
+pinned by Step 3 are `relevance_to_query:v1`, `retrieval_groundedness:v2`,
+`retrieval_relevance:v2`, `correctness:v1`, `retrieval_sufficiency:v1`, and
+`legal_answer_quality:v2`; an immediate rerun reused all six latest versions.
+Open **GenAI -> Judges** in the
 `legal-aid-rag` experiment to inspect them. The UI's **Evaluating traces** setting is intentionally
 `OFF`; Step 3 invokes these registered versions explicitly on the managed
 dataset rather than continuously sampling production traces.
+
+### Controlled MLflow GenAI evaluation
+
+Run the labeled `fixed-hybrid-top3` evaluation with:
+
+```bash
+python -m src.genai_evaluation
+```
+
+The runner validates the exact managed dataset and expected facts, loads the
+latest registered judge versions, forces single-worker scoring, and reuses the
+existing traced RAG chain. The verified run is
+`9fcc1af514b046078f04bc2202c5f60a` and is linked to dataset digest `1f570963`.
+It produced exactly three traces, each with nested CHAIN, RETRIEVER, and LLM
+spans and all six assessments; these were also confirmed in the MLflow UI.
+
+| Metric | Result |
+| --- | ---: |
+| Query relevance | 1.0000 |
+| Retrieval groundedness | 1.0000 |
+| Retrieval relevance | 0.7778 |
+| Retrieval sufficiency | 0.3333 |
+| Correctness against all expected facts | 0.0000 |
+| Custom legal-answer quality | 1/3 passed |
+| Average retrieval latency | 11,307.0 ms |
+| Average generation latency | 2,204.7 ms |
+| Average RAG latency | 13,511.7 ms |
+
+Hugging Face remained primary but was unavailable because of credits/provider
+support, so all three evaluated generations used the configured Groq fallback
+`qwen/qwen3.8-27b`. The scores show that answers were relevant and grounded in
+retrieved text, while two queries lacked retrieval coverage for every approved
+fact and none of the answers satisfied every strict expected fact. Detailed
+per-query results are saved in
+[`artifacts/genai_evaluation_fixed_hybrid_top3.json`](artifacts/genai_evaluation_fixed_hybrid_top3.json).
 
 ### Training exemption for this RAG project
 

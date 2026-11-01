@@ -47,7 +47,9 @@ def test_build_judges_use_configured_model_and_limit_expectation_usage():
     )
     expectation_dependent = {"correctness", "retrieval_sufficiency"}
     assert expectation_dependent.issubset({judge.name for judge in judges})
-    assert "{{ trace }}" in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
+    assert "{{ inputs }}" in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
+    assert "{{ outputs }}" in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
+    assert "{{ trace }}" not in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
 
 
 def test_registration_reuses_identical_latest_version(monkeypatch):
@@ -70,6 +72,26 @@ def test_registration_reuses_identical_latest_version(monkeypatch):
             "action": "reused",
         }
     ]
+
+
+def test_registration_selects_highest_version_regardless_of_list_order(monkeypatch):
+    older = FakeJudge("judge-a", {"model": "groq:/old"}, version=1)
+    latest = FakeJudge("judge-a", {"model": "groq:/model"}, version=2)
+    desired = FakeJudge("judge-a", {"model": "groq:/model"})
+    monkeypatch.setattr(
+        genai_judges,
+        "list_scorers",
+        lambda **_: [latest, older],
+    )
+
+    report = genai_judges.ensure_registered_judges(
+        experiment=SimpleNamespace(experiment_id="7", name="experiment"),
+        judges=[desired],
+    )
+
+    assert desired.register_calls == []
+    assert report["judges"][0]["version"] == 2
+    assert report["judges"][0]["action"] == "reused"
 
 
 def test_registration_creates_or_versions_changed_judges(monkeypatch):
