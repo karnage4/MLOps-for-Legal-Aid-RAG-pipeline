@@ -643,10 +643,10 @@ without coupling deployment to the deferred GenAI comparison winner.
   is `OK` with one `legal_aid_rag_query` root and nested
   `hybrid_legal_retrieval` and `legal_generation` spans.
 
-The live service and prediction endpoint are verified. User browser inspection
-of `/docs` remains an optional manual confirmation; predictions require the
-existing Pinecone and generation credentials but do not invoke the deferred
-MLflow judge suite.
+The live service and prediction endpoint are verified. On 2026-11-02, the user
+also manually confirmed both `/health` and `/predict` through the generated
+`/docs` interface. Predictions require the existing Pinecone and generation
+credentials but do not invoke the deferred MLflow judge suite.
 
 ## Change history
 
@@ -684,3 +684,4 @@ MLflow judge suite.
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Began Step 4 with a resumable eight-profile runner, strict lineage checks, deterministic ranking, sequential judge execution, and bounded scorer retries; 4/8 profiles are valid and checkpointed, while the remaining four are paused after sustained Groq judge rate limiting. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Retested Step 4 continuation after an 11.11-second minimal judge preflight; the first full-context assessment still timed out at 300 seconds, so the attempt was marked `KILLED` and the recommendation remains to wait for the Groq quota window to reset. |
 | 2026-11-01 | `4-fastapi-service` | Began the API phase: added a startup-cached retriever, validated `/predict`, `/health`, generated `/docs`, compact response/error contracts, explicit service dependencies, documentation, and four credential-free tests while preserving the existing traced RAG pipeline. |
+| 2026-11-02 | `4-fastapi-service` | Completed manual API acceptance: the user confirmed that both `/health` and `/predict` work through the generated FastAPI `/docs` interface. |
