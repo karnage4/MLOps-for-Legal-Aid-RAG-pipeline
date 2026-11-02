@@ -661,6 +661,33 @@ also manually confirmed both `/health` and `/predict` through the generated
 `/docs` interface. Predictions require the existing Pinecone and generation
 credentials but do not invoke the deferred MLflow judge suite.
 
+## Phase 5 — milestone documentation and rubric audit
+
+### Objective
+
+Make the repository entry point independently reproducible and map the current
+RAG implementation to the Milestone 1 deliverables without misrepresenting
+index construction as supervised training.
+
+### Implementation checkpoint
+
+- Confirmed the required unit-test categories already exist across
+  `tests/test_prepare_bm25.py` and `tests/test_api.py`: preparation and invalid
+  data, cached retriever loading, request validation, prediction success, and
+  provider-failure handling.
+- Added a one-line project pitch and a compact Mermaid architecture diagram
+  covering legal data, validated preparation/indexing, RAG evaluation, MLflow,
+  and FastAPI serving.
+- Added copyable Windows and Linux/macOS quick-start instructions using a
+  virtual environment, `requirements.txt`, `.env.example`, `pytest`, and
+  Uvicorn.
+- Added a concise dataset/task statement recording the five-folder corpus,
+  46/50 accepted PDFs, 3,593 recursive chunks, 883 fixed chunks, held-out RAG
+  task, and repository data-exclusion policy.
+- Added `.env.example` with variable names and non-secret defaults only.
+- Kept `CONTRIBUTION.md` pending because neither repository contains the team
+  names and ERP IDs; the report still has placeholder author fields.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -699,3 +726,4 @@ credentials but do not invoke the deferred MLflow judge suite.
 | 2026-11-01 | `4-fastapi-service` | Began the API phase: added a startup-cached retriever, validated `/predict`, `/health`, generated `/docs`, compact response/error contracts, explicit service dependencies, documentation, and four credential-free tests while preserving the existing traced RAG pipeline. |
 | 2026-11-02 | `4-fastapi-service` | Completed manual API acceptance: the user confirmed that both `/health` and `/predict` work through the generated FastAPI `/docs` interface. |
 | 2026-11-02 | `3-mlflow-genai-datasets-judges` | Resumed after a successful 19.53-second preflight and completed three additional profiles, reaching 7/8 valid; `fixed-hybrid-top5` remained partial after six scorer timeouts and was explicitly marked invalid for comparison. |
+| 2026-11-02 | `5-milestone-documentation` | Began the rubric audit: confirmed required preparation/loading/API tests, added the README pitch, architecture, reproducible quick start, dataset/task note, and safe environment template; contribution details await the team names and ERP IDs. |

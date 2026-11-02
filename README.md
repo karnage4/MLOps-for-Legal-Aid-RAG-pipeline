@@ -1,6 +1,70 @@
 # Legal Inheritance RAG Architecture
 
-This repository contains the source code, offline evaluation scripts, and deployment resources for a specialized Retrieval-Augmented Generation (RAG) pipeline. The architecture is engineered to query complex legal inheritance laws using a Hybrid Retrieval framework, subsequently validating generated responses through an automated LLM-as-a-Judge system.
+An MLflow-traced legal-inheritance RAG service that validates a hybrid retrieval pipeline and serves grounded answers through FastAPI.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Legal PDF corpus] --> B[Preprocess and validate]
+    B --> C[Fixed and recursive chunks]
+    C --> D[BM25 and Pinecone indexes]
+    D --> E[Semantic or hybrid RAG]
+    E --> F[Held-out evaluation and MLflow]
+    E --> G[FastAPI /predict]
+```
+
+This is a training-exempt RAG project: the reproducible modeling stage prepares
+and indexes the corpus, evaluates retrieval/generation configurations, and
+tracks them in MLflow instead of fitting an unrelated supervised model.
+
+## Quick start
+
+```bash
+git clone https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
+cd MLOps-for-Legal-Aid-RAG-pipeline
+python -m venv .venv
+```
+
+Activate the environment and install the project requirements:
+
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+```bash
+# Linux/macOS
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+cp .env.example .env
+```
+
+Fill in `HF_API_TOKEN`, `PINECONE_API_KEY`, and `GROQ_API_KEY` in `.env`, then
+run the credential-free tests or start the API:
+
+```bash
+pytest -q
+uvicorn src.app:app --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000/docs` to test `POST /predict`. A live prediction
+also requires the prepared BM25 artifact and the existing
+`legal-inheritance-rag` Pinecone index described below.
+
+## Dataset and task
+
+The dataset is a local legal-inheritance PDF corpus organized into five source
+folders. Preprocessing accepted 46 of 50 supplied files and produced 3,593
+validated recursive chunks plus 883 fixed chunks; four PDFs were skipped
+because they contained fewer than 50 extractable characters. The task is to
+retrieve relevant passages and generate general inheritance-law information,
+then evaluate answer relevance, grounding, sufficiency, correctness, legal
+quality, and latency on a shared three-question held-out dataset. Raw source
+documents and generated runtime artifacts remain local and are intentionally
+excluded from Git.
 
 ## Project Structure
 
@@ -15,7 +79,7 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 
-## Setup and Dependencies
+## Detailed setup and dependencies
 
 To execute the data injection and compilation stages locally, you must provide explicit environmental variables.
 
