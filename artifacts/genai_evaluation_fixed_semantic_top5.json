@@ -1,0 +1,161 @@
+{
+  "status": "completed",
+  "run_id": "68e216b95fc3455bad64fd8f516c2902",
+  "experiment_id": "1",
+  "config": {
+    "label": "fixed-semantic-top5",
+    "chunking_strategy": "fixed",
+    "retrieval_mode": "semantic",
+    "top_k": 5,
+    "pinecone_namespace": "fixed",
+    "generation_temperature": 0.2
+  },
+  "dataset": {
+    "dataset_id": "d-fee7335515b9445dbb7feddfd68de247",
+    "dataset_name": "legal-aid-rag-held-out-v1",
+    "dataset_digest": "1f570963",
+    "record_count": 3,
+    "expectation_version": "1"
+  },
+  "judges": [
+    {
+      "name": "relevance_to_query",
+      "version": 1
+    },
+    {
+      "name": "retrieval_groundedness",
+      "version": 2
+    },
+    {
+      "name": "retrieval_relevance",
+      "version": 2
+    },
+    {
+      "name": "correctness",
+      "version": 1
+    },
+    {
+      "name": "retrieval_sufficiency",
+      "version": 1
+    },
+    {
+      "name": "legal_answer_quality",
+      "version": 2
+    }
+  ],
+  "metrics": {
+    "relevance_to_query/mean": 0.6666666666666666,
+    "retrieval_groundedness/mean": 1.0,
+    "retrieval_relevance/precision/mean": 0.4666666666666666,
+    "retrieval_relevance/mean": 0.4666666666666667,
+    "correctness/mean": 0.0,
+    "retrieval_sufficiency/mean": 0.3333333333333333
+  },
+  "generation": {
+    "providers": [
+      "groq"
+    ],
+    "models": [
+      "qwen/qwen3.8-27b"
+    ],
+    "fallback_count": 3,
+    "summary": {
+      "fallback_rate": 1.0,
+      "avg_retrieval_ms": 1659.6666666666667,
+      "avg_generation_ms": 2148.0,
+      "avg_total_ms": 3807.6666666666665
+    },
+    "calls": [
+      {
+        "query": "Who inherits property when a person dies without a will?",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": true,
+        "retrieved_chunks": 5,
+        "retrieval_ms": 1968,
+        "generation_ms": 2468,
+        "total_ms": 4436
+      },
+      {
+        "query": "What is the share of a daughter in Islamic inheritance?",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": true,
+        "retrieved_chunks": 5,
+        "retrieval_ms": 681,
+        "generation_ms": 1937,
+        "total_ms": 2618
+      },
+      {
+        "query": "Can a non-Muslim inherit from a Muslim's estate?",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": true,
+        "retrieved_chunks": 5,
+        "retrieval_ms": 2330,
+        "generation_ms": 2039,
+        "total_ms": 4369
+      }
+    ]
+  },
+  "rows": [
+    {
+      "trace_id": "tr-7c665b6d15c2dcee815f31e2493cb32d",
+      "relevance_to_query/value": "no",
+      "relevance_to_query/rationale": "Let's think step by step: The question asks who inherits property when a person dies without a will. The answer only lists section headings of the Succession Act and states that the actual distribution rules are not provided. It explicitly says the documents do not contain sufficient information to answer the question. Therefore the answer does not provide any relevant information about the heirs.",
+      "retrieval_groundedness/value": "yes",
+      "retrieval_groundedness/rationale": "Let's think step by step: The claim states that the provided document does not contain sufficient information to answer who inherits property when a person dies without a will. The document contains only section headings (54, 55, 56) for intestate succession and no substantive text explaining the specific shares or order of inheritance. Thus the claim that the document lacks the necessary detail is accurate and fully supported by the content given. No part of the claim is contradicted by the document. Therefore the claim is supported.",
+      "retrieval_relevance/value": "no",
+      "retrieval_relevance/rationale": "The document discusses the law of succession and a nominee collecting as a trustee for all persons entitled to inherit from the deceased, but it does not specify who those entitled persons are when a person dies without a will. Therefore it does not provide information relevant to the question of who inherits property in that situation.",
+      "retrieval_relevance/precision/value": 0.4,
+      "correctness/value": "no",
+      "correctness/rationale": "The document explicitly states that only section headings are available and does not provide substantive text explaining who inherits property when a person dies without a will. Consequently, it does not mention that the estate passes to legally eligible heirs, nor does it describe Pakistan\u2019s specific rule that a Muslim\u2019s estate follows Islamic inheritance while a non\u2011Muslim\u2019s follows personal law. The claim also details fixed\u2011share heirs, residuaries, and distant kindred for Muslim estates, and that shares depend on religion and surviving family, none of which are present in the provided document. Therefore, the document does not support the claim. The response is not correct.",
+      "retrieval_sufficiency/value": "no",
+      "retrieval_sufficiency/rationale": "The document contains references to Islamic inheritance rules (e.g., \"the normal rule of Islamic law that succession opens at the moment a Muslim dies\"), and it discusses the concept of estate and succession in general terms. However, it does not explicitly state that a Muslim\u2019s estate is distributed under Islamic inheritance rules while a non\u2011Muslim\u2019s estate follows the applicable personal law. It also does not mention fixed\u2011share heirs, residuaries, or distant kindred, nor does it detail the exact shares or the specific categories of heirs. The text does indicate that heirs inherit property when a person dies without a will (intestate succession) and that the inheritance depends on the surviving family members, but it does not confirm that the estate passes only to legally eligible heirs instead of a universal recipient. Because several key assertions in the claim are not directly supported by the document, the claim as a whole is not fully supported.",
+      "legal_answer_quality/value": "pass",
+      "legal_answer_quality/rationale": "The assistant acknowledges that the provided documents do not contain a full answer to who inherits property when a person dies without a will, which directly addresses the question. It avoids giving a definitive rule, distinguishes that no universal rule is provided, and clearly states the uncertainty and limitation of the available information. It also includes a disclaimer that it is not personalized legal advice, meeting all the evaluation criteria.",
+      "expected_facts/value": null,
+      "state": "OK",
+      "execution_duration": 4438
+    },
+    {
+      "trace_id": "tr-05cc7d5e0044f368db8d1062a5f65460",
+      "relevance_to_query/value": "yes",
+      "relevance_to_query/rationale": "The question asks for the share of a daughter in Islamic inheritance. The answer explicitly states the daughter's share in different scenarios: one daughter receives half of the estate if there is no son, and multiple daughters collectively receive two-thirds of the estate, divided equally. These details directly answer the question about the daughter's share. Therefore the answer contains relevant information.",
+      "retrieval_groundedness/value": "yes",
+      "retrieval_groundedness/rationale": "The document includes a passage stating that a daughter is a Quranic heir only if there are no sons and is entitled to \u00bd of the share, which matches the single daughter claim. It also states that if there are two or more daughters, they collectively receive 2/3 of the share, which matches the two or more daughters claim. Additionally, the document explicitly says the Qur\u2019an provides the rule that a son\u2019s share must be twice that of a daughter\u2019s, which matches the statement about the son\u2019s share relative to the daughter\u2019s. All three components of the claim are directly supported by the document. Therefore the claim is fully supported.",
+      "retrieval_relevance/value": "no",
+      "retrieval_relevance/rationale": "The question asks for the specific share of a daughter in Islamic inheritance. The document contains citations and passages that discuss the shares of siblings, specifically sisters and brothers, and references to Quranic verses about inheritance. However, it does not mention a daughter or provide any information about her share. Therefore, the document does not contain relevant information about the share of a daughter.",
+      "retrieval_relevance/precision/value": 0.4,
+      "correctness/value": "no",
+      "correctness/rationale": "The document states that a single daughter with no son receives \u00bd of the estate, and that two or more daughters with no son together receive 2/3 of the estate \u2013 matching the first two claim statements. It also states that a son\u2019s share is twice that of a daughter, supporting the third claim. However, the document does not mention that final distribution depends on other surviving heirs, debts, or valid bequests. Because one part of the claim is not supported by the document, the overall claim is not fully correct. The response is not correct.",
+      "retrieval_sufficiency/value": "yes",
+      "retrieval_sufficiency/rationale": "Let's think step by step: The document explicitly states that a single daughter receives half of the estate and that two or more daughters collectively receive two-thirds when no son is present (see the second document entry on 'DAUGHTERS'). It also mentions that a son's share is twice that of a daughter\u2019s (see the third entry that explains the Quranic rule about son\u2019s share being twice the daughter\u2019s). Finally, the document outlines that after debts and valid bequests, the remaining share is distributed among fixed heirs and other surviving heirs (see the third entry discussing fixed heirs and the mention of distribution after obligations and bequests). All four statements in the claim are therefore supported by the provided document.",
+      "legal_answer_quality/value": "pass",
+      "legal_answer_quality/rationale": "The answer directly addresses the question by explaining the specific shares a daughter receives under different conditions (single daughter, two or more daughters, and the relative ratio with sons). It distinguishes conditional rules (shares change based on the presence of sons or number of daughters) from universal statements. It also includes a disclaimer that the information is general and not personalized legal advice, thus avoiding any unsupported guarantee of a legal outcome. The response is framed as general legal information and does not present any claim of certainty beyond the stated conditions.",
+      "expected_facts/value": null,
+      "state": "OK",
+      "execution_duration": 2623
+    },
+    {
+      "trace_id": "tr-5d54e6f514e9494600f11ac05d787bb6",
+      "relevance_to_query/value": "yes",
+      "relevance_to_query/rationale": "Let's think step by step The answer explicitly states that a non-Muslim cannot inherit from a Muslim's estate, which directly addresses the question. Therefore the answer contains relevant information.",
+      "retrieval_groundedness/value": "yes",
+      "retrieval_groundedness/rationale": "The claim states that a non\u2011Muslim cannot inherit from a Muslim\u2019s estate. The document contains passages that explicitly say a person who ceases to be Muslim (i.e., becomes a non\u2011Muslim) cannot inherit the property of a Muslim as his/her legal heir. For example, one excerpt states: \u201cthe person who ceases to be Muslim cannot inherit the property of a Muslim as his/her legal heir.\u201d Another excerpt says that a Muslim woman who marries a non\u2011Muslim and continues to be his wife ceases to be a Muslim and is not entitled to inherit her father\u2019s property. These statements directly support the claim that a non\u2011Muslim is disqualified from inheriting from a Muslim\u2019s estate. No part of the claim contradicts the document. Therefore, the claim is fully supported by the document.",
+      "retrieval_relevance/value": "no",
+      "retrieval_relevance/rationale": "The document discusses inheritance under the Shariat Act, mentioning heirs, legal heirs of the last owner, and that shares devolve according to Shariat law. It refers only to heirs who are entitled to inherit under Islamic law. There is no mention of a non\u2011Muslim inheritor or any rule that allows a non\u2011Muslim to inherit from a Muslim's estate. Therefore the document does not provide information relevant to whether a non\u2011Muslim can inherit from a Muslim's estate.",
+      "retrieval_relevance/precision/value": 0.6,
+      "correctness/value": "no",
+      "correctness/rationale": "The document states that a non\u2011Muslim cannot inherit from a Muslim\u2019s estate, which supports the first part of the claim about non\u2011Muslims not inheriting from Muslims. However, it does not provide any information about Muslims inheriting from non\u2011Muslims, so the \u201cand vice versa\u201d portion of the first statement is not supported. The document also says that a Muslim woman who marries a non\u2011Muslim and continues to be her wife \u201cceases to be a Muslim\u201d and therefore cannot inherit; this directly contradicts the second statement of the claim that marriage to a non\u2011Muslim does not by itself necessarily establish that a Muslim heir has ceased to be Muslim. The third statement, that the determination depends on legal or religious status and Pakistani law and that specific cases require qualified legal review, is consistent with the document\u2019s emphasis on seeking qualified legal advice and reference to Pakistani legal context. Because two of the three statements are not fully supported or are contradicted by the document, the claim as a whole is not fully supported. The response is not correct.",
+      "retrieval_sufficiency/value": "no",
+      "retrieval_sufficiency/rationale": "The document states that a Muslim who ceases to be Muslim cannot inherit a Muslim\u2019s property, and that a Muslim woman marrying a non\u2011Muslim may cease to be Muslim and lose inheritance rights, indicating that a non\u2011Muslim generally does not inherit from a Muslim. However, it does not explicitly state that a Muslim cannot inherit from a non\u2011Muslim, so the \u201cand vice versa\u201d part of the first statement is not supported. The second statement is supported: one passage says a Muslim woman marrying a Christian does not automatically become non\u2011Muslim and retains inheritance rights, while another notes that a fatwa may declare the opposite, so marriage alone does not necessarily cause loss of Muslim status. The third statement is also supported: the document discusses how inheritance outcomes depend on legal or religious status under Pakistani law and refers to specific legal provisions (Succession Act, MFLO, Shariat Act), implying that qualified legal review is required. Because one part of the claim is not fully supported by the document, the overall claim is not fully supported.",
+      "legal_answer_quality/value": "fail",
+      "legal_answer_quality/rationale": "The response states that a non\u2011Muslim cannot inherit from a Muslim\u2019s estate as an absolute rule. Islamic inheritance law is conditional \u2013 it applies only to those who are legal heirs under Sharia, and non\u2011Muslims may be heirs under civil law in some jurisdictions. The answer does not distinguish these conditional rules from a universal statement, nor does it express the material uncertainty that depends on the specific legal context. Consequently, it fails to meet the evaluation criteria.",
+      "expected_facts/value": null,
+      "state": "OK",
+      "execution_duration": 4371
+    }
+  ],
+  "scorer_failures": []
+}

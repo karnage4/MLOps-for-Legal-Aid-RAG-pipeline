@@ -46,18 +46,44 @@
   ],
   "completed_profiles": [
     "fixed-hybrid-top3",
+    "fixed-semantic-top3",
+    "fixed-semantic-top5",
     "recursive-hybrid-top3",
+    "recursive-hybrid-top5",
     "recursive-semantic-top3",
     "recursive-semantic-top5"
   ],
   "remaining_profiles": [
-    "fixed-hybrid-top5",
-    "fixed-semantic-top3",
-    "fixed-semantic-top5",
-    "recursive-hybrid-top5"
+    "fixed-hybrid-top5"
   ],
   "best_profile": null,
   "ranking": [
+    {
+      "label": "fixed-semantic-top5",
+      "run_id": "68e216b95fc3455bad64fd8f516c2902",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.3333333333333333,
+      "legal_answer_quality": 0.6666666666666666,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.4666666666666667,
+      "retrieval_relevance_precision": 0.4666666666666666,
+      "relevance_to_query": 0.6666666666666666,
+      "avg_total_ms": 3807.6666666666665,
+      "fallback_rate": 1.0
+    },
+    {
+      "label": "fixed-semantic-top3",
+      "run_id": "91c3ff85269a47ad8a1131b5e28815dc",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.3333333333333333,
+      "legal_answer_quality": 0.6666666666666666,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.4444444444444444,
+      "retrieval_relevance_precision": 0.4444444444444444,
+      "relevance_to_query": 0.6666666666666666,
+      "avg_total_ms": 4589.666666666667,
+      "fallback_rate": 1.0
+    },
     {
       "label": "fixed-hybrid-top3",
       "run_id": "9fcc1af514b046078f04bc2202c5f60a",
@@ -82,6 +108,19 @@
       "retrieval_relevance_precision": 0.8888888888888888,
       "relevance_to_query": 1.0,
       "avg_total_ms": 9424.333333333334,
+      "fallback_rate": 1.0
+    },
+    {
+      "label": "recursive-hybrid-top5",
+      "run_id": "63fe861d46e740a0893c7d13041152ba",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.0,
+      "legal_answer_quality": 0.3333333333333333,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.8666666666666667,
+      "retrieval_relevance_precision": 0.8666666666666667,
+      "relevance_to_query": 1.0,
+      "avg_total_ms": 7532.333333333333,
       "fallback_rate": 1.0
     },
     {
@@ -111,5 +150,5 @@
       "fallback_rate": 1.0
     }
   ],
-  "error": "Groq judge quota/rate limiting persisted under fully sequential scoring; one scorer exceeded the bounded 900-second timeout. Resume after quota reset."
+  "error": "RuntimeError: MLflow GenAI evaluation was partial: row 2 retrieval_sufficiency: Scorer 'retrieval_sufficiency' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_groundedness: Scorer 'retrieval_groundedness' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_relevance: Scorer 'retrieval_relevance' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 correctness: Scorer 'correctness' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_sufficiency: Scorer 'retrieval_sufficiency' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 legal_answer_quality: Scorer 'legal_answer_quality' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout."
 }

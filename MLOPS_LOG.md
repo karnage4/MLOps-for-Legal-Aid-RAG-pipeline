@@ -418,7 +418,7 @@ register versioned judges, and run reproducible MLflow GenAI evaluations.
 | 1 | Register and label the shared held-out dataset | Complete | 3 human-reviewed records and expectations visible in UI; digest `1f570963`; idempotent label rerun updated 0 |
 | 2 | Define and register versioned judges | Complete | 6 judges registered; latest pinned versions reuse cleanly; 0 setup inference calls |
 | 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Complete | Run `9fcc1af514b046078f04bc2202c5f60a` confirmed in UI; 3 nested traces; 6 successful assessments per row |
-| 4 | Compare additional profiles with the same dataset and judges | In progress (4/8 valid) | Four completed profiles are checkpointed; the remaining four are resumable after the Groq judge quota resets |
+| 4 | Compare additional profiles with the same dataset and judges | In progress (7/8 valid) | Seven completed profiles are checkpointed; only `fixed-hybrid-top5` remains after partial quota recovery |
 
 ### Step 1 — managed dataset
 
@@ -572,10 +572,12 @@ Verified completed profiles on 2026-11-01:
 | `recursive-hybrid-top3` | `98e7838d135f43fcb830c1d824e9581a` | 0.0000 | 0.0000 | 1.0000 | 1.0000 | 0.8889 | 1.0000 | 9,424.3 ms |
 | `recursive-semantic-top5` | `a130d951e9ce446d9238848c24dd8986` | 0.0000 | 0.0000 | 0.3333 | 1.0000 | 0.4667 | 0.3333 | 4,557.7 ms |
 | `recursive-semantic-top3` | `5e585a134b844a0a8e50ae4693cee229` | 0.0000 | 0.0000 | 0.3333 | 0.3333 | 0.4444 | 0.3333 | 3,933.7 ms |
+| `recursive-hybrid-top5` | `63fe861d46e740a0893c7d13041152ba` | 0.0000 | 0.0000 | 0.3333 | 1.0000 | 0.8667 | 1.0000 | 7,532.3 ms |
+| `fixed-semantic-top3` | `91c3ff85269a47ad8a1131b5e28815dc` | 0.0000 | 0.3333 | 0.6667 | 1.0000 | 0.4444 | 0.6667 | 4,589.7 ms |
+| `fixed-semantic-top5` | `68e216b95fc3455bad64fd8f516c2902` | 0.0000 | 0.3333 | 0.6667 | 1.0000 | 0.4667 | 0.6667 | 3,807.7 ms |
 
-Still required: `recursive-hybrid-top5`, `fixed-semantic-top3`,
-`fixed-semantic-top5`, and `fixed-hybrid-top5`. Partial attempts are excluded
-from reuse and ranking. The live continuation was stopped after Groq repeatedly
+Still required: `fixed-hybrid-top5`. Partial attempts are excluded from reuse
+and ranking. The original live continuation was stopped after Groq repeatedly
 rate-limited the registered `openai/gpt-oss-20b` judges and a scorer exceeded
 the bounded timeout; one row took more than 90 minutes and could no longer
 produce a complete profile. This is an external judge-quota blocker, not a RAG
@@ -594,6 +596,17 @@ attempt was stopped immediately and MLflow run
 `evaluation.status=interrupted-provider-quota`. No completed profile was
 repeated or replaced. Wait for the Groq judge quota window to reset before the
 next resume.
+
+On 2026-11-02, a fresh minimal judge preflight succeeded in 19.53 seconds. The
+resumable runner then completed and checkpointed `recursive-hybrid-top5`,
+`fixed-semantic-top3`, and `fixed-semantic-top5`, increasing valid coverage
+from 4/8 to 7/8 without repeating earlier completed profiles. The final
+`fixed-hybrid-top5` attempt generated all three answers but finished partial
+after six scorer invocations timed out at 300 seconds. Its run
+`090c1764909a410a95bb9ef52e37bb18` is marked `KILLED`, tagged
+`evaluation.status=interrupted-provider-quota` and
+`evaluation.valid_for_comparison=false`, and excluded from reuse and ranking.
+Only that profile needs another quota-window retry.
 
 Implementation verification passes all 11 focused comparison and
 controlled-evaluation tests. The final full local regression after the
@@ -634,3 +647,4 @@ quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Completed Step 3 UI verification: the successful evaluation run, all three rows, all six assessment columns, and nested RAG spans are visible in MLflow. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Began Step 4 with a resumable eight-profile runner, strict lineage checks, deterministic ranking, sequential judge execution, and bounded scorer retries; 4/8 profiles are valid and checkpointed, while the remaining four are paused after sustained Groq judge rate limiting. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Retested Step 4 continuation after an 11.11-second minimal judge preflight; the first full-context assessment still timed out at 300 seconds, so the attempt was marked `KILLED` and the recommendation remains to wait for the Groq quota window to reset. |
+| 2026-11-02 | `3-mlflow-genai-datasets-judges` | Resumed after a successful 19.53-second preflight and completed three additional profiles, reaching 7/8 valid; `fixed-hybrid-top5` remained partial after six scorer timeouts and was explicitly marked invalid for comparison. |
