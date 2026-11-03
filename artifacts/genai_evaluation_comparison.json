@@ -1,5 +1,5 @@
 {
-  "status": "interrupted",
+  "status": "completed",
   "dataset": {
     "dataset_id": "d-fee7335515b9445dbb7feddfd68de247",
     "dataset_name": "legal-aid-rag-held-out-v1",
@@ -46,6 +46,7 @@
   ],
   "completed_profiles": [
     "fixed-hybrid-top3",
+    "fixed-hybrid-top5",
     "fixed-semantic-top3",
     "fixed-semantic-top5",
     "recursive-hybrid-top3",
@@ -53,11 +54,34 @@
     "recursive-semantic-top3",
     "recursive-semantic-top5"
   ],
-  "remaining_profiles": [
-    "fixed-hybrid-top5"
-  ],
-  "best_profile": null,
+  "remaining_profiles": [],
+  "best_profile": {
+    "label": "fixed-hybrid-top5",
+    "run_id": "e6034e3cda2f4582ab5fac02132b4687",
+    "correctness": 0.3333333333333333,
+    "retrieval_sufficiency": 0.3333333333333333,
+    "legal_answer_quality": 1.0,
+    "retrieval_groundedness": 0.6666666666666666,
+    "retrieval_relevance": 0.6666666666666666,
+    "retrieval_relevance_precision": 0.6666666666666666,
+    "relevance_to_query": 1.0,
+    "avg_total_ms": 29517.0,
+    "fallback_rate": 1.0
+  },
   "ranking": [
+    {
+      "label": "fixed-hybrid-top5",
+      "run_id": "e6034e3cda2f4582ab5fac02132b4687",
+      "correctness": 0.3333333333333333,
+      "retrieval_sufficiency": 0.3333333333333333,
+      "legal_answer_quality": 1.0,
+      "retrieval_groundedness": 0.6666666666666666,
+      "retrieval_relevance": 0.6666666666666666,
+      "retrieval_relevance_precision": 0.6666666666666666,
+      "relevance_to_query": 1.0,
+      "avg_total_ms": 29517.0,
+      "fallback_rate": 1.0
+    },
     {
       "label": "fixed-semantic-top5",
       "run_id": "68e216b95fc3455bad64fd8f516c2902",
@@ -150,5 +174,5 @@
       "fallback_rate": 1.0
     }
   ],
-  "error": "RuntimeError: MLflow GenAI evaluation was partial: row 2 retrieval_sufficiency: Scorer 'retrieval_sufficiency' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_groundedness: Scorer 'retrieval_groundedness' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_relevance: Scorer 'retrieval_relevance' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 correctness: Scorer 'correctness' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_sufficiency: Scorer 'retrieval_sufficiency' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 legal_answer_quality: Scorer 'legal_answer_quality' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout."
+  "error": null
 }

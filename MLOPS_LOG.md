@@ -418,7 +418,7 @@ register versioned judges, and run reproducible MLflow GenAI evaluations.
 | 1 | Register and label the shared held-out dataset | Complete | 3 human-reviewed records and expectations visible in UI; digest `1f570963`; idempotent label rerun updated 0 |
 | 2 | Define and register versioned judges | Complete | 6 judges registered; latest pinned versions reuse cleanly; 0 setup inference calls |
 | 3 | Run GenAI evaluation on `fixed-hybrid-top3` | Complete | Run `9fcc1af514b046078f04bc2202c5f60a` confirmed in UI; 3 nested traces; 6 successful assessments per row |
-| 4 | Compare additional profiles with the same dataset and judges | In progress (7/8 valid) | Seven completed profiles are checkpointed; only `fixed-hybrid-top5` remains after partial quota recovery |
+| 4 | Compare additional profiles with the same dataset and judges | Complete (8/8 valid) | All eight profiles are complete; `fixed-hybrid-top5` is the uniquely tagged best run |
 
 ### Step 1 — managed dataset
 
@@ -564,7 +564,7 @@ The runner keeps both dataset rows and judge calls sequential
 transient structured-output failures. The existing `fixed-hybrid-top3` Step 3
 result was reused rather than rerun.
 
-Verified completed profiles on 2026-11-01:
+Verified completed profiles through 2026-11-03:
 
 | Profile | Run ID | Correctness | Retrieval sufficiency | Legal quality pass rate | Retrieval groundedness | Retrieval relevance | Query relevance | Mean total latency |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -575,17 +575,14 @@ Verified completed profiles on 2026-11-01:
 | `recursive-hybrid-top5` | `63fe861d46e740a0893c7d13041152ba` | 0.0000 | 0.0000 | 0.3333 | 1.0000 | 0.8667 | 1.0000 | 7,532.3 ms |
 | `fixed-semantic-top3` | `91c3ff85269a47ad8a1131b5e28815dc` | 0.0000 | 0.3333 | 0.6667 | 1.0000 | 0.4444 | 0.6667 | 4,589.7 ms |
 | `fixed-semantic-top5` | `68e216b95fc3455bad64fd8f516c2902` | 0.0000 | 0.3333 | 0.6667 | 1.0000 | 0.4667 | 0.6667 | 3,807.7 ms |
+| `fixed-hybrid-top5` | `e6034e3cda2f4582ab5fac02132b4687` | 0.3333 | 0.3333 | 1.0000 | 0.6667 | 0.6667 | 1.0000 | 29,517.0 ms |
 
-Still required: `fixed-hybrid-top5`. Partial attempts are excluded from reuse
-and ranking. The original live continuation was stopped after Groq repeatedly
-rate-limited the registered `openai/gpt-oss-20b` judges and a scorer exceeded
-the bounded timeout; one row took more than 90 minutes and could no longer
-produce a complete profile. This is an external judge-quota blocker, not a RAG
-retrieval or generation failure. Resume without repeating valid profiles with:
-
-```bash
-python -m src.genai_comparison
-```
+The comparison is complete. Earlier partial attempts remain excluded from
+reuse and ranking. The original live continuation was stopped after Groq
+repeatedly rate-limited the registered `openai/gpt-oss-20b` judges and a scorer
+exceeded the bounded timeout; one row took more than 90 minutes and could no
+longer produce a complete profile. This was an external judge-quota blocker,
+not a RAG retrieval or generation failure.
 
 A continuation check later on 2026-11-01 showed that a minimal
 `relevance_to_query:v1` request could succeed in 11.11 seconds, but that was not
@@ -606,11 +603,26 @@ after six scorer invocations timed out at 300 seconds. Its run
 `090c1764909a410a95bb9ef52e37bb18` is marked `KILLED`, tagged
 `evaluation.status=interrupted-provider-quota` and
 `evaluation.valid_for_comparison=false`, and excluded from reuse and ranking.
-Only that profile needs another quota-window retry.
+At that point, only that profile needed another quota-window retry.
+
+On 2026-11-03, a fresh preflight succeeded in 21.86 seconds and the runner
+retried only `fixed-hybrid-top5`. All three rows and all six judges completed
+with zero scorer failures in run `e6034e3cda2f4582ab5fac02132b4687`.
+The comparison now reports `status=completed`, eight completed profiles, no
+remaining profiles, and `error=null`. MLflow SDK readback confirmed all eight
+runs are `FINISHED`, the winner alone has `evaluation.best_run=true`, and the
+other seven have `evaluation.best_run=false`. `fixed-hybrid-top5` wins under
+the documented quality-first rule because it is the only profile with nonzero
+correctness (0.3333); latency is considered only after the quality metrics.
+A final unfiltered runner invocation reused all eight compatible artifacts
+without inference and rewrote `requested_profiles` as the complete matrix.
 
 Implementation verification passes all 11 focused comparison and
 controlled-evaluation tests. The final full local regression after the
 quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
+After the eighth profile completed, the focused comparison/evaluation suite
+passed again: 11 tests in 51.54 seconds with only the existing SQLAlchemy
+deprecation warning.
 
 ## Change history
 
@@ -648,3 +660,4 @@ quota-safe resume and cleanup changes passed all 70 tests in 223.25 seconds.
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Began Step 4 with a resumable eight-profile runner, strict lineage checks, deterministic ranking, sequential judge execution, and bounded scorer retries; 4/8 profiles are valid and checkpointed, while the remaining four are paused after sustained Groq judge rate limiting. |
 | 2026-11-01 | `3-mlflow-genai-datasets-judges` | Retested Step 4 continuation after an 11.11-second minimal judge preflight; the first full-context assessment still timed out at 300 seconds, so the attempt was marked `KILLED` and the recommendation remains to wait for the Groq quota window to reset. |
 | 2026-11-02 | `3-mlflow-genai-datasets-judges` | Resumed after a successful 19.53-second preflight and completed three additional profiles, reaching 7/8 valid; `fixed-hybrid-top5` remained partial after six scorer timeouts and was explicitly marked invalid for comparison. |
+| 2026-11-03 | `3-mlflow-genai-datasets-judges` | Completed `fixed-hybrid-top5` with all 18 assessments valid, closed the comparison at 8/8, and SDK-verified `fixed-hybrid-top5` as the only MLflow best run. |
