@@ -12,6 +12,7 @@ flowchart LR
     D --> E[Semantic or hybrid RAG]
     E --> F[Held-out evaluation and MLflow]
     E --> G[FastAPI /predict]
+    E --> H[Local Gradio Miras UI]
 ```
 
 This is a training-exempt RAG project: the reproducible modeling stage prepares
@@ -43,15 +44,16 @@ cp .env.example .env
 ```
 
 Fill in `HF_API_TOKEN`, `PINECONE_API_KEY`, and `GROQ_API_KEY` in `.env`, then
-run the credential-free tests or start the API:
+run the credential-free tests or start the recommended local interface:
 
 ```bash
 pytest -q
-uvicorn src.app:app --host 127.0.0.1 --port 8000
+python gradio_app.py
 ```
 
-Open `http://127.0.0.1:8000/docs` to test `POST /predict`. A live prediction
-also requires the prepared BM25 artifact and the existing
+Open `http://127.0.0.1:7860`. The FastAPI service remains available with
+`uvicorn src.app:app --host 127.0.0.1 --port 8000`, with interactive API docs
+at `http://127.0.0.1:8000/docs`. A live prediction requires the prepared BM25 artifact and the existing
 `legal-inheritance-rag` Pinecone index described below.
 
 ## Dataset and task
@@ -77,6 +79,7 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/generation.py`: Sends retrieved context to Hugging Face first and cleanly falls back to the configured Groq Qwen model when Hugging Face is unavailable.
 - `src/evaluation.py`: Runs reproducible RAG experiments and measures faithfulness and relevancy with a configurable Groq judge.
 - `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
+- `gradio_app.py`: Provides the Hugging Face-compatible Miras interface for local use while calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 
 ## Detailed setup and dependencies
@@ -132,13 +135,33 @@ The pipeline must be engaged consecutively to ensure structural integrity across
    representative vectors, and confirms the recursive namespace count did
    not change. It is safe to rerun because Pinecone upserts are idempotent.
 
-3. **Application Interface**:
-   Boots the interactive frontend layer locally.
+3. **Gradio application interface (recommended)**:
+   Runs the Miras interface locally with the same hybrid/semantic controls,
+   source inspection, provider/fallback metadata, and MLflow-traced pipeline
+   used by the API. This replaces the deprecated Hugging Face Streamlit SDK
+   path while keeping the legacy interface available.
+
+   ```bash
+   python gradio_app.py
+   ```
+
+   Open `http://127.0.0.1:7860`. The first prediction loads and caches the
+   retrieval models, so it takes longer than later requests.
+
+   Run the interface adapter tests without cloud calls:
+
+   ```bash
+   pytest tests/test_gradio_app.py -q
+   ```
+
+4. **Legacy Streamlit interface**:
+   Boots the original interface locally for comparison.
+
    ```bash
    streamlit run app.py
    ```
 
-4. **Prediction API**:
+5. **Prediction API**:
    Starts the FastAPI service with one cached recursive retriever. The serving
    default remains the existing recursive + hybrid + top-5 architecture.
 

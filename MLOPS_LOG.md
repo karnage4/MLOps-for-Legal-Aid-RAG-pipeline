@@ -16,7 +16,10 @@ This file is the running record for introducing MLOps features one at a time. Up
 | --- | --- | --- | --- | --- | --- |
 | 1 | MLflow integration | `1-mlflow-integration` | Complete | Smoke, UI, and full RAG trace passed | Accepted |
 | 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Complete | All six steps and final eight-run suite passed | Accepted |
-| 3 | GenAI datasets and judges | `3-mlflow-genai-datasets-judges` | Managed dataset implemented | SDK and UI verification passed | Active |
+| 3 | GenAI datasets and judges | `3-mlflow-genai-datasets-judges` | Complete | Dataset, judges, and 8/8 profile evaluation passed | Accepted |
+| 4 | FastAPI service | `4-fastapi-service` | Complete | Automated and manual endpoint tests passed | Accepted |
+| 5 | Milestone documentation | `5-milestone-documentation` | Complete except contribution identities | README and rubric audit passed | Active |
+| 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
 
 ## Phase 1 — MLflow integration
 
@@ -700,6 +703,41 @@ index construction as supervised training.
 - Kept `CONTRIBUTION.md` pending because neither repository contains the team
   names and ERP IDs; the report still has placeholder author fields.
 
+## Phase 6 - local Gradio Miras interface
+
+### Objective
+
+Replace the deprecated Hugging Face Streamlit Space path with a locally
+runnable Gradio interface in the same visual style, without changing the RAG
+retrieval, generation fallback, or MLflow tracing architecture.
+
+### Implementation and verification
+
+- Added `gradio_app.py` with a responsive parchment, gold, and dark Miras UI,
+  example questions, hybrid/semantic retrieval controls, top-K and temperature
+  controls, answer metadata, optional retrieved context, and safe errors.
+- Reused `src.app.load_retriever_components`, `build_profile`, and
+  `run_rag_query`; the recursive default, Pinecone/BM25 retrieval, Hugging
+  Face-to-Groq fallback, and nested MLflow spans remain unchanged.
+- Added Gradio 6 to `requirements.txt` and kept generated Matplotlib cache data
+  under the ignored project `.cache` directory for reliable Windows startup.
+- Added five credential-free UI-adapter tests. Together with the five API
+  tests, the focused suite passed all 10 tests in 6.98 seconds.
+- The complete repository regression passed all 80 tests in 147.53 seconds;
+  the only warning is the pre-existing MLflow SQLAlchemy deprecation warning.
+- Dependency validation passed for all 164 installed packages.
+- Verified `/` and `/config` over HTTP and confirmed the prediction API is
+  exposed as `/predict`.
+- Completed a real recursive/hybrid/top-5 query. It returned five chunks from
+  two sources; Hugging Face exhausted/unavailable models cleanly fell back to
+  Groq `qwen/qwen3.8-27b`; retrieval took 10,080 ms, generation 2,825 ms, and
+  total RAG time 12,905 ms.
+- MLflow readback confirmed trace `tr-c5dadc5827581e50333df3c143a806c7`
+  is `OK`, with `hybrid_legal_retrieval` and `legal_generation` nested under
+  the `legal_aid_rag_query` root.
+- Browser visual acceptance remains for the user at
+  `http://127.0.0.1:7860`; the local service is ready for that manual check.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -740,3 +778,4 @@ index construction as supervised training.
 | 2026-11-02 | `3-mlflow-genai-datasets-judges` | Resumed after a successful 19.53-second preflight and completed three additional profiles, reaching 7/8 valid; `fixed-hybrid-top5` remained partial after six scorer timeouts and was explicitly marked invalid for comparison. |
 | 2026-11-02 | `5-milestone-documentation` | Began the rubric audit: confirmed required preparation/loading/API tests, added the README pitch, architecture, reproducible quick start, dataset/task note, and safe environment template; contribution details await the team names and ERP IDs. |
 | 2026-11-03 | `3-mlflow-genai-datasets-judges` | Completed `fixed-hybrid-top5` with all 18 assessments valid, closed the comparison at 8/8, and SDK-verified `fixed-hybrid-top5` as the only MLflow best run. |
+| 2026-11-03 | `6-gradio-interface` | Added and verified the local Gradio Miras interface, including a real Groq-fallback prediction and nested MLflow trace readback. |
