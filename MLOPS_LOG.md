@@ -714,16 +714,19 @@ retrieval, generation fallback, or MLflow tracing architecture.
 ### Implementation and verification
 
 - Added `gradio_app.py` with a responsive parchment, gold, and dark Miras UI,
-  example questions, hybrid/semantic retrieval controls, top-K and temperature
-  controls, answer metadata, optional retrieved context, and safe errors.
+  example questions, fixed/recursive chunking, hybrid/semantic retrieval,
+  top-K and temperature controls, answer metadata, optional retrieved context,
+  and safe errors.
 - Reused `src.app.load_retriever_components`, `build_profile`, and
   `run_rag_query`; the recursive default, Pinecone/BM25 retrieval, Hugging
   Face-to-Groq fallback, and nested MLflow spans remain unchanged.
 - Added Gradio 6 to `requirements.txt` and kept generated Matplotlib cache data
   under the ignored project `.cache` directory for reliable Windows startup.
-- Added five credential-free UI-adapter tests. Together with the five API
-  tests, the focused suite passed all 10 tests in 6.98 seconds.
-- The complete repository regression passed all 80 tests in 147.53 seconds;
+- Added six credential-free UI-adapter tests. Together with the five API
+  tests, the focused suite passed all 11 tests after chunking selection was
+  added.
+- The initial complete repository regression passed all 80 tests. After adding
+  chunking selection, the complete suite passed all 81 tests in 295.53 seconds;
   the only warning is the pre-existing MLflow SQLAlchemy deprecation warning.
 - Dependency validation passed for all 164 installed packages.
 - Verified `/` and `/config` over HTTP and confirmed the prediction API is
@@ -737,6 +740,10 @@ retrieval, generation fallback, or MLflow tracing architecture.
   the `legal_aid_rag_query` root.
 - Browser visual acceptance remains for the user at
   `http://127.0.0.1:7860`; the local service is ready for that manual check.
+- Extended the interface with fixed/recursive chunking selection. Live
+  fixed/hybrid/top-5 verification loaded the 883-document fixed BM25 artifact,
+  queried Pinecone namespace `fixed`, returned five chunks from five sources,
+  and generated through the expected Groq fallback in 57,629 ms total.
 
 ## Change history
 

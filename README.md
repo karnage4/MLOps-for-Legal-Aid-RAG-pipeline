@@ -136,10 +136,13 @@ The pipeline must be engaged consecutively to ensure structural integrity across
    not change. It is safe to rerun because Pinecone upserts are idempotent.
 
 3. **Gradio application interface (recommended)**:
-   Runs the Miras interface locally with the same hybrid/semantic controls,
-   source inspection, provider/fallback metadata, and MLflow-traced pipeline
-   used by the API. This replaces the deprecated Hugging Face Streamlit SDK
-   path while keeping the legacy interface available.
+   Runs the Miras interface locally with fixed/recursive chunking,
+   hybrid/semantic retrieval, source inspection, provider/fallback metadata,
+   and the MLflow-traced pipeline used by the API. Selecting fixed chunking
+   routes to `output/bm25_corpus_fixed.json` and Pinecone namespace `fixed`;
+   recursive chunking keeps the production-default corpus and namespace. This
+   replaces the deprecated Hugging Face Streamlit SDK path while keeping the
+   legacy interface available.
 
    ```bash
    python gradio_app.py

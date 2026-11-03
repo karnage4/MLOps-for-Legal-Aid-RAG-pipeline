@@ -164,6 +164,7 @@ def _format_context(chunks: list[dict[str, Any]], *, visible: bool) -> str:
 
 def run_prediction(
     query: str,
+    chunking_strategy: str,
     retrieval_mode: str,
     top_k: int,
     temperature: float,
@@ -175,13 +176,19 @@ def run_prediction(
         raise ValueError("Enter a legal question containing at least 3 characters.")
     if len(question) > 1000:
         raise ValueError("Questions are limited to 1,000 characters.")
+    if chunking_strategy not in {"recursive", "fixed"}:
+        raise ValueError("Chunking strategy must be recursive or fixed.")
     if retrieval_mode not in {"hybrid", "semantic"}:
         raise ValueError("Retrieval mode must be hybrid or semantic.")
 
-    profile = build_profile(retrieval_mode=retrieval_mode, top_k=int(top_k))
+    profile = build_profile(
+        chunking_strategy=chunking_strategy,
+        retrieval_mode=retrieval_mode,
+        top_k=int(top_k),
+    )
     result = run_rag_query(
         question,
-        load_retriever_components(),
+        load_retriever_components(chunking_strategy),
         temperature=float(temperature),
         profile=profile,
     )
@@ -210,7 +217,7 @@ def run_prediction(
     )
     details = {
         "profile": {
-            "chunking_strategy": "recursive",
+            "chunking_strategy": chunking_strategy,
             "retrieval_mode": retrieval_mode,
             "top_k": int(top_k),
             "temperature": float(temperature),
@@ -261,6 +268,15 @@ def build_demo() -> gr.Blocks:
         with gr.Row(equal_height=False):
             with gr.Column(scale=1, min_width=280, elem_id="settings-panel"):
                 gr.Markdown("### Research settings")
+                chunking_strategy = gr.Radio(
+                    choices=[
+                        ("Recursive chunks", "recursive"),
+                        ("Fixed-size chunks", "fixed"),
+                    ],
+                    value="recursive",
+                    label="Chunking strategy",
+                    info="Selects the matching BM25 corpus and Pinecone namespace.",
+                )
                 retrieval_mode = gr.Radio(
                     choices=[("Hybrid + reranking", "hybrid"), ("Semantic only", "semantic")],
                     value="hybrid",
@@ -312,7 +328,14 @@ def build_demo() -> gr.Blocks:
                 with gr.Accordion("Run metadata", open=False):
                     metadata = gr.JSON(label="Pipeline details")
 
-        inputs = [query, retrieval_mode, top_k, temperature, show_context]
+        inputs = [
+            query,
+            chunking_strategy,
+            retrieval_mode,
+            top_k,
+            temperature,
+            show_context,
+        ]
         outputs = [answer, status, context, metadata]
         ask.click(submit_prediction, inputs=inputs, outputs=outputs, api_name="predict")
         query.submit(submit_prediction, inputs=inputs, outputs=outputs)

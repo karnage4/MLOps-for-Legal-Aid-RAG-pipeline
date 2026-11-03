@@ -42,7 +42,11 @@ def test_run_prediction_reuses_traced_pipeline_and_formats_output(monkeypatch):
     components = {"retriever": "cached"}
     profile = object()
 
-    monkeypatch.setattr(gradio_app, "load_retriever_components", lambda: components)
+    def fake_load(strategy):
+        calls["loaded_strategy"] = strategy
+        return components
+
+    monkeypatch.setattr(gradio_app, "load_retriever_components", fake_load)
 
     def fake_build_profile(**kwargs):
         calls["profile_kwargs"] = kwargs
@@ -57,40 +61,57 @@ def test_run_prediction_reuses_traced_pipeline_and_formats_output(monkeypatch):
     monkeypatch.setattr(gradio_app, "run_rag_query", fake_run)
 
     answer, status, context, details = gradio_app.run_prediction(
-        "  What share does a daughter receive?  ", "hybrid", 5, 0.2, True
+        "  What share does a daughter receive?  ",
+        "fixed",
+        "hybrid",
+        5,
+        0.2,
+        True,
     )
 
     assert calls["query"] == "What share does a daughter receive?"
     assert calls["loaded"] is components
-    assert calls["profile_kwargs"] == {"retrieval_mode": "hybrid", "top_k": 5}
+    assert calls["loaded_strategy"] == "fixed"
+    assert calls["profile_kwargs"] == {
+        "chunking_strategy": "fixed",
+        "retrieval_mode": "hybrid",
+        "top_k": 5,
+    }
     assert calls["run_kwargs"] == {"temperature": 0.2, "profile": profile}
     assert answer.startswith("The share")
     assert "groq" in status and "2 chunks / 2 sources" in status
     assert "law.pdf" in context and "guide.pdf" in context
     assert details["timings_ms"]["total"] == 33
     assert details["generation"]["fallback_used"] is True
+    assert details["profile"]["chunking_strategy"] == "fixed"
 
 
 @pytest.mark.parametrize(
-    ("query", "mode", "message"),
-    [(" ", "hybrid", "at least 3"), ("valid question", "invalid", "hybrid or semantic")],
+    ("query", "strategy", "mode", "message"),
+    [
+        (" ", "recursive", "hybrid", "at least 3"),
+        ("valid question", "invalid", "hybrid", "recursive or fixed"),
+        ("valid question", "recursive", "invalid", "hybrid or semantic"),
+    ],
 )
-def test_run_prediction_validates_public_inputs(query, mode, message):
+def test_run_prediction_validates_public_inputs(query, strategy, mode, message):
     with pytest.raises(ValueError, match=message):
-        gradio_app.run_prediction(query, mode, 5, 0.2, True)
+        gradio_app.run_prediction(query, strategy, mode, 5, 0.2, True)
 
 
 def test_run_prediction_fails_closed_on_missing_context(monkeypatch):
-    monkeypatch.setattr(gradio_app, "load_retriever_components", lambda: {})
+    monkeypatch.setattr(gradio_app, "load_retriever_components", lambda _: {})
     monkeypatch.setattr(gradio_app, "build_profile", lambda **_: object())
     monkeypatch.setattr(gradio_app, "run_rag_query", lambda *_, **__: _result(chunks=False))
 
     with pytest.raises(RuntimeError, match="No relevant legal context"):
-        gradio_app.run_prediction("valid question", "semantic", 3, 0.1, True)
+        gradio_app.run_prediction(
+            "valid question", "recursive", "semantic", 3, 0.1, True
+        )
 
 
 def test_run_prediction_fails_closed_on_generation_error(monkeypatch):
-    monkeypatch.setattr(gradio_app, "load_retriever_components", lambda: {})
+    monkeypatch.setattr(gradio_app, "load_retriever_components", lambda _: {})
     monkeypatch.setattr(gradio_app, "build_profile", lambda **_: object())
     monkeypatch.setattr(
         gradio_app,
@@ -99,4 +120,6 @@ def test_run_prediction_fails_closed_on_generation_error(monkeypatch):
     )
 
     with pytest.raises(RuntimeError, match="provider unavailable"):
-        gradio_app.run_prediction("valid question", "hybrid", 5, 0.2, False)
+        gradio_app.run_prediction(
+            "valid question", "fixed", "hybrid", 5, 0.2, False
+        )

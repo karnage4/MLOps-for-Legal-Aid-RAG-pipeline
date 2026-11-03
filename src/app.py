@@ -47,10 +47,12 @@ def run_rag_query(*args: Any, **kwargs: Any) -> dict[str, Any]:
     return implementation(*args, **kwargs)
 
 
-@lru_cache(maxsize=1)
-def load_retriever_components() -> dict[str, Any]:
-    """Load and cache the serving retriever exactly once per API process."""
-    components = build_retriever(DEFAULT_CHUNKING_STRATEGY)
+@lru_cache(maxsize=2)
+def load_retriever_components(
+    chunking_strategy: str = DEFAULT_CHUNKING_STRATEGY,
+) -> dict[str, Any]:
+    """Load and cache one retriever per chunking strategy."""
+    components = build_retriever(chunking_strategy)
     required = {
         "bm25",
         "bm25_ids",
@@ -67,8 +69,8 @@ def load_retriever_components() -> dict[str, Any]:
             "Retriever initialization returned incomplete components: "
             + ", ".join(missing)
         )
-    if components["chunking_strategy"] != DEFAULT_CHUNKING_STRATEGY:
-        raise RuntimeError("Retriever strategy does not match the serving strategy")
+    if components["chunking_strategy"] != chunking_strategy:
+        raise RuntimeError("Retriever strategy does not match the requested strategy")
     return components
 
 
