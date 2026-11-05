@@ -139,6 +139,16 @@ styles.add(
 )
 styles.add(
     ParagraphStyle(
+        name="TableHeader",
+        parent=styles["BodyText"],
+        fontName="Helvetica-Bold",
+        fontSize=7.6,
+        leading=10,
+        textColor=WHITE,
+    )
+)
+styles.add(
+    ParagraphStyle(
         name="Caption",
         parent=styles["BodyText"],
         fontName="Helvetica-Oblique",
@@ -192,10 +202,15 @@ def subsection(title: str):
 
 def table(data, widths, header=True, font_size=7.6, repeat_rows=1):
     converted = []
-    for row in data:
-        converted.append(
-            [cell if hasattr(cell, "wrap") else p(str(cell), "SmallReport") for cell in row]
-        )
+    for row_index, row in enumerate(data):
+        converted_row = []
+        for cell in row:
+            if hasattr(cell, "wrap"):
+                converted_row.append(cell)
+            else:
+                style = "TableHeader" if header and row_index == 0 else "SmallReport"
+                converted_row.append(p(str(cell), style))
+        converted.append(converted_row)
     result = LongTable(converted, colWidths=widths, repeatRows=repeat_rows if header else 0, hAlign="LEFT")
     commands = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
