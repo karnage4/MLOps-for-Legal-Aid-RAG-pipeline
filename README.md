@@ -68,6 +68,21 @@ quality, and latency on a shared three-question held-out dataset. Raw source
 documents and generated runtime artifacts remain local and are intentionally
 excluded from Git.
 
+### Dataset access
+
+The legal-inheritance source corpus is available to instructors, teaching
+assistants, and project reviewers through the publicly viewable
+[Google Drive corpus folder](https://drive.google.com/drive/folders/103phLHYLT7Pv464nQ47e-lUl_J3DKquT?usp=drive_link).
+Anonymous access was verified on 2026-11-05.
+
+Download the folder and preserve its five-subfolder organization before
+running `src/preprocess.py`. The preparation pipeline validates extracted
+content and may skip PDFs that do not contain enough machine-readable text;
+the verified project run accepted 46 of 50 supplied files. Raw PDFs are kept
+outside Git to avoid repository bloat and to keep corpus distribution separate
+from source code. The files are shared for academic review and reproducibility;
+their original publishers or authors retain any applicable rights.
+
 ## Project Structure
 
 The codebase is logically split into modular stages corresponding to the data ingestion pipeline and final deployment.
