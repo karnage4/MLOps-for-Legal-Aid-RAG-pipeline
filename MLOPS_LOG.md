@@ -20,7 +20,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 4 | FastAPI service | `4-fastapi-service` | Complete | Automated and manual endpoint tests passed | Accepted |
 | 5 | Milestone documentation | `5-milestone-documentation` | Complete except contribution identities | README and rubric audit passed | Active |
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
-| 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 3/4 valid; temperature judges throttled | Active |
+| 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -786,10 +786,18 @@ the same held-out MLflow dataset.
   `legal_aid_rag_query`: `tr-88649357783352dd0f7961f097355771`,
   `tr-595be916ac6bf44619393466c55f8d8d`, and
   `tr-f1a17e1112afdbccf3fb4d94c1e0d466`.
-- High-temperature run `831aca4bd7fd4fcabcc4abe89883dc52` generated all three
-  answers, but four final-row judge assessments timed out after provider
-  throttling. The strict runner marked it partial, excluded it from ranking,
-  and checkpointed `temperature-high` as the only remaining configuration.
+- A replacement Groq key was selected locally without committing credentials.
+  The first retry confirmed that Groq generation worked but encountered a
+  transient Pinecone DNS failure on row three; strict validation excluded that
+  partial run. Pinecone resolution recovered before the final retry.
+- High-temperature run `caf08bcd4194455f9efc030ffc2a9634` completed all three
+  rows and six judges. Versus the 0.1 baseline, temperature 0.7 changed
+  retrieval sufficiency by -0.333, groundedness by +0.333, retrieval relevance
+  by -0.067, and average total latency by -12,058 ms; correctness and legal
+  quality were unchanged.
+- The comparison is complete at 4/4 valid. `prompt-structured` remains the
+  selected run because it has the best correctness (0.333), legal quality
+  (1.000), and retrieval relevance (0.733) in this controlled dataset.
 
 ## Change history
 
@@ -833,3 +841,4 @@ the same held-out MLflow dataset.
 | 2026-11-03 | `3-mlflow-genai-datasets-judges` | Completed `fixed-hybrid-top5` with all 18 assessments valid, closed the comparison at 8/8, and SDK-verified `fixed-hybrid-top5` as the only MLflow best run. |
 | 2026-11-03 | `6-gradio-interface` | Added and verified the local Gradio Miras interface, including a real Groq-fallback prediction and nested MLflow trace readback. |
 | 2026-11-05 | `7-inference-ablation-evaluation` | Added the controlled four-run prompt/model/temperature suite; completed baseline, prompt, and model comparisons, while the high-temperature judge pass remains checkpointed after quota throttling. |
+| 2026-11-05 | `7-inference-ablation-evaluation` | Completed the high-temperature retry after replacing the local Groq key and recovering from a transient Pinecone DNS failure; the controlled comparison is now 4/4 valid and selects the structured prompt. |

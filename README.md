@@ -264,13 +264,16 @@ Live progress on 2026-11-05:
 | Baseline | 0.000 | 0.667 | 0.667 | 28,756 ms | `f8eb6177b0a44c2e91cbd27926ca3efd` |
 | Structured prompt | 0.333 | 1.000 | 0.733 | 21,272 ms | `1528a96621d54a93819f01eab6b600a0` |
 | GPT-OSS-120B | 0.000 | 0.333 | 0.600 | 20,145 ms | `6db207d1847d4d96af0f42905fcf1bf1` |
+| High temperature | 0.000 | 0.667 | 0.600 | 16,698 ms | `caf08bcd4194455f9efc030ffc2a9634` |
 
-The structured prompt is currently strongest: it improved correctness and
+All four controlled runs completed with three valid rows and the same six
+judge versions. The structured prompt is strongest: it improved correctness and
 legal-answer quality while reducing latency. GPT-OSS-120B was faster than Qwen
-but reduced legal quality and retrieval relevance. The high-temperature run
-`831aca4bd7fd4fcabcc4abe89883dc52` generated all three answers, but four judge
-assessments on its final row timed out after provider throttling; it is marked
-partial and excluded until `--config temperature-high` completes successfully.
+but reduced legal quality and retrieval relevance. Raising temperature from
+0.1 to 0.7 reduced retrieval sufficiency from 0.667 to 0.333 and retrieval
+relevance from 0.667 to 0.600, while groundedness increased from 0.667 to
+1.000. Because this held-out set has only three examples, latency and quality
+deltas are evidence for this milestone rather than broad statistical claims.
 
 ### Fixed-profile retrieval smoke test
 

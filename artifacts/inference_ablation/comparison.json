@@ -1,5 +1,5 @@
 {
-  "status": "interrupted",
+  "status": "completed",
   "objective": "Controlled prompt, model, and temperature inference ablation",
   "fixed_retrieval_profile": {
     "chunking_strategy": "fixed",
@@ -49,12 +49,23 @@
   "completed_configs": [
     "baseline-low-temp",
     "model-b",
-    "prompt-structured"
-  ],
-  "remaining_configs": [
+    "prompt-structured",
     "temperature-high"
   ],
-  "best_config": null,
+  "remaining_configs": [],
+  "best_config": {
+    "label": "prompt-structured",
+    "run_id": "1528a96621d54a93819f01eab6b600a0",
+    "correctness": 0.3333333333333333,
+    "retrieval_sufficiency": 0.6666666666666666,
+    "legal_answer_quality": 1.0,
+    "retrieval_groundedness": 0.6666666666666666,
+    "retrieval_relevance": 0.7333333333333333,
+    "retrieval_relevance_precision": 0.7333333333333334,
+    "relevance_to_query": 1.0,
+    "avg_total_ms": 21272.0,
+    "fallback_rate": 0.0
+  },
   "ranking": [
     {
       "label": "prompt-structured",
@@ -94,6 +105,19 @@
       "relevance_to_query": 1.0,
       "avg_total_ms": 20145.333333333332,
       "fallback_rate": 0.0
+    },
+    {
+      "label": "temperature-high",
+      "run_id": "caf08bcd4194455f9efc030ffc2a9634",
+      "correctness": 0.0,
+      "retrieval_sufficiency": 0.3333333333333333,
+      "legal_answer_quality": 0.6666666666666666,
+      "retrieval_groundedness": 1.0,
+      "retrieval_relevance": 0.6,
+      "retrieval_relevance_precision": 0.6,
+      "relevance_to_query": 1.0,
+      "avg_total_ms": 16697.666666666668,
+      "fallback_rate": 0.0
     }
   ],
   "effects_vs_baseline": [
@@ -124,7 +148,21 @@
         "relevance_to_query": 0.0,
         "avg_total_ms": -8610.666666666668
       }
+    },
+    {
+      "dimension": "temperature",
+      "baseline": "baseline-low-temp",
+      "candidate": "temperature-high",
+      "deltas": {
+        "correctness": 0.0,
+        "retrieval_sufficiency": -0.3333333333333333,
+        "legal_answer_quality": 0.0,
+        "retrieval_groundedness": 0.33333333333333337,
+        "retrieval_relevance": -0.06666666666666665,
+        "relevance_to_query": 0.0,
+        "avg_total_ms": -12058.333333333332
+      }
     }
   ],
-  "error": "RuntimeError: MLflow GenAI evaluation was partial: row 3 retrieval_relevance: Scorer 'retrieval_relevance' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 correctness: Scorer 'correctness' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 retrieval_sufficiency: Scorer 'retrieval_sufficiency' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout.; row 3 legal_answer_quality: Scorer 'legal_answer_quality' timed out after 300 seconds. Set a longer timeout with `@scorer(timeout=...)`, or `timeout=0` to disable the timeout."
+  "error": null
 }
