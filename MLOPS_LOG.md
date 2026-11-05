@@ -18,7 +18,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 2 | RAG evaluation experiments | `2-rag-evaluation-experiments` | Complete | All six steps and final eight-run suite passed | Accepted |
 | 3 | GenAI datasets and judges | `3-mlflow-genai-datasets-judges` | Complete | Dataset, judges, and 8/8 profile evaluation passed | Accepted |
 | 4 | FastAPI service | `4-fastapi-service` | Complete | Automated and manual endpoint tests passed | Accepted |
-| 5 | Milestone documentation | `5-milestone-documentation` | Complete except contribution identities | README and rubric audit passed | Active |
+| 5 | Milestone documentation | `5-milestone-documentation` | Complete | README, rubric audit, and contribution allocation completed | Accepted |
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 
@@ -701,8 +701,8 @@ index construction as supervised training.
   46/50 accepted PDFs, 3,593 recursive chunks, 883 fixed chunks, held-out RAG
   task, and repository data-exclusion policy.
 - Added `.env.example` with variable names and non-secret defaults only.
-- Kept `CONTRIBUTION.md` pending because neither repository contains the team
-  names and ERP IDs; the report still has placeholder author fields.
+- Added `CONTRIBUTION.md` with the three student names, ERP IDs, milestone task
+  division, and detailed member responsibilities.
 
 ## Phase 6 - local Gradio Miras interface
 
@@ -842,3 +842,4 @@ the same held-out MLflow dataset.
 | 2026-11-03 | `6-gradio-interface` | Added and verified the local Gradio Miras interface, including a real Groq-fallback prediction and nested MLflow trace readback. |
 | 2026-11-05 | `7-inference-ablation-evaluation` | Added the controlled four-run prompt/model/temperature suite; completed baseline, prompt, and model comparisons, while the high-temperature judge pass remains checkpointed after quota throttling. |
 | 2026-11-05 | `7-inference-ablation-evaluation` | Completed the high-temperature retry after replacing the local Groq key and recovering from a transient Pinecone DNS failure; the controlled comparison is now 4/4 valid and selects the structured prompt. |
+| 2026-11-05 | `m2-submission` | Finalized `CONTRIBUTION.md` with student identities and a milestone-aligned division of modeling/evaluation, pipeline/API, and quality/operations responsibilities. |
