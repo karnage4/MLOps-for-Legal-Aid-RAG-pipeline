@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
 from src import generation
 
 
@@ -73,6 +75,44 @@ def test_huggingface_success_does_not_call_groq():
     assert result["model_used"] == generation.PRIMARY_MODEL
     assert result["fallback_used"] is False
     post.assert_not_called()
+
+
+def test_direct_groq_mode_uses_selected_model_prompt_and_no_huggingface():
+    groq_response = Mock()
+    groq_response.raise_for_status.return_value = None
+    groq_response.json.return_value = {
+        "choices": [{"message": {"content": "Structured grounded answer"}}]
+    }
+
+    with (
+        patch.object(generation, "_generate_huggingface") as huggingface,
+        patch.object(generation.requests, "post", return_value=groq_response) as post,
+    ):
+        result = generation._generate_answer_impl(
+            "What is a daughter's share?",
+            CHUNKS,
+            groq_api_key="test-groq-secret",
+            groq_model="model-b",
+            temperature=0.7,
+            prompt_variant="structured_legal_v2",
+            provider_mode="groq",
+        )
+
+    huggingface.assert_not_called()
+    assert result["provider"] == "groq"
+    assert result["model_used"] == "model-b"
+    assert result["requested_model"] == "model-b"
+    assert result["prompt_variant"] == "structured_legal_v2"
+    assert result["fallback_used"] is False
+    payload = post.call_args.kwargs["json"]
+    assert payload["model"] == "model-b"
+    assert payload["temperature"] == 0.7
+    assert "Direct answer" in payload["messages"][0]["content"]
+
+
+def test_prompt_variant_validation_fails_closed():
+    with pytest.raises(ValueError, match="Unknown prompt variant"):
+        generation.build_messages("question", CHUNKS, "unknown")
 
 
 def test_groq_retries_a_transient_provider_failure():

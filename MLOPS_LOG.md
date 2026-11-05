@@ -20,6 +20,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 4 | FastAPI service | `4-fastapi-service` | Complete | Automated and manual endpoint tests passed | Accepted |
 | 5 | Milestone documentation | `5-milestone-documentation` | Complete except contribution identities | README and rubric audit passed | Active |
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
+| 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 3/4 valid; temperature judges throttled | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -745,6 +746,51 @@ retrieval, generation fallback, or MLflow tracing architecture.
   queried Pinecone namespace `fixed`, returned five chunks from five sources,
   and generated through the expected Groq fallback in 57,629 ms total.
 
+## Phase 7 - prompt, model, and temperature inference ablation
+
+### Objective
+
+Meet the updated RAG requirement with controlled inference evaluations rather
+than training cycles. Reuse the completed eight-profile retrieval parameter
+comparison and isolate prompt, generation-model, and temperature effects on
+the same held-out MLflow dataset.
+
+### Implementation checkpoint
+
+- Froze retrieval to the GenAI winner: fixed chunks, hybrid retrieval, top-5,
+  and Pinecone namespace `fixed`.
+- Added versioned `strict_grounded_v1` and `structured_legal_v2` prompts.
+- Added backward-compatible direct-Groq evaluation mode while preserving the
+  production Hugging Face-to-Groq `auto` fallback default.
+- Added a resumable four-run matrix sharing one baseline and changing exactly
+  one generation variable per comparison.
+- Added MLflow params/tags for requested and actual provider/model, prompt
+  variant, temperature, dataset/judge lineage, quality metrics, and latency.
+- Groq model discovery on 2026-11-05 confirmed `qwen/qwen3.8-27b` and
+  `openai/gpt-oss-120b`; both passed real direct-inference preflights in 1,738
+  ms and 2,436 ms total respectively.
+- The initial focused regression passed all 21 generation, tracing, managed
+  evaluation, and ablation tests; the complete repository suite passed all 91
+  tests with only the pre-existing SQLAlchemy deprecation warning.
+- Baseline run `f8eb6177b0a44c2e91cbd27926ca3efd` completed all three rows and
+  six-judge lineage at correctness 0.000, legal quality 0.667, retrieval
+  relevance 0.667, and 28,756 ms average total latency.
+- Structured-prompt run `1528a96621d54a93819f01eab6b600a0` completed and
+  improved correctness to 0.333, legal quality to 1.000, retrieval relevance
+  to 0.733, and average total latency to 21,272 ms.
+- Model-B run `6db207d1847d4d96af0f42905fcf1bf1` completed. GPT-OSS-120B was
+  8,611 ms faster than baseline but reduced legal quality to 0.333 and
+  retrieval relevance to 0.600, so Qwen remains the stronger quality choice.
+- SDK readback confirmed representative baseline, prompt, and model traces are
+  `OK`, each with `hybrid_legal_retrieval` and `legal_generation` nested under
+  `legal_aid_rag_query`: `tr-88649357783352dd0f7961f097355771`,
+  `tr-595be916ac6bf44619393466c55f8d8d`, and
+  `tr-f1a17e1112afdbccf3fb4d94c1e0d466`.
+- High-temperature run `831aca4bd7fd4fcabcc4abe89883dc52` generated all three
+  answers, but four final-row judge assessments timed out after provider
+  throttling. The strict runner marked it partial, excluded it from ranking,
+  and checkpointed `temperature-high` as the only remaining configuration.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -786,3 +832,4 @@ retrieval, generation fallback, or MLflow tracing architecture.
 | 2026-11-02 | `5-milestone-documentation` | Began the rubric audit: confirmed required preparation/loading/API tests, added the README pitch, architecture, reproducible quick start, dataset/task note, and safe environment template; contribution details await the team names and ERP IDs. |
 | 2026-11-03 | `3-mlflow-genai-datasets-judges` | Completed `fixed-hybrid-top5` with all 18 assessments valid, closed the comparison at 8/8, and SDK-verified `fixed-hybrid-top5` as the only MLflow best run. |
 | 2026-11-03 | `6-gradio-interface` | Added and verified the local Gradio Miras interface, including a real Groq-fallback prediction and nested MLflow trace readback. |
+| 2026-11-05 | `7-inference-ablation-evaluation` | Added the controlled four-run prompt/model/temperature suite; completed baseline, prompt, and model comparisons, while the high-temperature judge pass remains checkpointed after quota throttling. |

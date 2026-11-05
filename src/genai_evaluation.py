@@ -163,16 +163,18 @@ def build_predict_fn(
     call_records: list[dict[str, Any]],
     profile: EvaluationProfile = PROFILE,
     temperature: float = GENERATION_TEMPERATURE,
+    generation_config: Mapping[str, Any] | None = None,
 ) -> Callable[[str], str]:
     """Adapt the existing traced RAG chain to MLflow's predict_fn contract."""
 
     def predict(query: str) -> str:
-        result = run_rag_query(
-            query,
-            dict(retriever_components),
-            temperature=temperature,
-            profile=profile,
-        )
+        run_options = {
+            "temperature": temperature,
+            "profile": profile,
+        }
+        if generation_config:
+            run_options["generation_config"] = dict(generation_config)
+        result = run_rag_query(query, dict(retriever_components), **run_options)
         generation = result.get("generation")
         error = generation.get("error") if generation else "No generation result"
         answer = generation.get("answer") if generation else None
@@ -185,6 +187,9 @@ def build_predict_fn(
                 "provider": generation.get("provider"),
                 "model": generation.get("model_used"),
                 "fallback_used": bool(generation.get("fallback_used")),
+                "prompt_variant": generation.get("prompt_variant"),
+                "requested_provider": generation.get("requested_provider"),
+                "requested_model": generation.get("requested_model"),
                 "retrieved_chunks": len(result["retrieval"]["chunks"]),
                 **result["timings"],
             }
@@ -265,6 +270,11 @@ def run_controlled_evaluation(
     scorer_timeout_seconds: int = 300,
     retriever_components: Mapping[str, Any] | None = None,
     evaluate_fn: Callable[..., Any] = mlflow_genai_evaluate,
+    temperature: float = GENERATION_TEMPERATURE,
+    generation_config: Mapping[str, Any] | None = None,
+    evaluation_label: str | None = None,
+    output_path: Path | None = None,
+    artifact_path: Path | None = None,
 ) -> dict[str, Any]:
     """Execute and verify the labeled three-query, six-judge evaluation."""
     load_dotenv()
@@ -277,7 +287,11 @@ def run_controlled_evaluation(
     if [scorer.name for scorer in scorers] != [judge.name for judge in judges]:
         raise ValueError("Evaluation scorer names must match the registered judge lineage")
     components = retriever_components or build_retriever(profile.chunking_strategy)
-    config_label = profile.label
+    config_label = evaluation_label or profile.label
+    generation_options = dict(generation_config or {})
+    prompt_variant = generation_options.get("prompt_variant", "strict_grounded_v1")
+    requested_provider = generation_options.get("provider_mode", "auto")
+    requested_model = generation_options.get("groq_model")
 
     # The direct Groq judge provider is quota-sensitive. Keep both prediction
     # and scoring deterministic and sequential for this controlled milestone run.
@@ -289,6 +303,8 @@ def run_controlled_evaluation(
         components,
         call_records=call_records,
         profile=profile,
+        temperature=temperature,
+        generation_config=generation_options,
     )
 
     run_tags = {
@@ -297,6 +313,9 @@ def run_controlled_evaluation(
         "evaluation.dataset_id": dataset.dataset_id,
         "evaluation.expectation_version": EXPECTATION_VERSION,
         "evaluation.judge_count": str(len(judges)),
+        "evaluation.prompt_variant": str(prompt_variant),
+        "evaluation.requested_model": str(requested_model or "auto"),
+        "evaluation.temperature": str(temperature),
     }
     with mlflow.start_run(
         run_name=f"genai-evaluation-{config_label}",
@@ -309,7 +328,10 @@ def run_controlled_evaluation(
                 "retrieval_mode": profile.retrieval_mode,
                 "top_k": profile.top_k,
                 "pinecone_namespace": profile.pinecone_namespace or "__default__",
-                "generation_temperature": GENERATION_TEMPERATURE,
+                "generation_temperature": temperature,
+                "prompt_variant": prompt_variant,
+                "requested_generation_provider": requested_provider,
+                "requested_generation_model": requested_model or "auto",
                 "dataset_name": dataset.name,
                 "dataset_digest": dataset.digest,
                 "expectation_version": EXPECTATION_VERSION,
@@ -352,6 +374,9 @@ def run_controlled_evaluation(
                 "generation.providers": ",".join(providers),
                 "generation.models": ",".join(models),
                 "generation.fallback_count": str(fallback_count),
+                "generation.prompt_variant": str(prompt_variant),
+                "generation.requested_provider": str(requested_provider),
+                "generation.requested_model": str(requested_model or "auto"),
                 "evaluation.status": "completed",
             }
         )
@@ -374,7 +399,10 @@ def run_controlled_evaluation(
                 "retrieval_mode": profile.retrieval_mode,
                 "top_k": profile.top_k,
                 "pinecone_namespace": profile.pinecone_namespace or "__default__",
-                "generation_temperature": GENERATION_TEMPERATURE,
+                "generation_temperature": temperature,
+                "prompt_variant": prompt_variant,
+                "requested_generation_provider": requested_provider,
+                "requested_generation_model": requested_model,
             },
             "dataset": dataset_report,
             "judges": [
@@ -397,12 +425,12 @@ def run_controlled_evaluation(
         mlflow.set_tag("evaluation.status", report["status"])
         mlflow.log_dict(report, "genai_evaluation_summary.json")
 
-    output_path = evaluation_output_path(profile)
-    artifact_path = evaluation_artifact_path(profile)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    artifact_path.parent.mkdir(parents=True, exist_ok=True)
-    artifact_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    resolved_output_path = output_path or evaluation_output_path(profile)
+    resolved_artifact_path = artifact_path or evaluation_artifact_path(profile)
+    resolved_output_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    resolved_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_artifact_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     if report["scorer_failures"]:
         raise RuntimeError(
             "MLflow GenAI evaluation was partial: "

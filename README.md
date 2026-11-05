@@ -229,6 +229,49 @@ The profile verifies that its chunking strategy matches both the loaded BM25
 artifact and Pinecone namespace. The selected strategy, mode, namespace, and
 top-K are also recorded on the nested MLflow trace.
 
+### Controlled inference ablation
+
+The instructor-required prompt, model, and temperature comparisons use the
+same managed three-query dataset and six registered MLflow GenAI judges. The
+retrieval configuration is frozen to the selected `fixed-hybrid-top5` profile
+so each run changes exactly one generation variable:
+
+| Run | Prompt | Groq model | Temperature | Variable tested |
+| --- | --- | --- | ---: | --- |
+| `baseline-low-temp` | `strict_grounded_v1` | `qwen/qwen3.8-27b` | 0.1 | Shared control |
+| `prompt-structured` | `structured_legal_v2` | `qwen/qwen3.8-27b` | 0.1 | Prompt |
+| `model-b` | `strict_grounded_v1` | `openai/gpt-oss-120b` | 0.1 | Model |
+| `temperature-high` | `strict_grounded_v1` | `qwen/qwen3.8-27b` | 0.7 | Temperature |
+
+Both model IDs were confirmed through the Groq models endpoint and passed a
+real short inference preflight on 2026-11-05. Override them without code
+changes through `INFERENCE_MODEL_A` and `INFERENCE_MODEL_B` if provider
+availability changes. Run or resume the sequential comparison with:
+
+```bash
+python -m src.inference_ablation
+```
+
+Use `--config <label>` to run one configuration. Completed reports are reused
+only when prompt, model, temperature, dataset digest, and judge versions all
+match. MLflow records requested and actual model/provider, prompt variant,
+temperature, answer-quality assessments, fallback behavior, and latency.
+
+Live progress on 2026-11-05:
+
+| Configuration | Correctness | Legal quality | Retrieval relevance | Avg. total latency | MLflow run |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Baseline | 0.000 | 0.667 | 0.667 | 28,756 ms | `f8eb6177b0a44c2e91cbd27926ca3efd` |
+| Structured prompt | 0.333 | 1.000 | 0.733 | 21,272 ms | `1528a96621d54a93819f01eab6b600a0` |
+| GPT-OSS-120B | 0.000 | 0.333 | 0.600 | 20,145 ms | `6db207d1847d4d96af0f42905fcf1bf1` |
+
+The structured prompt is currently strongest: it improved correctness and
+legal-answer quality while reducing latency. GPT-OSS-120B was faster than Qwen
+but reduced legal quality and retrieval relevance. The high-temperature run
+`831aca4bd7fd4fcabcc4abe89883dc52` generated all three answers, but four judge
+assessments on its final row timed out after provider throttling; it is marked
+partial and excluded until `--config temperature-high` completes successfully.
+
 ### Fixed-profile retrieval smoke test
 
 Run all four fixed retrieval combinations without calling a generation model

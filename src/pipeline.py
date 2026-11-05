@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import mlflow
 from mlflow.entities import SpanType
@@ -21,6 +21,7 @@ def run_rag_query(
     semantic_only: Optional[bool] = None,
     temperature: float,
     profile: Optional[RetrievalProfile] = None,
+    generation_config: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run one query and store a nested chain -> retriever -> LLM trace."""
     if profile is None:
@@ -56,6 +57,7 @@ def run_rag_query(
         chunking_strategy = profile.chunking_strategy
 
     configure_mlflow()
+    generation_options = dict(generation_config or {})
     with mlflow.start_span(name="legal_aid_rag_query", span_type=SpanType.CHAIN) as span:
         span.set_inputs(
             {
@@ -70,6 +72,13 @@ def run_rag_query(
                     "pinecone_namespace"
                 ) or "__default__",
                 "temperature": temperature,
+                "prompt_variant": generation_options.get(
+                    "prompt_variant", "strict_grounded_v1"
+                ),
+                "requested_generation_provider": generation_options.get(
+                    "provider_mode", "auto"
+                ),
+                "requested_generation_model": generation_options.get("groq_model"),
             }
         )
 
@@ -86,7 +95,12 @@ def run_rag_query(
         chunks = retrieval["chunks"]
         if chunks:
             generation_started = time.perf_counter()
-            generation = generate_answer(query, chunks, temperature=temperature)
+            generation = generate_answer(
+                query,
+                chunks,
+                temperature=temperature,
+                **generation_options,
+            )
             generation_ms = round((time.perf_counter() - generation_started) * 1000)
         else:
             generation = None
