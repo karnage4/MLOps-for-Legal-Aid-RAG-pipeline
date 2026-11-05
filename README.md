@@ -78,9 +78,14 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/retrieval.py`: Houses the mathematical logic for querying. It executes parallel sparse (BM25) and dense (Pinecone) queries, merging their outputs systematically via Reciprocal Rank Fusion (RRF). 
 - `src/generation.py`: Sends retrieved context to Hugging Face first and cleanly falls back to the configured Groq Qwen model when Hugging Face is unavailable.
 - `src/evaluation.py`: Runs reproducible RAG experiments and measures faithfulness and relevancy with a configurable Groq judge.
+- `src/genai_dataset.py`, `src/genai_judges.py`, and `src/genai_evaluation.py`: Manage the held-out MLflow dataset, versioned judges, and controlled six-judge evaluations.
+- `src/genai_comparison.py`: Resumes and compares the complete eight-profile MLflow GenAI evaluation matrix.
+- `src/inference_ablation.py`: Runs the controlled prompt, generation-model, and temperature comparisons.
 - `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
 - `gradio_app.py`: Provides the Hugging Face-compatible Miras interface for local use while calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
+- `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
+- `CONTRIBUTION.md`: Records student names, ERP IDs, and the Milestone 1 member-to-task allocation.
 
 ## Detailed setup and dependencies
 
@@ -257,7 +262,7 @@ only when prompt, model, temperature, dataset digest, and judge versions all
 match. MLflow records requested and actual model/provider, prompt variant,
 temperature, answer-quality assessments, fallback behavior, and latency.
 
-Live progress on 2026-11-05:
+Final controlled results verified on 2026-11-05:
 
 | Configuration | Correctness | Legal quality | Retrieval relevance | Avg. total latency | MLflow run |
 | --- | ---: | ---: | ---: | ---: | --- |
@@ -363,7 +368,7 @@ The three held-out questions are also registered as the reusable,
 human-reviewed
 MLflow dataset `legal-aid-rag-held-out-v1`. Keeping the dataset separate from
 the evaluation runner lets every RAG profile consume exactly the same inputs
-and prepares the project for registered MLflow judges in the next step.
+with the same approved expectations and registered judge lineage.
 
 Create or verify it with:
 
@@ -463,6 +468,36 @@ retrieved text, while two queries lacked retrieval coverage for every approved
 fact and none of the answers satisfied every strict expected fact. Detailed
 per-query results are saved in
 [`artifacts/genai_evaluation_fixed_hybrid_top3.json`](artifacts/genai_evaluation_fixed_hybrid_top3.json).
+
+### Complete six-judge profile comparison
+
+The resumable managed-dataset comparison subsequently completed all eight
+fixed/recursive, semantic/hybrid, and top-3/top-5 profiles with no remaining
+configuration. Each valid profile contains three predictions and all six
+pinned judge assessments. Run or resume it with:
+
+```bash
+python -m src.genai_comparison
+```
+
+Under the six-judge ranking rule, `fixed-hybrid-top5` is the selected profile:
+
+| Result | Value |
+| --- | ---: |
+| MLflow run | `e6034e3cda2f4582ab5fac02132b4687` |
+| Correctness | 0.3333 |
+| Retrieval sufficiency | 0.3333 |
+| Legal-answer quality | 1.0000 |
+| Retrieval groundedness | 0.6667 |
+| Retrieval relevance | 0.6667 |
+| Query relevance | 1.0000 |
+| Average total latency | 29,517 ms |
+
+This result does not conflict with the earlier `fixed-hybrid-top3` selection:
+the earlier experiment uses the legacy faithfulness/relevancy ranking, whereas
+the managed GenAI comparison uses the expanded six-judge rubric and reviewed
+expectations. The complete ranking and all eight run IDs are stored in
+[`artifacts/genai_evaluation_comparison.json`](artifacts/genai_evaluation_comparison.json).
 
 ### Training exemption for this RAG project
 
