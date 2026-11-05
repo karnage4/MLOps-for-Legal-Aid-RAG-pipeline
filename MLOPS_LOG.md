@@ -843,3 +843,4 @@ the same held-out MLflow dataset.
 | 2026-11-05 | `7-inference-ablation-evaluation` | Added the controlled four-run prompt/model/temperature suite; completed baseline, prompt, and model comparisons, while the high-temperature judge pass remains checkpointed after quota throttling. |
 | 2026-11-05 | `7-inference-ablation-evaluation` | Completed the high-temperature retry after replacing the local Groq key and recovering from a transient Pinecone DNS failure; the controlled comparison is now 4/4 valid and selects the structured prompt. |
 | 2026-11-05 | `8-m1-submission` | Finalized `CONTRIBUTION.md` with student identities and a milestone-aligned division of modeling/evaluation, pipeline/API, and quality/operations responsibilities. |
+| 2026-11-05 | `8-m1-submission` | Generated and visually verified the 17-page illustrated Milestone 1 PDF report using final tracked artifacts plus live proof of MLflow, FastAPI, Gradio, and public corpus access. |

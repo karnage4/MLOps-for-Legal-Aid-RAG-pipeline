@@ -3,6 +3,7 @@ Source
 corpus
 output
 docs
+tmp/
 
 # Project artifacts (generated at runtime)
 *.pkl

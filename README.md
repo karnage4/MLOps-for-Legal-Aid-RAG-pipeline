@@ -100,6 +100,8 @@ The codebase is logically split into modular stages corresponding to the data in
 - `gradio_app.py`: Provides the Hugging Face-compatible Miras interface for local use while calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 - `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
+- `report/generate_m1_report.py`: Reproducibly builds the illustrated Milestone 1 report from tracked artifacts and verified screenshots.
+- `output/pdf/legal_aid_rag_milestone1_report.pdf`: Final rendered Milestone 1 report with architecture, metrics, run IDs, screenshots, testing evidence, and contributions.
 - `CONTRIBUTION.md`: Records student names, ERP IDs, and the Milestone 1 member-to-task allocation.
 
 ## Detailed setup and dependencies
