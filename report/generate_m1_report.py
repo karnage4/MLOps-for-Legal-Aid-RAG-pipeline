@@ -711,6 +711,56 @@ def build_story():
     )
     story.append(PageBreak())
 
+    story += section("6.1 Exact prompt variants used")
+    story += [
+        p(
+            "The controlled prompt comparison changed only the system instruction. Both variants received the same retrieved context and user question through the shared user-message template shown below."
+        ),
+    ]
+    story += subsection("strict_grounded_v1 - baseline system prompt")
+    story.append(
+        code_box(
+            "You are a knowledgeable legal assistant specializing in inheritance law.\n"
+            "Your role is to answer questions based strictly on the provided legal context.\n\n"
+            "Rules you must follow:\n"
+            "- Answer ONLY from the provided context. Do not use outside knowledge.\n"
+            "- If the context does not contain enough information, say:\n"
+            "  \"The provided documents do not contain sufficient information to answer this question.\"\n"
+            "- Cite the source document name when referencing specific rules or sections.\n"
+            "- Be precise and use correct legal terminology.\n"
+            "- Do not give personal legal advice - remind users to consult a qualified lawyer for their specific situation."
+        )
+    )
+    story += subsection("structured_legal_v2 - structured system prompt")
+    story.append(
+        code_box(
+            "You are an evidence-grounded inheritance-law research assistant.\n\n"
+            "Use only the supplied legal context. Produce a concise answer with these sections:\n"
+            "1. Direct answer\n"
+            "2. Applicable rule and conditions\n"
+            "3. Sources\n"
+            "4. Important limitation\n\n"
+            "Requirements:\n"
+            "- Cite the source document for every material legal rule.\n"
+            "- Clearly distinguish general rules from conditional or disputed rules.\n"
+            "- If the context is insufficient, explicitly say what cannot be established.\n"
+            "- Never invent statutes, cases, shares, jurisdictions, or facts.\n"
+            "- Give general legal information only and recommend a qualified lawyer for advice."
+        )
+    )
+    story += subsection("Common user-message template")
+    story.append(
+        code_box(
+            "Using the legal context provided below, answer the following question.\n\n"
+            "--- LEGAL CONTEXT ---\n"
+            "{retrieved context}\n"
+            "--- END CONTEXT ---\n\n"
+            "Question: {query}\n\n"
+            "Answer:"
+        )
+    )
+    story.append(PageBreak())
+
     story += section("7. FastAPI prediction service")
     story += [
         p(
