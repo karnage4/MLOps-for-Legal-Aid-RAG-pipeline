@@ -113,6 +113,28 @@ def test_scorer_failures_requires_every_judge_value():
     assert "correctness" in genai_evaluation._scorer_failures([complete])[0]
 
 
+def test_scorer_failures_accepts_core_judge_subset():
+    core_names = ("relevance_to_query", "fact_coverage")
+    row = {f"{name}/value": 1.0 for name in core_names}
+
+    assert genai_evaluation._scorer_failures([row], core_names) == []
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        {"inputs": {"query": "from inputs"}},
+        {"request": '{"query": "from request"}'},
+        {"inputs/query": "from flattened inputs"},
+    ],
+)
+def test_compact_evaluation_rows_preserves_query_across_mlflow_shapes(row):
+    row["trace_id"] = "trace-1"
+    compact = genai_evaluation._compact_evaluation_rows(pd.DataFrame([row]))
+
+    assert compact[0]["query"].startswith("from ")
+
+
 def test_generation_summary_aggregates_latency_and_fallback_rate():
     summary = genai_evaluation._generation_summary(
         [
@@ -131,10 +153,10 @@ def test_generation_summary_aggregates_latency_and_fallback_rate():
         ]
     )
 
-    assert summary == {
-        "fallback_rate": 0.5,
-        "avg_retrieval_ms": 15.0,
-        "avg_generation_ms": 3.0,
-        "avg_total_ms": 18.0,
-    }
+    assert summary["fallback_rate"] == 0.5
+    assert summary["avg_retrieval_ms"] == 15.0
+    assert summary["avg_generation_ms"] == 3.0
+    assert summary["avg_total_ms"] == 18.0
+    assert summary["avg_bm25_ms"] == 0.0
+    assert summary["avg_rerank_ms"] == 0.0
 

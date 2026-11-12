@@ -53,14 +53,10 @@ load_dotenv()
 # CONFIG
 # ─────────────────────────────────────────────
 
-HF_API_TOKEN        = os.getenv("HF_API_TOKEN") or os.getenv("HF_TOKEN")
-if HF_API_TOKEN:
-    os.environ["HF_TOKEN"] = HF_API_TOKEN
-
 GROQ_API_KEY        = os.getenv("GROQ_API_KEY")
 
 # Keep the judge independently configurable while defaulting to the same active
-# Groq model verified by the generation fallback.
+# Groq model independently configured for evaluation judging.
 JUDGE_MODEL         = os.getenv(
     "GROQ_JUDGE_MODEL",
     "openai/gpt-oss-20b",
@@ -838,7 +834,7 @@ def main():
     print("=" * 55)
 
     if not GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is required for generation fallback and judging")
+        raise RuntimeError("GROQ_API_KEY is required for generation and judging")
 
     # Load similarity model (used for relevancy scoring)
     print(f"\nLoading similarity model: {SIMILARITY_MODEL}")

@@ -89,6 +89,7 @@ def test_reusable_report_requires_exact_generation_and_lineage():
 def test_effect_cards_report_deltas_from_shared_baseline():
     baseline = {
         "label": "baseline-low-temp",
+        "fact_coverage": 0.5,
         "correctness": 0.5,
         "retrieval_sufficiency": 0.5,
         "legal_answer_quality": 0.5,
@@ -107,6 +108,7 @@ def test_effect_cards_report_deltas_from_shared_baseline():
             "baseline": "baseline-low-temp",
             "candidate": "prompt-structured",
             "deltas": {
+                "fact_coverage": 0.0,
                 "correctness": 0.25,
                 "retrieval_sufficiency": 0.0,
                 "legal_answer_quality": 0.0,

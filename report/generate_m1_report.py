@@ -291,7 +291,7 @@ def architecture_drawing():
         (240, 210, 105, 42, "Dense embeddings", TEAL),
         (240, 154, 105, 42, "BM25 sparse index", GOLD),
         (370, 182, 118, 52, "Semantic / hybrid\nretrieval + rerank", NAVY),
-        (370, 92, 118, 52, "HF generation\nGroq fallback", RED),
+        (370, 92, 118, 52, "Direct Groq\ngeneration", RED),
         (240, 92, 105, 52, "MLflow traces,\nruns, judges", BLUE),
         (125, 92, 94, 52, "FastAPI +\nGradio UI", TEAL),
         (10, 92, 94, 52, "Grounded legal\nanswer", GREEN),
@@ -436,7 +436,7 @@ def build_story():
     story += section("Executive summary")
     story += [
         p(
-            "This milestone converts the previous notebook and application prototype into a reproducible RAG delivery pipeline. The original architecture is preserved: local BM25 retrieval is combined with Pinecone semantic retrieval, candidates are fused and reranked, Hugging Face remains the primary generation provider, and Groq is used as a clean fallback. MLflow records conventional experiments, nested query-retrieval-generation traces, a managed evaluation dataset, versioned GenAI judges, and controlled comparisons."
+            "This milestone converts the previous notebook and application prototype into a reproducible RAG delivery pipeline. The retrieval architecture is preserved: local BM25 retrieval is combined with Pinecone semantic retrieval, candidates are fused and reranked, and Groq provides generation directly with bounded retries. MLflow records conventional experiments, nested query-retrieval-generation traces, a managed evaluation dataset, versioned GenAI judges, and controlled comparisons."
         ),
         p(
             "The traditional supervised-training requirement is explicitly treated as exempt because the project uses pretrained embedding, reranking, and generation models. In its place, the system performs inference evaluation across retrieval parameters, prompts, models, and temperatures, matching the instructor's RAG-specific guidance."
@@ -454,7 +454,7 @@ def build_story():
         ["Training and model artifact", "RAG exemption", "Inference evaluation and clearly named prepared/evaluation artifacts replace unrelated supervised training"],
         ["At least three MLflow experiment runs", "Complete", "8 retrieval runs, 8 managed GenAI runs, and 4 controlled generation ablations"],
         ["FastAPI prediction service", "Complete", "/health, /predict, Pydantic validation, component cache, and /docs"],
-        ["Unit tests", "Complete", "Preparation, loading, fallback, tracing, evaluation, API, and Gradio coverage"],
+        ["Unit tests", "Complete", "Preparation, loading, Groq retries, tracing, evaluation, API, and Gradio coverage"],
         ["Contribution document", "Complete", "Names, ERP IDs, task division, and detailed responsibilities"],
     ]
     story.append(table(compliance, [48 * mm, 26 * mm, 96 * mm]))
@@ -472,8 +472,8 @@ def build_story():
     for text in [
         "Retrieval behavior remains compatible with the original project; configurable profiles are layered around the same semantic and hybrid components.",
         "Every application query produces one MLflow CHAIN trace with RETRIEVER and LLM child spans, preserving parent-child nesting.",
-        "Hugging Face is attempted first in production auto mode. Groq uses GROQ_API_KEY from .env only when the primary provider is unavailable.",
-        "Evaluation runs can request direct Groq generation for controlled model comparisons without changing the production fallback default.",
+        "Groq is the sole production generation provider and loads GROQ_API_KEY from .env. The retired Hugging Face model is no longer attempted.",
+        "Evaluation runs select a Groq model directly for controlled model comparisons while preserving the same production request path.",
         "Secrets, full prompts, and full retrieved documents are not returned by the public API response contract.",
     ]:
         story.append(bullet(text))
@@ -486,7 +486,7 @@ def build_story():
                 ["Dense retrieval", "Sentence Transformers + Pinecone", "Semantic candidate retrieval with isolated namespaces"],
                 ["Sparse retrieval", "BM25", "Exact-term and legal phrase matching"],
                 ["Reranking", "Cross-encoder MiniLM", "Improve final candidate ordering"],
-                ["Generation", "Hugging Face + Groq", "Primary/fallback answer generation"],
+                ["Generation", "Groq", "Direct answer generation with bounded retries"],
                 ["MLOps", "MLflow 3.17.x", "Runs, nested traces, datasets, judges, assessments, and artifacts"],
                 ["Serving", "FastAPI + Gradio", "Validated REST API and interactive local interface"],
             ],
@@ -498,7 +498,7 @@ def build_story():
         table(
             [
                 ["Mode", "Behavior"],
-                ["Production auto", "Hugging Face first; bounded Groq fallback if credits, provider availability, or transient requests fail"],
+                ["Production", "Direct Groq generation with bounded retries for transient failures"],
                 ["Controlled evaluation", "Direct requested Groq model to isolate prompt, model, and temperature effects"],
                 ["Semantic retrieval", "Pinecone dense candidates only, followed by the shared response pipeline"],
                 ["Hybrid retrieval", "BM25 plus Pinecone candidates, reciprocal-rank fusion, and cross-encoder reranking"],
@@ -565,7 +565,7 @@ def build_story():
                 ["Span", "Type", "Recorded evidence"],
                 ["legal_aid_rag_query", "CHAIN", "Query, retrieval profile, temperature, requested provider/model, final response metadata"],
                 ["hybrid_legal_retrieval", "RETRIEVER", "Strategy, namespace, top-K, sparse/dense candidate counts, reranking, latency"],
-                ["legal_generation", "LLM", "Provider attempts, actual provider/model, fallback flag, latency, sanitized outcomes"],
+                ["legal_generation", "LLM", "Groq model, request attempts, retry count, latency, sanitized outcomes"],
             ],
             [42 * mm, 25 * mm, 103 * mm],
         )
@@ -668,7 +668,7 @@ def build_story():
     story += section("6. Prompt, model, parameter, and temperature ablation")
     story += [
         p(
-            "The instructor's RAG-specific update requires inference comparisons across prompts, models, parameters, and temperature. Parameter variation is covered by the eight retrieval profiles. A separate four-run ablation freezes retrieval to fixed-hybrid-top5 and changes exactly one generation variable at a time. Direct Groq mode is used for controlled model identity while production auto mode remains Hugging Face first."
+            "The instructor's RAG-specific update requires inference comparisons across prompts, models, parameters, and temperature. Parameter variation is covered by the eight retrieval profiles. A separate four-run ablation freezes retrieval to fixed-hybrid-top5 and changes exactly one generation variable at a time. Direct Groq generation is used consistently for production and controlled model comparisons."
         ),
         figure(ASSETS / "inference_ablation_chart.png", "Figure 5. Controlled prompt, model, and temperature results on the same dataset and judge lineage.", 92 * mm),
     ]
@@ -784,7 +784,7 @@ def build_story():
     story += subsection("Response evidence")
     story.append(
         p(
-            "The compact response includes the answer, actual provider and model, fallback flag, retrieval profile, source identifiers, trace ID, and retrieval/generation/total timing. Manual acceptance confirmed both /health and /predict through /docs."
+            "The compact response includes the answer, Groq model, request metadata, retrieval profile, source identifiers, trace ID, and retrieval/generation/total timing. Manual acceptance confirmed both /health and /predict through /docs."
         )
     )
     story.append(PageBreak())
@@ -796,7 +796,7 @@ def build_story():
         ),
         figure(ASSETS / "gradio_ui.png", "Figure 7. Miras interface showing chunking, retrieval, top-K, temperature, and context controls.", 126 * mm),
         p(
-            "The interface displays an explicit general-information disclaimer and surfaces provider, retrieval, and timing metadata after prediction. Unit, HTTP, live RAG, fallback, and nested-trace verification have passed."
+            "The interface displays an explicit general-information disclaimer and surfaces provider, retry, retrieval, and timing metadata after prediction. Unit, HTTP, live RAG, direct-generation, and nested-trace verification have passed."
         ),
     ]
     story.append(PageBreak())
@@ -816,7 +816,7 @@ def build_story():
                 ["Preparation", "Missing values, invalid ranges, duplicate IDs, strategy mismatch, persisted alignment"],
                 ["Embedding/index", "Batch preparation, namespace routing, loader inputs, failure handling"],
                 ["Retrieval", "Semantic/hybrid execution, top-K profiles, namespace guards, live smoke checks"],
-                ["Generation", "HF-first order, Groq fallback, retries, provider metadata, secret exclusion"],
+                ["Generation", "Direct Groq calls, bounded retries, provider metadata, secret exclusion"],
                 ["Tracing", "Single root chain and nested retriever/generation parent IDs"],
                 ["Evaluation", "Aggregation, incomplete judge output, strict reuse, best-run selection, eight-profile matrix"],
                 ["FastAPI", "Cached loading, request validation, success response, provider failures, /health"],
@@ -869,9 +869,8 @@ def build_story():
         table(
             [
                 ["Variable", "Purpose"],
-                ["HF_API_TOKEN", "Primary Hugging Face generation provider"],
                 ["PINECONE_API_KEY", "Dense retrieval from the configured Pinecone index"],
-                ["GROQ_API_KEY", "Generation fallback and controlled direct-Groq evaluations"],
+                ["GROQ_API_KEY", "Direct generation and controlled Groq evaluations"],
                 ["MLFLOW_TRACKING_URI", "Optional override for a shared MLflow server"],
                 ["GROQ_JUDGE_MODEL", "Optional judge model override; verified default is openai/gpt-oss-20b"],
             ],
@@ -918,7 +917,7 @@ def build_story():
                 ["Current limitation or risk", "Mitigation / next action"],
                 ["Only three human-reviewed evaluation questions", "Expand the managed dataset across more inheritance scenarios and document strata"],
                 ["LLM judges can vary and are provider-quota sensitive", "Retain pinned versions, strict completeness, retries, and add human review on larger samples"],
-                ["Hugging Face credits/provider availability caused fallback", "Keep provider abstraction and monitor primary/fallback success rates"],
+                ["External Groq quota or provider availability", "Use bounded retries, explicit failures, and provider monitoring"],
                 ["Pinecone and external APIs require network connectivity", "Add availability monitoring, clearer retry budgets, and optional offline retrieval fixtures"],
                 ["Legal answers are informational, not legal advice", "Preserve disclaimers, source visibility, uncertainty language, and qualified-lawyer guidance"],
                 ["Local MLflow SQLite is single-user oriented", "Move to a shared tracking server and artifact store for team deployment"],
@@ -933,7 +932,7 @@ def build_story():
         "Package the API and UI with a production-ready deployment configuration.",
         "Run automated CI tests and artifact validation on pull requests.",
         "Deploy shared MLflow tracking with durable artifacts and access controls.",
-        "Add monitoring for provider fallback rate, latency, retrieval drift, and answer-quality regressions.",
+        "Add monitoring for provider retry and failure rates, latency, retrieval drift, and answer-quality regressions.",
     ]:
         story.append(bullet(text))
     story.append(PageBreak())

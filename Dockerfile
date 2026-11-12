@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application files
 COPY . .
 
-# Hugging Face Spaces routes internal traffic to port 7860 by default
+# The local Gradio service listens on port 7860 by default.
 EXPOSE 7860
 
 # Run the Streamlit app

@@ -5,10 +5,10 @@ This module is imported by your Streamlit app (Step 6).
 It can also be run standalone to test retrieval.
 
 Pipeline per query:
-  1. BM25 keyword search       → top-20 candidates
-  2. Semantic vector search    → top-20 candidates  (Pinecone)
+  1. BM25 keyword search       → configurable candidate pool
+  2. Semantic vector search    → configurable candidate pool (Pinecone)
   3. RRF fusion                → merged ranked list
-  4. Cross-encoder re-ranking  → final top-k chunks
+  4. Cross-encoder re-ranking  → bounded rerank pool → final top-k chunks
 
 Usage (standalone test):
   pip install rank-bm25 sentence-transformers pinecone \
@@ -23,6 +23,7 @@ import os
 import json
 import math
 import re
+import time
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -53,8 +54,9 @@ EMBEDDING_MODEL     = "all-MiniLM-L6-v2"
 # ms-marco is trained on QA pairs — well suited for legal retrieval
 RERANKER_MODEL      = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-BM25_TOP_K          = 20    # candidates from BM25
-SEMANTIC_TOP_K      = 20    # candidates from Pinecone
+BM25_TOP_K          = max(10, int(os.getenv("BM25_CANDIDATE_K", "10")))
+SEMANTIC_TOP_K      = max(10, int(os.getenv("SEMANTIC_CANDIDATE_K", "10")))
+RERANK_CANDIDATE_K = max(10, int(os.getenv("RERANK_CANDIDATE_K", "12")))
 RRF_K               = 60    # RRF constant (standard value — do not change)
 FINAL_TOP_K         = 5     # chunks sent to LLM after re-ranking
 
@@ -106,6 +108,10 @@ class RetrievalProfile:
     @property
     def semantic_only(self) -> bool:
         return self.retrieval_mode == "semantic"
+
+    @property
+    def label(self) -> str:
+        return f"{self.chunking_strategy}-{self.retrieval_mode}-top{self.top_k}"
 
 
 DEFAULT_RETRIEVAL_PROFILE = RetrievalProfile()
@@ -210,12 +216,18 @@ def semantic_search(
     top_k: int = SEMANTIC_TOP_K,
     namespace: Optional[str] = None,
     expected_strategy: Optional[str] = None,
+    timings_ms: Optional[Dict[str, float]] = None,
 ) -> List[Dict]:
     """
     Semantic vector search via Pinecone.
     Returns list of { id, text, source, semantic_score } dicts.
     """
+    embedding_started = time.perf_counter()
     query_vec = embedder.encode(query, normalize_embeddings=True).tolist()
+    if timings_ms is not None:
+        timings_ms["embedding_ms"] = round(
+            (time.perf_counter() - embedding_started) * 1000, 3
+        )
 
     query_args = {
         "vector": query_vec,
@@ -224,7 +236,12 @@ def semantic_search(
     }
     if namespace:
         query_args["namespace"] = namespace
+    pinecone_started = time.perf_counter()
     response = pinecone_index.query(**query_args)
+    if timings_ms is not None:
+        timings_ms["pinecone_ms"] = round(
+            (time.perf_counter() - pinecone_started) * 1000, 3
+        )
 
     results = []
     for match in response["matches"]:
@@ -363,32 +380,66 @@ def _retrieve_impl(
         chunks         : list of final top_k chunks with all scores
         debug          : intermediate results for the UI / report
     """
+    retrieval_started = time.perf_counter()
+    stage_timings: Dict[str, float] = {
+        "bm25_ms": 0.0,
+        "embedding_ms": 0.0,
+        "pinecone_ms": 0.0,
+        "semantic_total_ms": 0.0,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+    }
+
     # Step A: BM25 search
     if not semantic_only:
+        bm25_started = time.perf_counter()
         bm25_results = bm25_search(query, bm25, bm25_ids, bm25_texts)
+        stage_timings["bm25_ms"] = round(
+            (time.perf_counter() - bm25_started) * 1000, 3
+        )
     else:
         bm25_results = []
 
     # Step B: Semantic search
+    semantic_started = time.perf_counter()
     sem_results = semantic_search(
         query,
         embedder,
         pinecone_index,
         namespace=pinecone_namespace,
         expected_strategy=chunking_strategy,
+        timings_ms=stage_timings,
+    )
+    stage_timings["semantic_total_ms"] = round(
+        (time.perf_counter() - semantic_started) * 1000, 3
     )
 
     # Pure semantic retrieval keeps Pinecone's dense ranking. Hybrid retrieval
     # fuses sparse+dense candidates and then applies cross-encoder reranking.
     if semantic_only:
         fused = sem_results
+        rerank_candidates = []
         final_chunks = sem_results[:top_k]
     elif bm25_results:
+        fusion_started = time.perf_counter()
         fused = reciprocal_rank_fusion(bm25_results, sem_results)
-        final_chunks = rerank(query, fused, reranker, top_k=top_k)
+        stage_timings["fusion_ms"] = round(
+            (time.perf_counter() - fusion_started) * 1000, 3
+        )
+        rerank_candidates = fused[:RERANK_CANDIDATE_K]
+        rerank_started = time.perf_counter()
+        final_chunks = rerank(query, rerank_candidates, reranker, top_k=top_k)
+        stage_timings["rerank_ms"] = round(
+            (time.perf_counter() - rerank_started) * 1000, 3
+        )
     else:
         fused = sem_results
-        final_chunks = rerank(query, fused, reranker, top_k=top_k)
+        rerank_candidates = fused[:RERANK_CANDIDATE_K]
+        rerank_started = time.perf_counter()
+        final_chunks = rerank(query, rerank_candidates, reranker, top_k=top_k)
+        stage_timings["rerank_ms"] = round(
+            (time.perf_counter() - rerank_started) * 1000, 3
+        )
 
     # BM25-only hybrid candidates do not carry Pinecone metadata. They still
     # come from the strategy-specific BM25 corpus, so attach that resolved
@@ -402,17 +453,28 @@ def _retrieve_impl(
             )
         chunk["strategy"] = chunking_strategy
 
+    stage_timings["retrieval_total_ms"] = round(
+        (time.perf_counter() - retrieval_started) * 1000, 3
+    )
+
     return {
         "chunks": final_chunks,
         "debug": {
             "bm25_count":     len(bm25_results),
             "semantic_count": len(sem_results),
             "fused_count":    len(fused),
+            "rerank_candidate_count": len(rerank_candidates),
             "final_count":    len(final_chunks),
             "mode":           "semantic" if semantic_only else "hybrid",
             "chunking_strategy": chunking_strategy,
             "pinecone_namespace": pinecone_namespace or "__default__",
             "top_k": top_k,
+            "candidate_limits": {
+                "bm25": BM25_TOP_K,
+                "semantic": SEMANTIC_TOP_K,
+                "rerank": RERANK_CANDIDATE_K,
+            },
+            "timings_ms": stage_timings,
         }
     }
 
@@ -443,6 +505,7 @@ def retrieve(
                 "pinecone_namespace": pinecone_namespace or "__default__",
                 "bm25_top_k": BM25_TOP_K,
                 "semantic_top_k": SEMANTIC_TOP_K,
+                "rerank_candidate_k": RERANK_CANDIDATE_K,
                 "rrf_k": RRF_K,
                 "embedding_model": EMBEDDING_MODEL,
                 "reranker_model": RERANKER_MODEL,
@@ -460,6 +523,12 @@ def retrieve(
             semantic_only=semantic_only,
             pinecone_namespace=pinecone_namespace,
             chunking_strategy=chunking_strategy,
+        )
+        for timing_name, timing_value in result["debug"]["timings_ms"].items():
+            span.set_attribute(f"retrieval.{timing_name}", timing_value)
+        span.set_attribute(
+            "retrieval.rerank_candidate_count",
+            result["debug"]["rerank_candidate_count"],
         )
         # MLflow's built-in RAG judges expect a RETRIEVER span to output the
         # document list directly. Each existing chunk already contains a

@@ -45,11 +45,19 @@ def test_build_judges_use_configured_model_and_limit_expectation_usage():
         genai_judges._judge_model(judge) == "groq:/openai/gpt-oss-20b"
         for judge in judges
     )
-    expectation_dependent = {"correctness", "retrieval_sufficiency"}
+    expectation_dependent = {
+        "fact_coverage",
+        "correctness",
+        "retrieval_sufficiency",
+    }
     assert expectation_dependent.issubset({judge.name for judge in judges})
     assert "{{ inputs }}" in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
     assert "{{ outputs }}" in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
     assert "{{ trace }}" not in genai_judges.LEGAL_ANSWER_QUALITY_INSTRUCTIONS
+    assert "{{ expectations }}" in genai_judges.FACT_COVERAGE_INSTRUCTIONS
+    assert "supported fact count / total expected fact count" in (
+        genai_judges.FACT_COVERAGE_INSTRUCTIONS
+    )
 
 
 def test_registration_reuses_identical_latest_version(monkeypatch):

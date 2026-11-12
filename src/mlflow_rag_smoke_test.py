@@ -8,7 +8,7 @@ import time
 
 import mlflow
 
-from src.generation import GROQ_FALLBACK_MODEL, PRIMARY_MODEL
+from src.generation import GROQ_MODEL
 from src.mlflow_config import configure_mlflow
 from src.pipeline import run_rag_query
 from src.retrieval import build_retriever
@@ -32,8 +32,8 @@ def run_real_rag_smoke_test(query: str = TEST_QUERY) -> dict:
                 "query": query,
                 "retrieval_mode": "hybrid",
                 "top_k": 5,
-                "huggingface_primary_model": PRIMARY_MODEL,
-                "groq_fallback_model": GROQ_FALLBACK_MODEL,
+                "generation_provider": "groq",
+                "groq_model": GROQ_MODEL,
             }
         )
         result = run_rag_query(
@@ -70,7 +70,7 @@ def run_real_rag_smoke_test(query: str = TEST_QUERY) -> dict:
         serialized_spans = repr(
             [(span.inputs, span.outputs, span.attributes) for span in trace.data.spans]
         )
-        for variable_name in ("PINECONE_API_KEY", "HF_API_TOKEN", "GROQ_API_KEY"):
+        for variable_name in ("PINECONE_API_KEY", "GROQ_API_KEY"):
             secret = os.getenv(variable_name)
             assert not secret or secret not in serialized_spans, (
                 f"Secret {variable_name} was recorded in the trace"

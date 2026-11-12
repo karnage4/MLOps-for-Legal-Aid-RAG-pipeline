@@ -181,6 +181,7 @@ def _effect_cards(cards: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
         "temperature-high": "temperature",
     }
     metrics = (
+        "fact_coverage",
         "correctness",
         "retrieval_sufficiency",
         "legal_answer_quality",

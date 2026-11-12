@@ -208,11 +208,19 @@ def run_prediction(
     )
     provider = str(generation.get("provider") or "unknown")
     model = str(generation.get("model_used") or "unknown")
-    fallback_used = bool(generation.get("fallback_used"))
+    request_attempts = max(
+        (
+            int(attempt.get("request_attempts") or 1)
+            for attempt in generation.get("attempts", [])
+            if attempt.get("provider") == "groq"
+        ),
+        default=1,
+    )
+    retry_count = max(0, request_attempts - 1)
 
     status_text = (
         f"Provider: **{provider}** · Model: **{model}** · "
-        f"Fallback: **{'yes' if fallback_used else 'no'}** · "
+        f"Retries: **{retry_count}** · "
         f"Retrieved: **{len(chunks)} chunks / {len(sources)} sources**"
     )
     details = {
@@ -225,7 +233,7 @@ def run_prediction(
         "generation": {
             "provider": provider,
             "model": model,
-            "fallback_used": fallback_used,
+            "retry_count": retry_count,
         },
         "timings_ms": {
             "retrieval": int(timings.get("retrieval_ms") or 0),
@@ -253,7 +261,7 @@ def submit_prediction(*args: Any) -> tuple[str, str, str, dict[str, Any]]:
 
 
 def build_demo() -> gr.Blocks:
-    """Build the local/Hugging Face-compatible Gradio Blocks application."""
+    """Build the local Gradio Blocks application."""
     with gr.Blocks(title=APP_TITLE) as demo:
         gr.HTML(
             """

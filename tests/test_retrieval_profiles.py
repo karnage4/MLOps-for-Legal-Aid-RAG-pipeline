@@ -30,6 +30,7 @@ def test_default_profile_preserves_recursive_hybrid_top5():
     assert profile.bm25_corpus_file == "./output/bm25_corpus.json"
     assert profile.pinecone_namespace is None
     assert profile.semantic_only is False
+    assert profile.label == "recursive-hybrid-top5"
 
 
 def test_fixed_semantic_profile_resolves_isolated_resources():
@@ -121,16 +122,16 @@ def test_semantic_mode_skips_sparse_search_and_cross_encoder():
     rerank.assert_not_called()
     semantic_search.assert_called_once()
     assert result["chunks"] == semantic_results[:3]
-    assert result["debug"] == {
-        "bm25_count": 0,
-        "semantic_count": 5,
-        "fused_count": 5,
-        "final_count": 3,
-        "mode": "semantic",
-        "chunking_strategy": "fixed",
-        "pinecone_namespace": "fixed",
-        "top_k": 3,
-    }
+    assert result["debug"]["bm25_count"] == 0
+    assert result["debug"]["semantic_count"] == 5
+    assert result["debug"]["fused_count"] == 5
+    assert result["debug"]["rerank_candidate_count"] == 0
+    assert result["debug"]["final_count"] == 3
+    assert result["debug"]["mode"] == "semantic"
+    assert result["debug"]["chunking_strategy"] == "fixed"
+    assert result["debug"]["pinecone_namespace"] == "fixed"
+    assert result["debug"]["top_k"] == 3
+    assert result["debug"]["timings_ms"]["rerank_ms"] == 0.0
 
 
 def test_default_hybrid_mode_preserves_fusion_and_reranking():
@@ -173,6 +174,80 @@ def test_default_hybrid_mode_preserves_fusion_and_reranking():
     assert result["debug"]["mode"] == "hybrid"
     assert result["debug"]["chunking_strategy"] == "recursive"
     assert result["debug"]["pinecone_namespace"] == "__default__"
+    assert result["debug"]["rerank_candidate_count"] == 1
+    assert set(result["debug"]["timings_ms"]) == {
+        "bm25_ms",
+        "embedding_ms",
+        "pinecone_ms",
+        "semantic_total_ms",
+        "fusion_ms",
+        "rerank_ms",
+        "retrieval_total_ms",
+    }
+
+
+def test_hybrid_reranks_only_the_bounded_fused_pool():
+    fused_results = [
+        {"id": f"doc-{index}", "text": f"text {index}"}
+        for index in range(retrieval.RERANK_CANDIDATE_K + 5)
+    ]
+
+    with (
+        patch.object(retrieval, "bm25_search", return_value=fused_results[:2]),
+        patch.object(retrieval, "semantic_search", return_value=_semantic_results()),
+        patch.object(
+            retrieval, "reciprocal_rank_fusion", return_value=fused_results
+        ),
+        patch.object(retrieval, "rerank", return_value=[]) as rerank,
+    ):
+        result = retrieval._retrieve_impl(
+            "inheritance question",
+            Mock(),
+            [],
+            [],
+            Mock(),
+            Mock(),
+            Mock(),
+        )
+
+    rerank.assert_called_once()
+    assert len(rerank.call_args.args[1]) == retrieval.RERANK_CANDIDATE_K
+    assert result["debug"]["fused_count"] == len(fused_results)
+    assert result["debug"]["rerank_candidate_count"] == retrieval.RERANK_CANDIDATE_K
+
+
+def test_retrieve_records_stage_timings_on_mlflow_span():
+    result = {
+        "chunks": [{"id": "doc-1", "text": "context"}],
+        "debug": {
+            "timings_ms": {"bm25_ms": 1.5, "rerank_ms": 2.5},
+            "rerank_candidate_count": 8,
+        },
+    }
+    span = Mock()
+    span_context = MagicMock()
+    span_context.__enter__.return_value = span
+
+    with (
+        patch.object(retrieval, "configure_mlflow"),
+        patch.object(retrieval.mlflow, "start_span", return_value=span_context),
+        patch.object(retrieval, "_retrieve_impl", return_value=result),
+    ):
+        observed = retrieval.retrieve(
+            "question",
+            Mock(),
+            [],
+            [],
+            Mock(),
+            Mock(),
+            Mock(),
+        )
+
+    assert observed is result
+    span.set_attribute.assert_any_call("retrieval.bm25_ms", 1.5)
+    span.set_attribute.assert_any_call("retrieval.rerank_ms", 2.5)
+    span.set_attribute.assert_any_call("retrieval.rerank_candidate_count", 8)
+    span.set_outputs.assert_called_once_with(result["chunks"])
 
 
 def test_build_retriever_selects_fixed_bm25_and_namespace():

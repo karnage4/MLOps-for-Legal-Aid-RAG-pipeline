@@ -30,9 +30,21 @@ JUDGE_NAMES = (
     "relevance_to_query",
     "retrieval_groundedness",
     "retrieval_relevance",
+    "fact_coverage",
     "correctness",
     "retrieval_sufficiency",
     "legal_answer_quality",
+)
+
+# These four numeric/binary scorers form the reliable comparison gate. The
+# remaining registered judges are retained as optional diagnostics: strict
+# Correctness is intentionally all-or-nothing, RetrievalSufficiency overlaps
+# the retrieval metrics, and legal_answer_quality is qualitative.
+CORE_JUDGE_NAMES = (
+    "relevance_to_query",
+    "retrieval_groundedness",
+    "retrieval_relevance",
+    "fact_coverage",
 )
 
 LEGAL_ANSWER_QUALITY_INSTRUCTIONS = """
@@ -47,6 +59,20 @@ Return "pass" only when all of the following are true:
 Otherwise return "fail" and explain the most important problem in the rationale.
 Do not use external legal knowledge, tools, or a reference answer. Groundedness
 against retrieved documents is evaluated by a separate registered judge.
+""".strip()
+
+FACT_COVERAGE_INSTRUCTIONS = """
+Compare {{ outputs }} with the `expected_facts` list in {{ expectations }}.
+Evaluate every expected fact independently. Return a floating-point value equal
+to `supported fact count / total expected fact count`, bounded from 0.0 to 1.0.
+
+A fact is supported when the response explicitly states it or unambiguously
+entails it. A partially stated, contradicted, or omitted fact is unsupported.
+Do not make the whole score zero merely because one fact is missing.
+
+In the rationale, enumerate every expected fact in order as SUPPORTED or
+UNSUPPORTED, briefly explain the decision, and finish with the exact fraction
+used for the score (for example, `3/4 = 0.75`). Do not use external knowledge.
 """.strip()
 
 
@@ -68,6 +94,12 @@ def build_judges(model: str | None = None) -> list[Any]:
         RelevanceToQuery(model=model_uri),
         RetrievalGroundedness(model=model_uri),
         RetrievalRelevance(model=model_uri),
+        make_judge(
+            name="fact_coverage",
+            instructions=FACT_COVERAGE_INSTRUCTIONS,
+            feedback_value_type=float,
+            model=model_uri,
+        ),
         Correctness(model=model_uri),
         RetrievalSufficiency(model=model_uri),
         make_judge(

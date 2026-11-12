@@ -82,7 +82,7 @@ def test_run_prediction_reuses_traced_pipeline_and_formats_output(monkeypatch):
     assert "groq" in status and "2 chunks / 2 sources" in status
     assert "law.pdf" in context and "guide.pdf" in context
     assert details["timings_ms"]["total"] == 33
-    assert details["generation"]["fallback_used"] is True
+    assert details["generation"]["retry_count"] == 0
     assert details["profile"]["chunking_strategy"] == "fixed"
 
 

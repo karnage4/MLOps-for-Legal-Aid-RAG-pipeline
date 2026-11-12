@@ -43,7 +43,7 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Fill in `HF_API_TOKEN`, `PINECONE_API_KEY`, and `GROQ_API_KEY` in `.env`, then
+Fill in `PINECONE_API_KEY` and `GROQ_API_KEY` in `.env`, then
 run the credential-free tests or start the recommended local interface:
 
 ```bash
@@ -91,13 +91,13 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/prepare_bm25.py`: Builds and validates strategy-specific BM25 artifacts from existing fixed or recursive chunks without contacting Pinecone.
 - `src/embed_upsert.py`: Processes continuous text chunks into dense mathematical vectors locally using Sentence Transformers and upserts them to a remote Pinecone Serverless matrix.
 - `src/retrieval.py`: Houses the mathematical logic for querying. It executes parallel sparse (BM25) and dense (Pinecone) queries, merging their outputs systematically via Reciprocal Rank Fusion (RRF). 
-- `src/generation.py`: Sends retrieved context to Hugging Face first and cleanly falls back to the configured Groq Qwen model when Hugging Face is unavailable.
+- `src/generation.py`: Sends retrieved context directly to the configured Groq model with bounded retries for transient provider failures.
 - `src/evaluation.py`: Runs reproducible RAG experiments and measures faithfulness and relevancy with a configurable Groq judge.
 - `src/genai_dataset.py`, `src/genai_judges.py`, and `src/genai_evaluation.py`: Manage the held-out MLflow dataset, versioned judges, and controlled six-judge evaluations.
 - `src/genai_comparison.py`: Resumes and compares the complete eight-profile MLflow GenAI evaluation matrix.
 - `src/inference_ablation.py`: Runs the controlled prompt, generation-model, and temperature comparisons.
 - `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
-- `gradio_app.py`: Provides the Hugging Face-compatible Miras interface for local use while calling the same traced RAG boundary.
+- `gradio_app.py`: Provides the local Miras interface while calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 - `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
 - `report/generate_m1_report.py`: Reproducibly builds the illustrated Milestone 1 report from tracked artifacts and verified screenshots.
@@ -112,7 +112,6 @@ To execute the data injection and compilation stages locally, you must provide e
 
 1. Clone the repository and navigate into the root directory.
 2. Create a `.env` file containing the following access keys:
-   - `HF_API_TOKEN=your_huggingface_token`
    - `PINECONE_API_KEY=your_pinecone_key`
    - `GROQ_API_KEY=your_groq_key`
 
@@ -161,7 +160,7 @@ The pipeline must be engaged consecutively to ensure structural integrity across
 
 3. **Gradio application interface (recommended)**:
    Runs the Miras interface locally with fixed/recursive chunking,
-   hybrid/semantic retrieval, source inspection, provider/fallback metadata,
+   hybrid/semantic retrieval, source inspection, provider/model metadata,
    and the MLflow-traced pipeline used by the API. Selecting fixed chunking
    routes to `output/bm25_corpus_fixed.json` and Pinecone namespace `fixed`;
    recursive chunking keeps the production-default corpus and namespace. This
@@ -210,7 +209,7 @@ The pipeline must be engaged consecutively to ensure structural integrity across
    `query` is required and limited to 1,000 characters. `retrieval_mode` must
    be `semantic` or `hybrid`, `top_k` must be between 3 and 10, and
    `temperature` must be between 0 and 1. Unknown request fields are rejected.
-   Responses include the answer, provider/model and fallback metadata, unique
+   Responses include the answer, provider/model and retry metadata, unique
    source names, retrieved chunk count, and retrieval/generation/total latency;
    full prompts, documents, and credentials are never returned.
 
@@ -330,7 +329,7 @@ python -m src.inference_ablation
 Use `--config <label>` to run one configuration. Completed reports are reused
 only when prompt, model, temperature, dataset digest, and judge versions all
 match. MLflow records requested and actual model/provider, prompt variant,
-temperature, answer-quality assessments, fallback behavior, and latency.
+temperature, answer-quality assessments, provider behavior, and latency.
 
 Final controlled results verified on 2026-11-05:
 
@@ -399,7 +398,7 @@ verified in Step 6 as described below.
 
 Every evaluation query is executed through the same traced `run_rag_query` boundary as the application. MLflow therefore stores one `legal_aid_rag_query` parent trace containing the `hybrid_legal_retrieval` and `legal_generation` child spans, rather than separate root traces for retrieval and generation.
 
-The Groq judge model is configured through `GROQ_JUDGE_MODEL` and defaults to the currently verified `openai/gpt-oss-20b`, keeping judge quota separate from the Qwen generation fallback. `EVALUATION_QUERY_LIMIT` controls the common evaluation-set size and defaults to three queries; `EVALUATION_COOLDOWN_SECONDS` defaults to five seconds between queries.
+The Groq judge model is configured through `GROQ_JUDGE_MODEL` and defaults to `openai/gpt-oss-20b`, keeping judge quota separate from the Qwen generation model. Core evaluation uses one schema-controlled judge request per query to return relevance, groundedness, retrieval relevance, and fractional expected-fact coverage together. This reduces judge calls from seven to one per row while retaining the more capable judge; optional strict and qualitative judges remain registered for diagnostics. `EVALUATION_QUERY_LIMIT` controls the common evaluation-set size and defaults to three queries; `EVALUATION_COOLDOWN_SECONDS` defaults to five seconds between queries.
 
 ### Final eight-run comparison (verified 2026-10-24)
 
@@ -427,10 +426,10 @@ configuration. The deterministic rule compares mean faithfulness first, then
 mean relevancy, then lower mean total latency. MLflow identifies the selected
 run with `evaluation.best_run=true`.
 
-Hugging Face remained the primary generation provider during the suite. Its
-requests were unavailable because of account credit/provider availability, so
-all successful answers used the configured Groq fallback. Transient judge
-rate limits were handled by the bounded retry logic.
+These recorded runs predate the direct-Groq migration. Hugging Face was still
+configured as primary, but its requests were unavailable, so Groq produced all
+successful answers. Current runtime requests skip Hugging Face entirely.
+Transient judge rate limits were handled by bounded retry logic.
 
 ### MLflow-managed GenAI evaluation dataset
 
@@ -474,7 +473,7 @@ updated zero and left the dataset at exactly three records.
 
 ### Registered MLflow GenAI judges
 
-Step 2 registers six judges under the `legal-aid-rag`
+Step 2 registers seven judges under the `legal-aid-rag`
 experiment without running the RAG pipeline or calling a judge model:
 
 | Judge | Purpose | Needs expectations? |
@@ -483,7 +482,8 @@ experiment without running the RAG pipeline or calling a judge model:
 | `retrieval_relevance` | Checks whether retrieved chunks are relevant | No |
 | `retrieval_groundedness` | Checks whether the answer is supported by retrieval | No |
 | `legal_answer_quality` | Checks conditionality, uncertainty, and responsible legal framing | No |
-| `correctness` | Checks whether the answer covers the reviewed expected facts | Yes |
+| `fact_coverage` | Scores each expected fact independently and returns the supported fraction | Yes |
+| `correctness` | Strict binary check: passes only when every reviewed fact is supported | Yes |
 | `retrieval_sufficiency` | Checks whether retrieval can support the reviewed facts | Yes |
 
 Register or verify the definitions with:
@@ -497,12 +497,60 @@ MLflow's `groq:/` provider URI. Registration is idempotent: an unchanged
 definition reuses its latest version, while a changed definition creates a
 new version. Registration itself makes no provider inference call. The versions
 pinned by Step 3 are `relevance_to_query:v1`, `retrieval_groundedness:v2`,
-`retrieval_relevance:v2`, `correctness:v1`, `retrieval_sufficiency:v1`, and
-`legal_answer_quality:v2`; an immediate rerun reused all six latest versions.
+`retrieval_relevance:v2`, `fact_coverage:v1`, `correctness:v1`,
+`retrieval_sufficiency:v1`, and `legal_answer_quality:v2`; registration reused
+the six existing definitions and added `fact_coverage` without inference.
 Open **GenAI -> Judges** in the
 `legal-aid-rag` experiment to inspect them. The UI's **Evaluating traces** setting is intentionally
 `OFF`; Step 3 invokes these registered versions explicitly on the managed
 dataset rather than continuously sampling production traces.
+
+`fact_coverage` prevents one omitted fact from collapsing an otherwise useful
+answer to zero. It reports `supported facts / total facts` as a 0–1 score and
+lists every fact as supported or unsupported in its rationale. The original
+`correctness` judge remains available as the stricter all-facts comparison.
+
+### Retrieval latency instrumentation and benchmark
+
+Hybrid retrieval uses configurable candidate limits of 10 BM25 results, 10
+semantic results, and at most 12 RRF candidates for cross-encoder reranking.
+The limits can be changed with `BM25_CANDIDATE_K`, `SEMANTIC_CANDIDATE_K`, and
+`RERANK_CANDIDATE_K` without changing the retrieval architecture. Every MLflow
+retrieval span records BM25, embedding, Pinecone, fusion, reranking, and total
+retrieval latency separately.
+
+```bash
+python -m src.latency_benchmark --strategy fixed --mode hybrid --top-k 5 --repeats 3
+```
+
+The verified 45-request warm benchmark produced mean/median/p95 retrieval
+latencies of **3,730 / 3,451 / 5,469 ms**. Cross-encoder reranking remained the
+largest stage at 87.6% of mean retrieval time. The previous tracked
+fixed-hybrid-top5 retrieval mean was 26,287 ms, so the new measured mean is
+85.8% lower. Quality must still be re-evaluated under the new seven-judge
+lineage before replacing the historical champion.
+
+The first improved managed run, `518b7c4824cb4a74bc9dcbd676058b3a`,
+measured **7,434 ms mean end-to-end inference**: 6,099 ms retrieval and 1,335
+ms direct Groq generation. Per-fact coverage succeeded on all three rows at
+0.75, 0.75, and 0.333 (mean 0.611), whereas strict all-facts correctness was
+0.333. The run remains marked `partial` because the separate legacy
+retrieval-sufficiency judge produced malformed JSON on two rows; those errors
+do not invalidate the latency or fact-coverage measurements.
+
+The corrected core evaluation run `96c173dc72b8408c8541e49ddff7ae7f`
+completed all three rows with no missing feedback. It uses one quota-aware,
+schema-validated GPT-OSS judge request per query to emit four MLflow feedback
+records, reducing judge calls from 21 to 3. The run completed its evaluation
+phase in **1:23** and recorded fact coverage **0.7222**, query relevance
+**0.8333**, retrieval relevance **0.8333**, and groundedness **0.6000**. Mean
+RAG inference was **7,509 ms** (6,098 ms retrieval + 1,411 ms generation).
+Strict all-or-nothing correctness remains an optional diagnostic; fractional
+fact coverage is the primary correctness signal for profile selection.
+
+New comparison runs write to `*_core_v2.json` artifacts and
+`genai_evaluation_comparison_core_v2.json`, so the original six-judge milestone
+artifacts are never overwritten.
 
 ### Controlled MLflow GenAI evaluation
 
@@ -531,9 +579,9 @@ spans and all six assessments; these were also confirmed in the MLflow UI.
 | Average generation latency | 2,204.7 ms |
 | Average RAG latency | 13,511.7 ms |
 
-Hugging Face remained primary but was unavailable because of credits/provider
-support, so all three evaluated generations used the configured Groq fallback
-`qwen/qwen3.8-27b`. The scores show that answers were relevant and grounded in
+This recorded run predates the direct-Groq migration: Groq
+`qwen/qwen3.8-27b` produced all three evaluated answers after the former
+Hugging Face primary was unavailable. The scores show that answers were relevant and grounded in
 retrieved text, while two queries lacked retrieval coverage for every approved
 fact and none of the answers satisfied every strict expected fact. Detailed
 per-query results are saved in
@@ -579,7 +627,7 @@ The repository retains its Docker configuration, but Hugging Face Space deployme
 
 ## MLflow Integration — Phase 1
 
-This working copy keeps the original retrieval architecture and required environment variable names unchanged. Hugging Face remains the primary generation provider; if both Hugging Face model attempts fail, generation falls back to Groq using the existing `GROQ_API_KEY`. The optional `GROQ_MODEL` variable selects the fallback model and currently defaults to `qwen/qwen3.8-27b`; transient Groq failures are retried up to `GROQ_MAX_ATTEMPTS` (default: 3). If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
+This working copy preserves the original retrieval architecture while using Groq as the sole generation provider. The retired Hugging Face model and its guaranteed-failure request were removed from the runtime path. `GROQ_API_KEY` is loaded from `.env`; the optional `GROQ_MODEL` selects the generation model and currently defaults to `qwen/qwen3.8-27b`. Transient Groq failures are retried up to `GROQ_MAX_ATTEMPTS` times (default: 3). If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
 
 Testing status, evidence, and the handoff rules for later features are maintained in [`MLOPS_LOG.md`](MLOPS_LOG.md). Update that file immediately after each manual test and before opening the next feature branch.
 
@@ -587,8 +635,8 @@ The integration records:
 
 - a root `legal_aid_rag_query` CHAIN span for each Streamlit question;
 - a nested `hybrid_legal_retrieval` RETRIEVER span with the actual retrieved chunks;
-- a nested `legal_generation` LLM span recording the selected provider, model, latency, fallback status, and sanitized attempt results without recording either provider token;
-- a `real-rag-smoke-test` run recording the Test 3 result, provider/model tags, retrieval and generation latency, fallback usage, and trace ID;
+- a nested `legal_generation` LLM span recording the Groq model, latency, retry count, success status, and sanitized attempt results without recording the provider token;
+- a `real-rag-smoke-test` run recording the Test 3 result, provider/model tags, retrieval and generation latency, and trace ID;
 - one conventional MLflow run per offline evaluation configuration, including faithfulness, relevancy, and latency metrics.
 
 ### Manual test 1: MLflow only — no cloud keys needed
@@ -608,7 +656,7 @@ smoke_retriever
 smoke_llm
 ```
 
-This proves both standard experiment tracking and GenAI trace storage before Pinecone or Hugging Face are involved.
+This proves both standard experiment tracking and GenAI trace storage before Pinecone or Groq are involved.
 The first launch can take longer while MLflow creates and migrates the local SQLite schema; subsequent launches reuse that database.
 
 ### Manual test 2: inspect the MLflow UI
@@ -630,7 +678,6 @@ Use the same `.env` values as the original project:
 
 ```dotenv
 PINECONE_API_KEY=your_pinecone_key
-HF_API_TOKEN=your_huggingface_token
 GROQ_API_KEY=your_groq_key
 GROQ_MODEL=qwen/qwen3.8-27b
 GROQ_MAX_ATTEMPTS=3
@@ -652,7 +699,7 @@ Or run the repeatable Test 3 check directly:
 python -m src.mlflow_rag_smoke_test
 ```
 
-Submit one question and refresh the MLflow Traces tab. The query should appear as one chain containing retrieval and generation spans. Hugging Face is attempted first and Groq is used only after Hugging Face fails. Retrieval content, provider/model selection, latency, and the generated response are stored for debugging; secret values are not logged.
+Submit one question and refresh the MLflow Traces tab. The query should appear as one chain containing retrieval and generation spans. Groq is called directly with the configured model and bounded transient-error retries. Retrieval content, provider/model selection, latency, retry metadata, and the generated response are stored for debugging; secret values are not logged.
 
 ### Manual test 4: evaluation-run logging
 

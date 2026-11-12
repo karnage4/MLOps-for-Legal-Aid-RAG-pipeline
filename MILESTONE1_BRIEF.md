@@ -2,7 +2,7 @@
 
 ## Project outcome
 
-The notebook-era Legal-Aid RAG prototype is now a reproducible, MLflow-tracked pipeline with validated data preparation, fixed and recursive chunking, semantic and hybrid retrieval, Hugging Face generation with Groq fallback, a FastAPI prediction service, a local Gradio interface, and automated tests.
+The notebook-era Legal-Aid RAG prototype is now a reproducible, MLflow-tracked pipeline with validated data preparation, fixed and recursive chunking, semantic and hybrid retrieval, direct Groq generation, a FastAPI prediction service, a local Gradio interface, and automated tests.
 
 Training is exempt because the system uses pretrained embedding, reranking, and generation models. The modeling evidence therefore comes from held-out inference evaluation rather than supervised training cycles.
 
@@ -17,7 +17,7 @@ Fixed / recursive chunks → BM25 + Pinecone indexes
     ↓
 Semantic / hybrid retrieval → reranking
     ↓
-Hugging Face generation → Groq fallback
+Direct Groq generation with bounded retries
     ↓
 MLflow evaluation and traces → FastAPI /predict + Gradio UI
 ```
@@ -34,7 +34,7 @@ The verified corpus run accepted 46 of 50 PDFs and produced 3,593 recursive chun
 | At least three tracked experiments | Complete | Eight retrieval runs, eight managed GenAI runs, and four controlled generation runs |
 | MLflow GenAI integration | Complete | Managed dataset, expected facts, six versioned judges, nested traces, parameters, metrics, and run IDs |
 | FastAPI service | Complete | Validated `/predict`, `/health`, and generated `/docs` |
-| Unit tests | Complete | Preparation, loading, retrieval, generation fallback, tracing, evaluation, API, and Gradio coverage |
+| Unit tests | Complete | Preparation, loading, retrieval, direct generation and retries, tracing, evaluation, API, and Gradio coverage |
 | Contribution document | Complete | Names, ERP IDs, task division, and detailed deliverables |
 
 ## Retrieval configuration analysis
@@ -86,8 +86,8 @@ The **structured prompt is the generation champion**. Compared with the baseline
 
 - FastAPI exposes `/predict`, `/health`, and `/docs` with Pydantic request validation and cached component loading.
 - Gradio exposes chunking strategy, retrieval mode, top-K, sources, and generation metadata for local manual testing.
-- MLflow stores one root RAG chain with nested retrieval and generation spans, plus the actual provider, model, fallback flag, latency, parameters, metrics, dataset lineage, and judge versions.
-- Hugging Face remains the primary generation provider. Groq loads its key from `.env` and activates only when the primary provider fails.
+- MLflow stores one root RAG chain with nested retrieval and generation spans, plus the Groq model, retry attempts, latency, parameters, metrics, dataset lineage, and judge versions.
+- Groq is the sole generation provider and loads `GROQ_API_KEY` securely from `.env`; the removed Hugging Face model is no longer attempted.
 - The verified full repository regression recorded 91 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning. The final focused evaluation run recorded 14 passing tests.
 
 ## Final selection and limitation
@@ -95,4 +95,15 @@ The **structured prompt is the generation champion**. Compared with the baseline
 For the current evidence, use **fixed-hybrid-top5 retrieval with the `structured_legal_v2` prompt, Qwen 3.8-27B, and temperature 0.1**. This choice follows the richer managed judge rubric and the controlled generation ablation.
 
 The evaluation set contains only three human-reviewed questions. The results demonstrate reproducibility and configuration effects for Milestone 1, but they are not statistically generalizable. The next milestone should expand the reviewed dataset, add automated CI evaluation, and move MLflow to shared durable storage.
+
+## Post-submission improvement baseline
+
+The current pipeline adds per-stage retrieval timing and bounds hybrid
+candidate processing to 10 BM25, 10 semantic, and 12 reranking candidates. A
+45-request warm benchmark measured 3,730 ms mean, 3,451 ms median, and 5,469 ms
+p95 retrieval latency for fixed-hybrid-top5, compared with the historical
+26,287 ms mean. A new MLflow `fact_coverage` judge scores expected facts
+independently, while the existing binary correctness judge is retained and
+documented as an all-facts check. Historical champion statistics above remain
+unchanged until all eight profiles are rerun with the new seven-judge lineage.
 

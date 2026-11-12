@@ -224,16 +224,27 @@ def _compact_evaluation_rows(result_df: Any) -> list[dict[str, Any]]:
             or key.endswith(("/value", "/rationale", "/error_message"))
         }
         inputs = _decode_mapping(row.get("inputs"))
-        if query := inputs.get("query"):
+        request = _decode_mapping(row.get("request"))
+        query = (
+            inputs.get("query")
+            or request.get("query")
+            or row.get("inputs/query")
+            or row.get("inputs.query")
+            or row.get("query")
+        )
+        if query:
             compact["query"] = query
         rows.append(compact)
     return rows
 
 
-def _scorer_failures(rows: Sequence[Mapping[str, Any]]) -> list[str]:
+def _scorer_failures(
+    rows: Sequence[Mapping[str, Any]],
+    judge_names: Sequence[str] = JUDGE_NAMES,
+) -> list[str]:
     failures = []
     for row_index, row in enumerate(rows, 1):
-        for judge_name in JUDGE_NAMES:
+        for judge_name in judge_names:
             value = row.get(f"{judge_name}/value")
             error = row.get(f"{judge_name}/error_message")
             if error or value is None:
@@ -244,20 +255,37 @@ def _scorer_failures(rows: Sequence[Mapping[str, Any]]) -> list[str]:
 
 
 def _generation_summary(call_records: Sequence[Mapping[str, Any]]) -> dict[str, float]:
+    stage_names = (
+        "bm25_ms",
+        "embedding_ms",
+        "pinecone_ms",
+        "semantic_total_ms",
+        "fusion_ms",
+        "rerank_ms",
+        "retrieval_total_ms",
+    )
     if not call_records:
-        return {
+        empty = {
             "fallback_rate": 0.0,
             "avg_retrieval_ms": 0.0,
             "avg_generation_ms": 0.0,
             "avg_total_ms": 0.0,
         }
+        empty.update({f"avg_{name}": 0.0 for name in stage_names})
+        return empty
     count = len(call_records)
-    return {
+    summary = {
         "fallback_rate": sum(bool(row["fallback_used"]) for row in call_records) / count,
         "avg_retrieval_ms": sum(float(row["retrieval_ms"]) for row in call_records) / count,
         "avg_generation_ms": sum(float(row["generation_ms"]) for row in call_records) / count,
         "avg_total_ms": sum(float(row["total_ms"]) for row in call_records) / count,
     }
+    for stage_name in stage_names:
+        summary[f"avg_{stage_name}"] = sum(
+            float(row.get("retrieval_stages_ms", {}).get(stage_name, 0.0))
+            for row in call_records
+        ) / count
+    return summary
 
 
 def run_controlled_evaluation(
@@ -266,6 +294,7 @@ def run_controlled_evaluation(
     dataset: Any | None = None,
     judges: Sequence[Any] | None = None,
     evaluation_scorers: Sequence[Any] | None = None,
+    feedback_names: Sequence[str] | None = None,
     scorer_max_attempts: int = 1,
     scorer_timeout_seconds: int = 300,
     retriever_components: Mapping[str, Any] | None = None,
@@ -284,13 +313,16 @@ def run_controlled_evaluation(
     dataset_report = validate_managed_dataset(dataset)
     judges = list(judges) if judges is not None else load_registered_judges(experiment_id)
     scorers = list(evaluation_scorers) if evaluation_scorers is not None else judges
-    if [scorer.name for scorer in scorers] != [judge.name for judge in judges]:
+    expected_feedback_names = list(feedback_names or [judge.name for judge in judges])
+    if feedback_names is None and [scorer.name for scorer in scorers] != [judge.name for judge in judges]:
         raise ValueError("Evaluation scorer names must match the registered judge lineage")
+    if set(expected_feedback_names) != {judge.name for judge in judges}:
+        raise ValueError("Expected feedback names must match the registered judge lineage")
     components = retriever_components or build_retriever(profile.chunking_strategy)
     config_label = evaluation_label or profile.label
     generation_options = dict(generation_config or {})
     prompt_variant = generation_options.get("prompt_variant", "strict_grounded_v1")
-    requested_provider = generation_options.get("provider_mode", "auto")
+    requested_provider = generation_options.get("provider_mode", "groq")
     requested_model = generation_options.get("groq_model")
 
     # The direct Groq judge provider is quota-sensitive. Keep both prediction
@@ -367,6 +399,13 @@ def run_controlled_evaluation(
                 "avg_retrieval_ms": generation_summary["avg_retrieval_ms"],
                 "avg_generation_ms": generation_summary["avg_generation_ms"],
                 "avg_total_ms": generation_summary["avg_total_ms"],
+                **{
+                    key: value
+                    for key, value in generation_summary.items()
+                    if key.startswith("avg_")
+                    and key
+                    not in {"avg_retrieval_ms", "avg_generation_ms", "avg_total_ms"}
+                },
             }
         )
         mlflow.set_tags(
@@ -382,7 +421,7 @@ def run_controlled_evaluation(
         )
 
         rows = _compact_evaluation_rows(result.result_df)
-        scorer_failures = _scorer_failures(rows)
+        scorer_failures = _scorer_failures(rows, expected_feedback_names)
         if len(call_records) != dataset_report["record_count"]:
             scorer_failures.append(
                 "prediction count mismatch: "

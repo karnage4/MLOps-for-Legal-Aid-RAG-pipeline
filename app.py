@@ -1,13 +1,13 @@
 """
 Step 6 - Legal Inheritance RAG: Streamlit Web Application
 ==========================================================
-Deploy this on HuggingFace Spaces (Streamlit SDK).
+Run this legacy comparison interface locally with Streamlit.
 
-Required Secrets in HF Spaces (Settings → Variables and Secrets):
+Required environment variables:
   PINECONE_API_KEY   — your Pinecone key
-  HF_API_TOKEN       — your HuggingFace token
+  GROQ_API_KEY       — your Groq key
 
-File structure expected on HF Spaces:
+Expected local file structure:
   app.py                        ← this file
   requirements.txt
   output/

@@ -13,7 +13,7 @@
 | Member | Responsibility area | Deliverables |
 | --- | --- | --- |
 | Karam Hussain | Modeling and evaluation | Retrieval experiments; held-out evaluation dataset and metrics; MLflow experiment tracking and nested tracing; eight retrieval configurations; controlled prompt, model, and temperature comparisons; management of GenAI judge lineage and evaluation-completeness checks; comparison of quality, relevance, grounding, and latency results; champion selection and justification; documentation of experiment findings and final technical integration |
-| Aadesh Panjwani | Pipeline and API | Data preparation and validation; fixed and recursive chunk artifacts; BM25 and Pinecone indexing support; semantic and hybrid retrieval implementation; FastAPI `/health`, `/predict`, and `/docs`; generation provider, model, fallback status, latency, and evaluation-result logging; pipeline and architecture documentation |
+| Aadesh Panjwani | Pipeline and API | Data preparation and validation; fixed and recursive chunk artifacts; BM25 and Pinecone indexing support; semantic and hybrid retrieval implementation; FastAPI `/health`, `/predict`, and `/docs`; Groq provider, model, retry, latency, and evaluation-result logging; pipeline and architecture documentation |
 | Muhammad Rayyan Khan | Quality and operations | Unit and integration tests; manual execution of focused and full pytest regression suites; recording and reviewing test results and warnings; verification of MLflow GenAI traces, prompts, judges, and artifacts; manual FastAPI and Gradio validation; reproducibility and final quality assurance |
 
 ## Detailed Effort Breakdown
@@ -28,8 +28,8 @@
 - Managed the held-out evaluation dataset, metrics, GenAI judges, and
   prompt/model/temperature inference comparisons.
 - Selected and justified the best retrieval and generation configurations.
-- Preserved Hugging Face as the primary provider and integrated the Groq
-  fallback without changing the retrieval architecture.
+- Migrated generation to direct Groq after retirement of the Hugging Face
+  model, without changing the retrieval architecture.
 - Coordinated experiment lineage, artifacts, branch integration, and final
   technical review.
 
@@ -42,14 +42,14 @@
   configurations.
 - Implemented request validation, cached component loading, `/health`, and
   `/predict` in the FastAPI service.
-- Logged generation provider, model, fallback status, latency, and evaluation
+- Logged generation provider, model, retry status, latency, and evaluation
   results for pipeline observability.
 - Maintained the generated `/docs`, pipeline documentation, and architecture
   diagram.
 
 ### Muhammad Rayyan Khan — Quality and operations
 
-- Added unit tests for data preparation, retriever loading, provider fallback,
+- Added unit tests for data preparation, retriever loading, Groq retries,
   tracing, evaluation logic, FastAPI endpoints, and the Gradio interface.
 - Verified nested MLflow GenAI traces, prompt variants, judge results, and
   tracked evaluation metadata produced by the modeling workflow.

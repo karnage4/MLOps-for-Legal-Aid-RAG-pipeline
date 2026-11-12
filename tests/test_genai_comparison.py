@@ -2,11 +2,19 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from src import genai_comparison
 from src.genai_evaluation import EvaluationProfile
 
 
-def _report(label="fixed-hybrid-top3", *, correctness=0.0, latency=100.0):
+def _report(
+    label="fixed-hybrid-top3",
+    *,
+    fact_coverage=0.0,
+    correctness=0.0,
+    latency=100.0,
+):
     return {
         "status": "completed",
         "run_id": f"run-{label}",
@@ -19,6 +27,7 @@ def _report(label="fixed-hybrid-top3", *, correctness=0.0, latency=100.0):
         },
         "judges": [{"name": "judge", "version": 2}],
         "metrics": {
+            "fact_coverage/mean": fact_coverage,
             "correctness/mean": correctness,
             "retrieval_sufficiency/mean": 0.5,
             "retrieval_groundedness/mean": 1.0,
@@ -70,10 +79,10 @@ def test_reusable_report_requires_matching_lineage():
 
 def test_quality_ranking_precedes_latency_and_is_deterministic():
     slow_better = genai_comparison.score_card(
-        _report("recursive-hybrid-top5", correctness=1.0, latency=500.0)
+        _report("recursive-hybrid-top5", fact_coverage=1.0, latency=500.0)
     )
     fast_worse = genai_comparison.score_card(
-        _report("fixed-semantic-top3", correctness=0.0, latency=10.0)
+        _report("fixed-semantic-top3", fact_coverage=0.0, latency=10.0)
     )
     assert genai_comparison.rank_score_cards([fast_worse, slow_better])[0]["label"] == (
         "recursive-hybrid-top5"
@@ -84,6 +93,18 @@ def test_quality_ranking_precedes_latency_and_is_deterministic():
     assert genai_comparison.rank_score_cards([equal_a, equal_b])[0]["label"] == (
         "a-profile"
     )
+
+
+def test_per_fact_coverage_precedes_strict_binary_correctness():
+    partial = genai_comparison.score_card(
+        _report("partial", fact_coverage=0.75, correctness=0.0, latency=500.0)
+    )
+    strict_but_lower_coverage = genai_comparison.score_card(
+        _report("strict", fact_coverage=0.5, correctness=1.0, latency=10.0)
+    )
+
+    ranked = genai_comparison.rank_score_cards([strict_but_lower_coverage, partial])
+    assert ranked[0]["label"] == "partial"
 
 
 def test_score_card_calculates_categorical_legal_quality_rate():
@@ -111,8 +132,15 @@ def test_retrying_scorer_retries_transient_failure(monkeypatch):
             return True
 
     judge = FlakyJudge()
-    wrapped = genai_comparison.build_retrying_scorers([judge], max_attempts=3)[0]
+    wrapped = genai_comparison.build_retrying_scorers(
+        [judge], max_attempts=3, timeout_seconds=45
+    )[0]
 
     assert wrapped.run(inputs={"query": "test"}, outputs="answer") is True
     assert judge.calls == 3
-    assert wrapped.timeout == genai_comparison.SCORER_TIMEOUT_SECONDS
+    assert wrapped.timeout == 45
+
+
+def test_build_retrying_scorers_rejects_invalid_timeout():
+    with pytest.raises(ValueError, match="timeout_seconds must be at least 1"):
+        genai_comparison.build_retrying_scorers([], timeout_seconds=0)

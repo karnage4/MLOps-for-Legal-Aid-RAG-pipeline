@@ -22,10 +22,12 @@ from src.genai_evaluation import (
     validate_managed_dataset,
 )
 from src.mlflow_config import configure_mlflow
+from src.genai_judges import CORE_JUDGE_NAMES
+from src.core_genai_scorer import core_rag_quality
 
 
-COMPARISON_OUTPUT_PATH = PROJECT_ROOT / "output" / "genai_evaluation_comparison.json"
-COMPARISON_ARTIFACT_PATH = PROJECT_ROOT / "artifacts" / "genai_evaluation_comparison.json"
+COMPARISON_OUTPUT_PATH = PROJECT_ROOT / "output" / "genai_evaluation_comparison_core_v2.json"
+COMPARISON_ARTIFACT_PATH = PROJECT_ROOT / "artifacts" / "genai_evaluation_comparison_core_v2.json"
 
 PROFILE_MATRIX = tuple(
     EvaluationProfile(chunking, retrieval, top_k)
@@ -36,9 +38,7 @@ PROFILE_MATRIX = tuple(
 PROFILE_BY_LABEL = {profile.label: profile for profile in PROFILE_MATRIX}
 
 METRIC_PRIORITY = (
-    "correctness",
-    "retrieval_sufficiency",
-    "legal_answer_quality",
+    "fact_coverage",
     "retrieval_groundedness",
     "retrieval_relevance",
     "relevance_to_query",
@@ -47,17 +47,30 @@ SCORER_MAX_ATTEMPTS = 3
 # Healthy judge calls complete well inside this bound. If the provider is
 # throttling for longer, fail the profile and resume after quota recovery
 # instead of holding the comparison process for hours.
-SCORER_TIMEOUT_SECONDS = 300
+SCORER_TIMEOUT_SECONDS = 60
+
+
+def core_evaluation_output_path(profile: EvaluationProfile) -> Path:
+    stem = profile.label.replace("-", "_")
+    return PROJECT_ROOT / "output" / f"genai_evaluation_{stem}_core_v2.json"
+
+
+def core_evaluation_artifact_path(profile: EvaluationProfile) -> Path:
+    stem = profile.label.replace("-", "_")
+    return PROJECT_ROOT / "artifacts" / f"genai_evaluation_{stem}_core_v2.json"
 
 
 def build_retrying_scorers(
     judges: Sequence[Any],
     *,
     max_attempts: int = SCORER_MAX_ATTEMPTS,
+    timeout_seconds: int = SCORER_TIMEOUT_SECONDS,
 ) -> list[Any]:
     """Wrap registered judges with bounded retries for transient model formatting errors."""
     if max_attempts < 1:
         raise ValueError("max_attempts must be at least 1")
+    if timeout_seconds < 1:
+        raise ValueError("timeout_seconds must be at least 1")
 
     def wrap(judge: Any) -> Any:
         @scorer(
@@ -65,7 +78,7 @@ def build_retrying_scorers(
             description=judge.description,
             aggregations=judge.aggregations,
             pass_if=judge.pass_if,
-            timeout=SCORER_TIMEOUT_SECONDS,
+            timeout=timeout_seconds,
         )
         def retrying_scorer(
             inputs=None,
@@ -130,7 +143,7 @@ def load_reusable_report(
     dataset_report: Mapping[str, Any],
     judges: Sequence[Any],
 ) -> dict[str, Any] | None:
-    path = evaluation_artifact_path(profile)
+    path = core_evaluation_artifact_path(profile)
     if not path.exists():
         return None
     try:
@@ -171,6 +184,7 @@ def score_card(report: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "label": report["config"]["label"],
         "run_id": report["run_id"],
+        "fact_coverage": metric_or_rate("fact_coverage"),
         "correctness": metric_or_rate("correctness"),
         "retrieval_sufficiency": metric_or_rate("retrieval_sufficiency"),
         "legal_answer_quality": _row_rate(report, "legal_answer_quality"),
@@ -221,9 +235,8 @@ def _comparison_report(
         "dataset": dict(dataset_report),
         "judges": _judge_versions(judges),
         "selection_rule": (
-            "Highest correctness, retrieval sufficiency, legal answer quality, "
-            "retrieval groundedness, retrieval relevance, relevance to query, and "
-            "retrieval precision in that order; then lowest average total latency."
+            "Highest per-fact coverage, retrieval groundedness, retrieval relevance, "
+            "and relevance to query in that order; then lowest average total latency."
         ),
         "requested_profiles": list(requested_labels),
         "completed_profiles": sorted(reports),
@@ -256,8 +269,10 @@ def run_profile_comparison(
     experiment = configure_mlflow()
     dataset = get_managed_dataset()
     dataset_report = validate_managed_dataset(dataset)
-    judges = load_registered_judges(str(experiment.experiment_id))
-    evaluation_scorers = build_retrying_scorers(judges)
+    judges = load_registered_judges(
+        str(experiment.experiment_id), CORE_JUDGE_NAMES
+    )
+    evaluation_scorers = [core_rag_quality]
 
     reports: dict[str, dict[str, Any]] = {}
     for profile in PROFILE_MATRIX:
@@ -280,9 +295,12 @@ def run_profile_comparison(
                 dataset=dataset,
                 judges=judges,
                 evaluation_scorers=evaluation_scorers,
+                feedback_names=CORE_JUDGE_NAMES,
                 scorer_max_attempts=SCORER_MAX_ATTEMPTS,
                 scorer_timeout_seconds=SCORER_TIMEOUT_SECONDS,
                 retriever_components=retrievers[profile.chunking_strategy],
+                output_path=core_evaluation_output_path(profile),
+                artifact_path=core_evaluation_artifact_path(profile),
             )
         except Exception as exc:
             checkpoint = _comparison_report(

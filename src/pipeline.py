@@ -76,7 +76,7 @@ def run_rag_query(
                     "prompt_variant", "strict_grounded_v1"
                 ),
                 "requested_generation_provider": generation_options.get(
-                    "provider_mode", "auto"
+                    "provider_mode", "groq"
                 ),
                 "requested_generation_model": generation_options.get("groq_model"),
             }
@@ -111,6 +111,9 @@ def run_rag_query(
             "generation": generation,
             "timings": {
                 "retrieval_ms": retrieval_ms,
+                "retrieval_stages_ms": retrieval.get("debug", {}).get(
+                    "timings_ms", {}
+                ),
                 "generation_ms": generation_ms,
                 "total_ms": round((time.perf_counter() - started) * 1000),
             },
