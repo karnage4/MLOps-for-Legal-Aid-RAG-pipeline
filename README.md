@@ -527,8 +527,8 @@ The verified 45-request warm benchmark produced mean/median/p95 retrieval
 latencies of **3,730 / 3,451 / 5,469 ms**. Cross-encoder reranking remained the
 largest stage at 87.6% of mean retrieval time. The previous tracked
 fixed-hybrid-top5 retrieval mean was 26,287 ms, so the new measured mean is
-85.8% lower. Quality must still be re-evaluated under the new seven-judge
-lineage before replacing the historical champion.
+85.8% lower. The complete core-v2 comparison below verifies quality under the
+new fractional fact-coverage lineage.
 
 The first improved managed run, `518b7c4824cb4a74bc9dcbd676058b3a`,
 measured **7,434 ms mean end-to-end inference**: 6,099 ms retrieval and 1,335
@@ -551,6 +551,30 @@ fact coverage is the primary correctness signal for profile selection.
 New comparison runs write to `*_core_v2.json` artifacts and
 `genai_evaluation_comparison_core_v2.json`, so the original six-judge milestone
 artifacts are never overwritten.
+
+### Complete core-v2 profile comparison
+
+All eight fixed/recursive, semantic/hybrid, and top-3/top-5 profiles completed
+against the same three-record dataset and four pinned core feedback versions.
+The ranking prioritizes fact coverage, groundedness, retrieval relevance, and
+query relevance, using lower latency only after quality ties.
+
+| Rank | Configuration | Fact coverage | Groundedness | Retrieval relevance | Query relevance | Mean RAG latency |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | **fixed-hybrid-top5** | **0.7222** | 0.6000 | 0.8333 | 0.8333 | 7,509 ms |
+| 2 | fixed-semantic-top3 | 0.5833 | **0.8833** | **0.8667** | 0.6667 | 2,492 ms |
+| 3 | fixed-hybrid-top3 | 0.5278 | 0.7833 | 0.7667 | **0.8833** | 8,512 ms |
+| 4 | fixed-semantic-top5 | 0.4722 | 0.5000 | 0.6667 | 0.7500 | 2,618 ms |
+| 5 | recursive-hybrid-top3 | 0.3056 | 0.8333 | 0.7000 | 0.6000 | 2,931 ms |
+| 6 | recursive-hybrid-top5 | 0.3056 | 0.4667 | 0.7333 | 0.7500 | 3,627 ms |
+| 7 | recursive-semantic-top5 | 0.1667 | 0.5667 | 0.2667 | 0.3000 | **2,051 ms** |
+| 8 | recursive-semantic-top3 | 0.0833 | 0.7000 | 0.5000 | 0.4000 | 3,487 ms |
+
+`fixed-hybrid-top5` remains the quality champion because its 0.7222 fact
+coverage is the highest. `fixed-semantic-top3` is the deployment-oriented
+challenger: it is about 66.8% faster, with stronger groundedness and retrieval
+relevance, but its fact coverage is 0.1389 lower. The compact ranking artifact
+is [`artifacts/genai_evaluation_comparison_core_v2.json`](artifacts/genai_evaluation_comparison_core_v2.json).
 
 ### Controlled MLflow GenAI evaluation
 

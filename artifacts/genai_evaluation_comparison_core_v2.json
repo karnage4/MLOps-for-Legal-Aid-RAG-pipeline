@@ -1,0 +1,143 @@
+{
+  "status": "completed",
+  "dataset": {
+    "dataset_id": "d-fee7335515b9445dbb7feddfd68de247",
+    "dataset_name": "legal-aid-rag-held-out-v1",
+    "dataset_digest": "1f570963",
+    "record_count": 3,
+    "expectation_version": "1"
+  },
+  "judges": [
+    {
+      "name": "relevance_to_query",
+      "version": 3
+    },
+    {
+      "name": "retrieval_groundedness",
+      "version": 4
+    },
+    {
+      "name": "retrieval_relevance",
+      "version": 4
+    },
+    {
+      "name": "fact_coverage",
+      "version": 3
+    }
+  ],
+  "selection_rule": "Highest per-fact coverage, retrieval groundedness, retrieval relevance, and relevance to query in that order; then lowest average total latency.",
+  "requested_profiles": [
+    "recursive-semantic-top3",
+    "recursive-semantic-top5",
+    "recursive-hybrid-top3",
+    "recursive-hybrid-top5",
+    "fixed-semantic-top3",
+    "fixed-semantic-top5",
+    "fixed-hybrid-top3",
+    "fixed-hybrid-top5"
+  ],
+  "completed_profiles": [
+    "fixed-hybrid-top3",
+    "fixed-hybrid-top5",
+    "fixed-semantic-top3",
+    "fixed-semantic-top5",
+    "recursive-hybrid-top3",
+    "recursive-hybrid-top5",
+    "recursive-semantic-top3",
+    "recursive-semantic-top5"
+  ],
+  "remaining_profiles": [],
+  "best_profile": {
+    "label": "fixed-hybrid-top5",
+    "run_id": "96c173dc72b8408c8541e49ddff7ae7f",
+    "fact_coverage": 0.7222222222222222,
+    "retrieval_groundedness": 0.6,
+    "retrieval_relevance": 0.8333333333333334,
+    "relevance_to_query": 0.8333333333333334,
+    "avg_total_ms": 7509.0,
+    "fallback_rate": 0.0
+  },
+  "ranking": [
+    {
+      "label": "fixed-hybrid-top5",
+      "run_id": "96c173dc72b8408c8541e49ddff7ae7f",
+      "fact_coverage": 0.7222222222222222,
+      "retrieval_groundedness": 0.6,
+      "retrieval_relevance": 0.8333333333333334,
+      "relevance_to_query": 0.8333333333333334,
+      "avg_total_ms": 7509.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "fixed-semantic-top3",
+      "run_id": "c1f418bc085643ca90dbecf8f86fdf9b",
+      "fact_coverage": 0.5833333333333334,
+      "retrieval_groundedness": 0.8833333333333333,
+      "retrieval_relevance": 0.8666666666666667,
+      "relevance_to_query": 0.6666666666666666,
+      "avg_total_ms": 2491.6666666666665,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "fixed-hybrid-top3",
+      "run_id": "903a5b498cc14170ad8ff6b9f7d2f1b1",
+      "fact_coverage": 0.5277777777777778,
+      "retrieval_groundedness": 0.7833333333333333,
+      "retrieval_relevance": 0.7666666666666666,
+      "relevance_to_query": 0.8833333333333333,
+      "avg_total_ms": 8512.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "fixed-semantic-top5",
+      "run_id": "e2273708c3114c3fbfd7c6e630754738",
+      "fact_coverage": 0.47222222222222215,
+      "retrieval_groundedness": 0.5,
+      "retrieval_relevance": 0.6666666666666666,
+      "relevance_to_query": 0.75,
+      "avg_total_ms": 2618.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "recursive-hybrid-top3",
+      "run_id": "f9d010130d5a44fd8ed3e2165d21ba80",
+      "fact_coverage": 0.3055555555555555,
+      "retrieval_groundedness": 0.8333333333333334,
+      "retrieval_relevance": 0.7000000000000001,
+      "relevance_to_query": 0.6,
+      "avg_total_ms": 2930.6666666666665,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "recursive-hybrid-top5",
+      "run_id": "75f506b7abca455e852dd3c2995cf068",
+      "fact_coverage": 0.3055555555555555,
+      "retrieval_groundedness": 0.4666666666666666,
+      "retrieval_relevance": 0.7333333333333333,
+      "relevance_to_query": 0.75,
+      "avg_total_ms": 3627.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "recursive-semantic-top5",
+      "run_id": "f1a5305da3ab41d0a515f4099b69e6f6",
+      "fact_coverage": 0.16666666666666666,
+      "retrieval_groundedness": 0.5666666666666667,
+      "retrieval_relevance": 0.26666666666666666,
+      "relevance_to_query": 0.3,
+      "avg_total_ms": 2051.3333333333335,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "recursive-semantic-top3",
+      "run_id": "3f4108ed125a4d88b690791805df68c7",
+      "fact_coverage": 0.08333333333333333,
+      "retrieval_groundedness": 0.7000000000000001,
+      "retrieval_relevance": 0.5000000000000001,
+      "relevance_to_query": 0.4000000000000001,
+      "avg_total_ms": 3487.0,
+      "fallback_rate": 0.0
+    }
+  ],
+  "error": null
+}

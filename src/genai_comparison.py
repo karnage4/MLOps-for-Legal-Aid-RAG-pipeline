@@ -15,7 +15,6 @@ from src.genai_evaluation import (
     PROJECT_ROOT,
     EvaluationProfile,
     build_retrievers,
-    evaluation_artifact_path,
     get_managed_dataset,
     load_registered_judges,
     run_controlled_evaluation,
@@ -23,7 +22,7 @@ from src.genai_evaluation import (
 )
 from src.mlflow_config import configure_mlflow
 from src.genai_judges import CORE_JUDGE_NAMES
-from src.core_genai_scorer import core_rag_quality
+from src.core_genai_scorer import CORE_SCORER_TIMEOUT_SECONDS, core_rag_quality
 
 
 COMPARISON_OUTPUT_PATH = PROJECT_ROOT / "output" / "genai_evaluation_comparison_core_v2.json"
@@ -47,7 +46,7 @@ SCORER_MAX_ATTEMPTS = 3
 # Healthy judge calls complete well inside this bound. If the provider is
 # throttling for longer, fail the profile and resume after quota recovery
 # instead of holding the comparison process for hours.
-SCORER_TIMEOUT_SECONDS = 60
+SCORER_TIMEOUT_SECONDS = CORE_SCORER_TIMEOUT_SECONDS
 
 
 def core_evaluation_output_path(profile: EvaluationProfile) -> Path:
@@ -124,10 +123,20 @@ def is_reusable_report(
     judges: Sequence[Any],
 ) -> bool:
     """Only reuse a fully successful report with identical evaluation lineage."""
+    config = report.get("config", {})
+    explicit_profile = all(
+        key in config
+        for key in ("chunking_strategy", "retrieval_mode", "top_k")
+    )
+    profile_matches = (
+        config.get("chunking_strategy") == profile.chunking_strategy
+        and config.get("retrieval_mode") == profile.retrieval_mode
+        and config.get("top_k") == profile.top_k
+    ) if explicit_profile else config.get("label") == profile.label
     return (
         report.get("status") == "completed"
         and not report.get("scorer_failures")
-        and report.get("config", {}).get("label") == profile.label
+        and profile_matches
         and report.get("dataset", {}).get("dataset_id") == dataset_report.get("dataset_id")
         and report.get("dataset", {}).get("dataset_digest") == dataset_report.get("dataset_digest")
         and report.get("dataset", {}).get("expectation_version")
@@ -143,21 +152,37 @@ def load_reusable_report(
     dataset_report: Mapping[str, Any],
     judges: Sequence[Any],
 ) -> dict[str, Any] | None:
-    path = core_evaluation_artifact_path(profile)
-    if not path.exists():
-        return None
-    try:
-        report = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return None
-    if not is_reusable_report(
-        report,
-        profile=profile,
-        dataset_report=dataset_report,
-        judges=judges,
-    ):
-        return None
-    return report
+    stem = profile.label.replace("-", "_")
+    primary = core_evaluation_artifact_path(profile)
+    candidates = [primary, *sorted(
+        primary.parent.glob(f"genai_evaluation_{stem}_core_v*.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )]
+    seen: set[Path] = set()
+    for path in candidates:
+        if path in seen or not path.exists():
+            continue
+        seen.add(path)
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if is_reusable_report(
+            report,
+            profile=profile,
+            dataset_report=dataset_report,
+            judges=judges,
+        ):
+            normalized = dict(report)
+            normalized_config = dict(report.get("config", {}))
+            original_label = normalized_config.get("label")
+            normalized_config["label"] = profile.label
+            if original_label and original_label != profile.label:
+                normalized_config["evaluation_label"] = original_label
+            normalized["config"] = normalized_config
+            return normalized
+    return None
 
 
 def _row_rate(report: Mapping[str, Any], judge_name: str) -> float:
@@ -185,14 +210,8 @@ def score_card(report: Mapping[str, Any]) -> dict[str, Any]:
         "label": report["config"]["label"],
         "run_id": report["run_id"],
         "fact_coverage": metric_or_rate("fact_coverage"),
-        "correctness": metric_or_rate("correctness"),
-        "retrieval_sufficiency": metric_or_rate("retrieval_sufficiency"),
-        "legal_answer_quality": _row_rate(report, "legal_answer_quality"),
         "retrieval_groundedness": metric_or_rate("retrieval_groundedness"),
         "retrieval_relevance": metric_or_rate("retrieval_relevance"),
-        "retrieval_relevance_precision": float(
-            metrics.get("retrieval_relevance/precision/mean", 0.0)
-        ),
         "relevance_to_query": metric_or_rate("relevance_to_query"),
         "avg_total_ms": float(generation_summary.get("avg_total_ms", 0.0)),
         "fallback_rate": float(generation_summary.get("fallback_rate", 0.0)),
@@ -205,7 +224,6 @@ def rank_score_cards(cards: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
         (dict(card) for card in cards),
         key=lambda card: (
             *(-float(card[metric]) for metric in METRIC_PRIORITY),
-            -float(card["retrieval_relevance_precision"]),
             float(card["avg_total_ms"]),
             str(card["label"]),
         ),

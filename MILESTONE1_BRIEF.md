@@ -88,7 +88,7 @@ The **structured prompt is the generation champion**. Compared with the baseline
 - Gradio exposes chunking strategy, retrieval mode, top-K, sources, and generation metadata for local manual testing.
 - MLflow stores one root RAG chain with nested retrieval and generation spans, plus the Groq model, retry attempts, latency, parameters, metrics, dataset lineage, and judge versions.
 - Groq is the sole generation provider and loads `GROQ_API_KEY` securely from `.env`; the removed Hugging Face model is no longer attempted.
-- The verified full repository regression recorded 91 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning. The final focused evaluation run recorded 14 passing tests.
+- The verified post-fix full repository regression recorded 107 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning.
 
 ## Final selection and limitation
 
@@ -105,5 +105,23 @@ p95 retrieval latency for fixed-hybrid-top5, compared with the historical
 26,287 ms mean. A new MLflow `fact_coverage` judge scores expected facts
 independently, while the existing binary correctness judge is retained and
 documented as an all-facts check. Historical champion statistics above remain
-unchanged until all eight profiles are rerun with the new seven-judge lineage.
+available for audit. The completed core-v2 rerun uses one consolidated judge
+call per query and independently logs fact coverage, groundedness, retrieval
+relevance, and query relevance.
+
+| Rank | Core-v2 configuration | Fact coverage | Groundedness | Retrieval relevance | Query relevance | Mean latency |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | **fixed-hybrid-top5** | **0.7222** | 0.6000 | 0.8333 | 0.8333 | 7,509 ms |
+| 2 | fixed-semantic-top3 | 0.5833 | **0.8833** | **0.8667** | 0.6667 | 2,492 ms |
+| 3 | fixed-hybrid-top3 | 0.5278 | 0.7833 | 0.7667 | **0.8833** | 8,512 ms |
+| 4 | fixed-semantic-top5 | 0.4722 | 0.5000 | 0.6667 | 0.7500 | 2,618 ms |
+| 5 | recursive-hybrid-top3 | 0.3056 | 0.8333 | 0.7000 | 0.6000 | 2,931 ms |
+| 6 | recursive-hybrid-top5 | 0.3056 | 0.4667 | 0.7333 | 0.7500 | 3,627 ms |
+| 7 | recursive-semantic-top5 | 0.1667 | 0.5667 | 0.2667 | 0.3000 | **2,051 ms** |
+| 8 | recursive-semantic-top3 | 0.0833 | 0.7000 | 0.5000 | 0.4000 | 3,487 ms |
+
+The quality recommendation remains **fixed-hybrid-top5**. For a latency-first
+deployment, **fixed-semantic-top3** is the strongest challenger: it is 66.8%
+faster and improves both groundedness and retrieval relevance, at the cost of
+0.1389 lower fact coverage.
 

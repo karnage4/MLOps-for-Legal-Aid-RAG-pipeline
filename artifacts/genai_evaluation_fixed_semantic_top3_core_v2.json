@@ -1,0 +1,185 @@
+{
+  "status": "completed",
+  "run_id": "c1f418bc085643ca90dbecf8f86fdf9b",
+  "experiment_id": "1",
+  "config": {
+    "label": "fixed-semantic-top3",
+    "chunking_strategy": "fixed",
+    "retrieval_mode": "semantic",
+    "top_k": 3,
+    "pinecone_namespace": "fixed",
+    "generation_temperature": 0.2,
+    "prompt_variant": "strict_grounded_v1",
+    "requested_generation_provider": "groq",
+    "requested_generation_model": null
+  },
+  "dataset": {
+    "dataset_id": "d-fee7335515b9445dbb7feddfd68de247",
+    "dataset_name": "legal-aid-rag-held-out-v1",
+    "dataset_digest": "1f570963",
+    "record_count": 3,
+    "expectation_version": "1"
+  },
+  "judges": [
+    {
+      "name": "relevance_to_query",
+      "version": 3
+    },
+    {
+      "name": "retrieval_groundedness",
+      "version": 4
+    },
+    {
+      "name": "retrieval_relevance",
+      "version": 4
+    },
+    {
+      "name": "fact_coverage",
+      "version": 3
+    }
+  ],
+  "metrics": {
+    "relevance_to_query/mean": 0.6666666666666666,
+    "retrieval_groundedness/mean": 0.8833333333333333,
+    "retrieval_relevance/mean": 0.8666666666666667,
+    "fact_coverage/mean": 0.5833333333333334
+  },
+  "generation": {
+    "providers": [
+      "groq"
+    ],
+    "models": [
+      "qwen/qwen3.8-27b"
+    ],
+    "fallback_count": 0,
+    "summary": {
+      "fallback_rate": 0.0,
+      "avg_retrieval_ms": 1320.0,
+      "avg_generation_ms": 1171.6666666666667,
+      "avg_total_ms": 2491.6666666666665,
+      "avg_bm25_ms": 0.0,
+      "avg_embedding_ms": 22.760333333333335,
+      "avg_pinecone_ms": 928.3463333333334,
+      "avg_semantic_total_ms": 951.245,
+      "avg_fusion_ms": 0.0,
+      "avg_rerank_ms": 0.0,
+      "avg_retrieval_total_ms": 951.2576666666668
+    },
+    "calls": [
+      {
+        "query": "Who inherits property when a person dies without a will?",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": false,
+        "prompt_variant": "strict_grounded_v1",
+        "requested_provider": "groq",
+        "requested_model": "qwen/qwen3.8-27b",
+        "retrieved_chunks": 3,
+        "retrieval_ms": 1762,
+        "retrieval_stages_ms": {
+          "bm25_ms": 0.0,
+          "embedding_ms": 26.258,
+          "pinecone_ms": 1368.279,
+          "semantic_total_ms": 1394.809,
+          "fusion_ms": 0.0,
+          "rerank_ms": 0.0,
+          "retrieval_total_ms": 1394.834
+        },
+        "generation_ms": 1043,
+        "total_ms": 2805
+      },
+      {
+        "query": "What is the share of a daughter in Islamic inheritance?",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": false,
+        "prompt_variant": "strict_grounded_v1",
+        "requested_provider": "groq",
+        "requested_model": "qwen/qwen3.8-27b",
+        "retrieved_chunks": 3,
+        "retrieval_ms": 715,
+        "retrieval_stages_ms": {
+          "bm25_ms": 0.0,
+          "embedding_ms": 15.426,
+          "pinecone_ms": 306.434,
+          "semantic_total_ms": 321.911,
+          "fusion_ms": 0.0,
+          "rerank_ms": 0.0,
+          "retrieval_total_ms": 321.916
+        },
+        "generation_ms": 1086,
+        "total_ms": 1801
+      },
+      {
+        "query": "Can a non-Muslim inherit from a Muslim's estate?",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": false,
+        "prompt_variant": "strict_grounded_v1",
+        "requested_provider": "groq",
+        "requested_model": "qwen/qwen3.8-27b",
+        "retrieved_chunks": 3,
+        "retrieval_ms": 1483,
+        "retrieval_stages_ms": {
+          "bm25_ms": 0.0,
+          "embedding_ms": 26.597,
+          "pinecone_ms": 1110.326,
+          "semantic_total_ms": 1137.015,
+          "fusion_ms": 0.0,
+          "rerank_ms": 0.0,
+          "retrieval_total_ms": 1137.023
+        },
+        "generation_ms": 1386,
+        "total_ms": 2869
+      }
+    ]
+  },
+  "rows": [
+    {
+      "trace_id": "tr-6110838c00e2cb90555d64bf91b8e32c",
+      "relevance_to_query/value": 0.2,
+      "relevance_to_query/rationale": "Judge returned a compact numeric score of 0.200.",
+      "retrieval_groundedness/value": 0.9,
+      "retrieval_groundedness/rationale": "Judge returned a compact numeric score of 0.900.",
+      "retrieval_relevance/value": 0.8,
+      "retrieval_relevance/rationale": "Judge returned a compact numeric score of 0.800.",
+      "fact_coverage/value": 0.0,
+      "fact_coverage/rationale": "Judge returned a compact numeric score of 0.000.",
+      "expected_facts/value": null,
+      "state": "OK",
+      "execution_duration": 2803,
+      "query": "Who inherits property when a person dies without a will?"
+    },
+    {
+      "trace_id": "tr-e0008630399c54058f932a8dc98363a0",
+      "relevance_to_query/value": 0.9,
+      "relevance_to_query/rationale": "Judge returned a compact numeric score of 0.900.",
+      "retrieval_groundedness/value": 0.9,
+      "retrieval_groundedness/rationale": "Judge returned a compact numeric score of 0.900.",
+      "retrieval_relevance/value": 0.9,
+      "retrieval_relevance/rationale": "Judge returned a compact numeric score of 0.900.",
+      "fact_coverage/value": 0.75,
+      "fact_coverage/rationale": "Judge returned a compact numeric score of 0.750.",
+      "expected_facts/value": null,
+      "state": "OK",
+      "execution_duration": 1801,
+      "query": "What is the share of a daughter in Islamic inheritance?"
+    },
+    {
+      "trace_id": "tr-f6a5e1fdeda6b488d946de14a103ffbb",
+      "relevance_to_query/value": 0.9,
+      "relevance_to_query/rationale": "Judge returned a compact numeric score of 0.900.",
+      "retrieval_groundedness/value": 0.85,
+      "retrieval_groundedness/rationale": "Judge returned a compact numeric score of 0.850.",
+      "retrieval_relevance/value": 0.9,
+      "retrieval_relevance/rationale": "Judge returned a compact numeric score of 0.900.",
+      "fact_coverage/value": 1.0,
+      "fact_coverage/rationale": "Judge returned a compact numeric score of 1.000.",
+      "expected_facts/value": null,
+      "state": "OK",
+      "execution_duration": 2867,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?"
+    }
+  ],
+  "scorer_failures": []
+}

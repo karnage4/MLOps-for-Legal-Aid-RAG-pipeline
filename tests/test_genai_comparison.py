@@ -77,6 +77,20 @@ def test_reusable_report_requires_matching_lineage():
     )
 
 
+def test_reusable_report_accepts_versioned_label_when_profile_fields_match():
+    profile = EvaluationProfile("fixed", "hybrid", 5)
+    report = _report("fixed-hybrid-top5-core-v7-validated")
+    report["config"].update(
+        chunking_strategy="fixed", retrieval_mode="hybrid", top_k=5
+    )
+    dataset = report["dataset"]
+    judges = [SimpleNamespace(name="judge", scorer_version=2)]
+
+    assert genai_comparison.is_reusable_report(
+        report, profile=profile, dataset_report=dataset, judges=judges
+    )
+
+
 def test_quality_ranking_precedes_latency_and_is_deterministic():
     slow_better = genai_comparison.score_card(
         _report("recursive-hybrid-top5", fact_coverage=1.0, latency=500.0)
@@ -107,9 +121,18 @@ def test_per_fact_coverage_precedes_strict_binary_correctness():
     assert ranked[0]["label"] == "partial"
 
 
-def test_score_card_calculates_categorical_legal_quality_rate():
+def test_score_card_contains_only_core_quality_metrics():
     card = genai_comparison.score_card(_report())
-    assert card["legal_answer_quality"] == 2 / 3
+    assert set(card).issuperset(
+        {
+            "fact_coverage",
+            "retrieval_groundedness",
+            "retrieval_relevance",
+            "relevance_to_query",
+        }
+    )
+    assert "correctness" not in card
+    assert "legal_answer_quality" not in card
 
 
 def test_retrying_scorer_retries_transient_failure(monkeypatch):
