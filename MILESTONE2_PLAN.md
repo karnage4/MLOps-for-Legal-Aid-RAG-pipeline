@@ -20,6 +20,7 @@ current phase passes its acceptance checks and is pushed.
 | Docker healthcheck | Missing | Add an image healthcheck that calls `/health` |
 | Docker build context | No `.dockerignore` | Exclude secrets, virtual environments, MLflow state, reports, caches, and raw data |
 | CI | Missing | Add Ruff, pytest, and Docker build jobs |
+| `main` branch | No local or remote `main` branch is currently visible | Establish `main` from a verified branch before the CI acceptance test |
 | Deployment | Missing | Add Render configuration and deploy with protected environment variables |
 | Monitoring | Missing | Add request logging plus request-count and average-latency metrics |
 | Operations documentation | Missing | Add redeploy and image-tag rollback procedures |
@@ -62,9 +63,12 @@ Branch: `11-m2-ci`
    - `build`: build the Docker image on pushes to `main`.
 3. Also run lint and tests on M2 branch pushes and pull requests so failures
    are caught before merging.
-4. Use dependency caching where safe and never expose repository secrets to
+4. Establish or confirm the GitHub `main` branch from a verified project tip;
+   do not overwrite unrelated history. Confirm that a push/merge to `main`
+   triggers the required Docker build job.
+5. Use dependency caching where safe and never expose repository secrets to
    pull-request jobs.
-5. Push and verify all GitHub Actions checks in the GitHub UI.
+6. Push and verify all GitHub Actions checks in the GitHub UI.
 
 Acceptance gate:
 
