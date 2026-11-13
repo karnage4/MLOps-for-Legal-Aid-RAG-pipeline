@@ -21,6 +21,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 5 | Milestone documentation | `5-milestone-documentation` | Complete | README, rubric audit, and contribution allocation completed | Accepted |
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
+| 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
 
 ## Phase 1 — MLflow integration
 
@@ -799,6 +800,38 @@ the same held-out MLflow dataset.
   selected run because it has the best correctness (0.333), legal quality
   (1.000), and retrieval relevance (0.733) in this controlled dataset.
 
+## Phase 8 - post-M1 correctness and latency fixes
+
+### Objective
+
+Address instructor feedback about 20-30 second inference and misleading
+all-or-nothing correctness results while preserving the RAG architecture.
+
+### Final validation
+
+- Replaced Hugging Face generation with direct Groq because the original Hub
+  model was removed; retrieval and nested MLflow tracing remain unchanged.
+- Added stage-level retrieval timing and fractional expected-fact coverage.
+  Strict binary correctness remains available as a diagnostic, while profile
+  ranking uses fact coverage so one omitted fact does not collapse a partially
+  correct answer to zero.
+- Completed all eight core-v2 profile evaluations. `fixed-hybrid-top5` remains
+  the quality champion at 0.7222 fact coverage; `fixed-semantic-top3` is the
+  speed challenger at 0.5833 fact coverage.
+- Verified the Gradio interface end to end on 2026-11-13 after restarting it
+  with Pinecone/Groq network access. A fixed/hybrid/top-5 request returned five
+  chunks from three sources through Groq `qwen/qwen3.8-27b` with zero retries
+  in 10,699 ms total: 9,171 ms retrieval and 1,528 ms generation.
+- Ran matching 75-request warm retrieval benchmarks across 15 questions and
+  five repeats. Champion run `ae428d443faa4487a2c01659b2923281`
+  recorded 6,975 ms mean, 6,754 ms median, and 12,211 ms p95. Challenger run
+  `c672c620f2b242a9a7a3baf6d4614b1a` recorded 528 ms mean, 394 ms median,
+  and 1,341 ms p95.
+- The challenger is 92.4% faster by mean and 94.2% faster by median retrieval,
+  while giving up 0.1389 absolute fact coverage. The deployment choice is
+  therefore explicit: hybrid top-5 for maximum coverage, semantic top-3 for
+  interactive latency.
+
 ## Change history
 
 | Date | Branch | Change |
@@ -849,3 +882,4 @@ the same held-out MLflow dataset.
 | 2026-11-12 | `8-m1-submission` | Ran the separate `fixed-hybrid-top5-improved-v2` managed evaluation (`518b7c4824cb4a74bc9dcbd676058b3a`). Fact coverage succeeded on all rows with values 0.75, 0.75, and 0.333 (mean 0.611), while strict correctness remained 0.333. Mean end-to-end inference fell to 7,434 ms (6,099 ms retrieval + 1,335 ms generation). The run is correctly marked partial because the legacy retrieval-sufficiency judge returned malformed JSON on two rows; historical artifacts were not overwritten. |
 | 2026-11-12 | `8-m1-submission` | Reworked the unreliable seven-call-per-row judge path into one quota-aware, schema-validated GPT-OSS core scorer per query. Valid run `96c173dc72b8408c8541e49ddff7ae7f` completed 3/3 rows in 1:23 with fact coverage 0.7222, relevance 0.8333, retrieval relevance 0.8333, groundedness 0.6000, and 7,509 ms mean RAG inference. Failed diagnostics remain partial or killed; new comparison artifacts use a separate `core_v2` namespace so historical evidence is preserved. |
 | 2026-11-12 | `9-post-m1-fixes` | Completed the quota-aware core-v2 evaluation matrix at 8/8 valid profiles and preserved every original milestone artifact. `fixed-hybrid-top5` remains the quality champion at 0.7222 fact coverage; `fixed-semantic-top3` is the primary latency challenger at 2,492 ms, 0.8833 groundedness, 0.8667 retrieval relevance, and 0.5833 fact coverage. The canonical comparison is stored in `artifacts/genai_evaluation_comparison_core_v2.json`. |
+| 2026-11-13 | `9-post-m1-fixes` | Completed matching 75-request warm retrieval benchmarks for the champion and challenger. `fixed-hybrid-top5` recorded 6,975/6,754/12,211 ms mean/median/p95; `fixed-semantic-top3` recorded 528/394/1,341 ms and is 92.4% faster by mean. A live Gradio request also passed end to end through Pinecone and Groq in 10,699 ms. |

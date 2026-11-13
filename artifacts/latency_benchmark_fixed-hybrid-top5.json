@@ -1,7 +1,7 @@
 {
   "status": "completed",
-  "timestamp_utc": "2026-11-11T20:02:15.544260+00:00",
-  "run_id": "a895a61987e548509394444363dc473c",
+  "timestamp_utc": "2026-11-13T09:29:07.972335+00:00",
+  "run_id": "ae428d443faa4487a2c01659b2923281",
   "profile": {
     "label": "fixed-hybrid-top5",
     "chunking_strategy": "fixed",
@@ -13,67 +13,67 @@
     "semantic": 10,
     "rerank": 12
   },
-  "component_load_ms": 10787.63,
+  "component_load_ms": 45183.287,
   "warmup_timings_ms": {
-    "bm25_ms": 7.315,
-    "embedding_ms": 2904.839,
-    "pinecone_ms": 1539.77,
-    "semantic_total_ms": 4453.524,
-    "fusion_ms": 0.056,
-    "rerank_ms": 3794.804,
-    "retrieval_total_ms": 8255.746
+    "bm25_ms": 140.259,
+    "embedding_ms": 3237.462,
+    "pinecone_ms": 41710.269,
+    "semantic_total_ms": 44955.762,
+    "fusion_ms": 0.519,
+    "rerank_ms": 3559.844,
+    "retrieval_total_ms": 48656.496
   },
   "summary": {
-    "sample_count": 45,
+    "sample_count": 75,
     "stages": {
       "bm25_ms": {
-        "mean": 11.654,
-        "median": 7.804,
-        "p95": 22.171,
-        "min": 3.398,
-        "max": 103.811
+        "mean": 15.622,
+        "median": 12.282,
+        "p95": 33.365,
+        "min": 4.33,
+        "max": 93.759
       },
       "embedding_ms": {
-        "mean": 84.054,
-        "median": 30.74,
-        "p95": 172.042,
-        "min": 17.045,
-        "max": 1321.258
+        "mean": 68.906,
+        "median": 56.651,
+        "p95": 167.869,
+        "min": 19.966,
+        "max": 227.985
       },
       "pinecone_ms": {
-        "mean": 366.178,
-        "median": 284.867,
-        "p95": 1179.274,
-        "min": 218.024,
-        "max": 1369.097
+        "mean": 1586.025,
+        "median": 1410.573,
+        "p95": 4098.488,
+        "min": 263.917,
+        "max": 9374.985
       },
       "semantic_total_ms": {
-        "mean": 450.343,
-        "median": 321.994,
-        "p95": 1208.071,
-        "min": 247.012,
-        "max": 2690.452
+        "mean": 1655.072,
+        "median": 1469.346,
+        "p95": 4190.349,
+        "min": 298.92,
+        "max": 9418.97
       },
       "fusion_ms": {
-        "mean": 0.106,
-        "median": 0.094,
-        "p95": 0.16,
-        "min": 0.039,
-        "max": 0.356
+        "mean": 0.15,
+        "median": 0.134,
+        "p95": 0.258,
+        "min": 0.07,
+        "max": 0.443
       },
       "rerank_ms": {
-        "mean": 3268.17,
-        "median": 3053.532,
-        "p95": 4447.104,
-        "min": 2409.312,
-        "max": 7653.031
+        "mean": 5303.856,
+        "median": 5145.989,
+        "p95": 7872.418,
+        "min": 2470.406,
+        "max": 13966.342
       },
       "retrieval_total_ms": {
-        "mean": 3730.318,
-        "median": 3451.376,
-        "p95": 5469.387,
-        "min": 2835.962,
-        "max": 8037.021
+        "mean": 6974.78,
+        "median": 6753.54,
+        "p95": 12211.11,
+        "min": 2941.094,
+        "max": 18672.196
       }
     }
   },
@@ -89,13 +89,13 @@
         "Succession act 1925_0091_0a82a258"
       ],
       "timings_ms": {
-        "bm25_ms": 8.227,
-        "embedding_ms": 23.669,
-        "pinecone_ms": 1144.712,
-        "semantic_total_ms": 1168.432,
-        "fusion_ms": 0.079,
-        "rerank_ms": 3053.532,
-        "retrieval_total_ms": 4230.345
+        "bm25_ms": 5.057,
+        "embedding_ms": 25.437,
+        "pinecone_ms": 5017.771,
+        "semantic_total_ms": 5043.498,
+        "fusion_ms": 0.443,
+        "rerank_ms": 3175.591,
+        "retrieval_total_ms": 8224.668
       }
     },
     {
@@ -109,13 +109,13 @@
         "RP on Section4MFLO_0027_95266386"
       ],
       "timings_ms": {
-        "bm25_ms": 9.634,
-        "embedding_ms": 644.651,
-        "pinecone_ms": 362.62,
-        "semantic_total_ms": 1007.357,
-        "fusion_ms": 0.069,
-        "rerank_ms": 2543.385,
-        "retrieval_total_ms": 3560.48
+        "bm25_ms": 8.908,
+        "embedding_ms": 69.13,
+        "pinecone_ms": 299.904,
+        "semantic_total_ms": 369.111,
+        "fusion_ms": 0.089,
+        "rerank_ms": 3256.797,
+        "retrieval_total_ms": 3634.938
       }
     },
     {
@@ -129,273 +129,273 @@
         "Womens right to property Case-Law-Book_0072_5cb4ed6d"
       ],
       "timings_ms": {
-        "bm25_ms": 5.184,
-        "embedding_ms": 40.716,
-        "pinecone_ms": 297.114,
-        "semantic_total_ms": 337.927,
-        "fusion_ms": 0.078,
-        "rerank_ms": 3276.153,
-        "retrieval_total_ms": 3619.387
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "How is the estate divided when there are multiple heirs?",
-      "chunk_ids": [
-        "tenyalawcomserviceinheritance-law_0003_70534e9a",
-        "theislamicinheritncesystem_0004_b2f48a28",
-        "zallpinheritancelaw_0002_fe716ff0",
-        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
-        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664"
-      ],
-      "timings_ms": {
-        "bm25_ms": 8.3,
-        "embedding_ms": 24.15,
-        "pinecone_ms": 268.585,
-        "semantic_total_ms": 292.898,
-        "fusion_ms": 0.15,
-        "rerank_ms": 3306.102,
-        "retrieval_total_ms": 3607.499
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "What rights does a spouse have over inherited property?",
-      "chunk_ids": [
-        "tenyalawcomserviceinheritance-law_0003_70534e9a",
-        "Womens right to property Case-Law-Book_0042_e6ad7d87",
-        "Womens right to property Case-Law-Book_0070_9ea28032",
-        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
-        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1"
-      ],
-      "timings_ms": {
-        "bm25_ms": 7.405,
-        "embedding_ms": 39.997,
-        "pinecone_ms": 400.389,
-        "semantic_total_ms": 440.434,
-        "fusion_ms": 0.074,
-        "rerank_ms": 3038.986,
-        "retrieval_total_ms": 3486.931
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "Can a person be disinherited under Pakistani inheritance law?",
-      "chunk_ids": [
-        "RP on Section4MFLO_0001_8887eafd",
-        "zallpinheritancelaw_0000_bf349cdf",
-        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
-        "high court case 11 - 2025 hindu_0002_245e53b3",
-        "Divergent interpretations Section4MFLO_0010_f9ed31ab"
-      ],
-      "timings_ms": {
-        "bm25_ms": 5.217,
-        "embedding_ms": 27.863,
-        "pinecone_ms": 282.165,
-        "semantic_total_ms": 310.121,
-        "fusion_ms": 0.092,
-        "rerank_ms": 3386.734,
-        "retrieval_total_ms": 3702.195
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "What is the difference between a will and intestate succession?",
-      "chunk_ids": [
-        "Succession act 1925_0037_e234e791",
-        "Succession act 1925_0035_8b5802d0",
-        "Succession act 1925_0002_9a467911",
-        "Succession act 1925_0034_bab7114d",
-        "Succession act 1925_0039_df7753a3"
-      ],
-      "timings_ms": {
-        "bm25_ms": 10.198,
-        "embedding_ms": 38.032,
-        "pinecone_ms": 294.181,
-        "semantic_total_ms": 332.472,
-        "fusion_ms": 0.356,
-        "rerank_ms": 3251.762,
-        "retrieval_total_ms": 3594.86
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "How are debts handled before distributing an inheritance?",
-      "chunk_ids": [
-        "Succession act 1925_0058_442793ab",
-        "tenyalawcomserviceinheritance-law_0003_70534e9a",
-        "zallpinheritancelaw_0000_bf349cdf",
-        "Succession act 1925_0174_fcc111a6",
-        "Succession act 1925_0112_a1481ee9"
-      ],
-      "timings_ms": {
-        "bm25_ms": 20.785,
-        "embedding_ms": 30.74,
-        "pinecone_ms": 302.734,
-        "semantic_total_ms": 333.524,
-        "fusion_ms": 0.047,
-        "rerank_ms": 2704.241,
-        "retrieval_total_ms": 3058.632
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "What happens to property if all direct heirs are deceased?",
-      "chunk_ids": [
-        "high court case 3 - 2023_0006_8e89ea6f",
-        "Succession act 1925_0058_442793ab",
-        "tenyalawcomserviceinheritance-law_0001_24f218bc",
-        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0011_95b0ce66",
-        "high court case 14 - 2015 hindu_0002_7b3c19e0"
-      ],
-      "timings_ms": {
-        "bm25_ms": 8.696,
-        "embedding_ms": 57.33,
-        "pinecone_ms": 284.831,
-        "semantic_total_ms": 342.289,
-        "fusion_ms": 0.155,
-        "rerank_ms": 2556.394,
-        "retrieval_total_ms": 2907.573
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "Can a minor child be an heir?",
-      "chunk_ids": [
-        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2025 amendment_0001_76350bec",
-        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
-        "guardians and wards act 1890_0014_ab85d6f8",
-        "Womens right to property Case-Law-Book_0050_15205c49",
-        "guardians and wards act 1890_0008_ea6f5a7f"
-      ],
-      "timings_ms": {
-        "bm25_ms": 5.22,
-        "embedding_ms": 23.317,
-        "pinecone_ms": 329.337,
-        "semantic_total_ms": 352.848,
-        "fusion_ms": 0.16,
-        "rerank_ms": 4168.482,
-        "retrieval_total_ms": 4526.796
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "What is the role of an executor in inheritance proceedings?",
-      "chunk_ids": [
-        "Succession act 1925_0166_f19ae058",
-        "Succession act 1925_0155_16c4d075",
-        "Succession act 1925_0164_1ee3be81",
-        "Succession act 1925_0157_87520724",
-        "Succession act 1925_0017_51c6956a"
-      ],
-      "timings_ms": {
-        "bm25_ms": 9.83,
-        "embedding_ms": 83.535,
-        "pinecone_ms": 228.55,
-        "semantic_total_ms": 312.161,
-        "fusion_ms": 0.072,
-        "rerank_ms": 3873.369,
-        "retrieval_total_ms": 4195.495
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "How is agricultural land treated differently in inheritance?",
-      "chunk_ids": [
-        "Womens right to property Case-Law-Book_0041_48c923e8",
-        "Womens right to property Case-Law-Book_0064_ce0081a7",
-        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664",
-        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0001_6e1e7d32",
-        "RP on Section4MFLO_0039_b8d48b09"
-      ],
-      "timings_ms": {
-        "bm25_ms": 9.328,
-        "embedding_ms": 24.925,
-        "pinecone_ms": 257.102,
-        "semantic_total_ms": 282.078,
-        "fusion_ms": 0.052,
-        "rerank_ms": 3101.67,
-        "retrieval_total_ms": 3393.158
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "What documents are required to claim inheritance?",
-      "chunk_ids": [
-        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
-        "Womens right to property Case-Law-Book_0070_9ea28032",
-        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0003_69172c35",
-        "family courts act 1964_0004_7297f63c",
-        "Womens right to property Case-Law-Book_0075_75c9fdda"
-      ],
-      "timings_ms": {
-        "bm25_ms": 10.194,
-        "embedding_ms": 42.307,
-        "pinecone_ms": 300.232,
-        "semantic_total_ms": 342.675,
-        "fusion_ms": 0.158,
-        "rerank_ms": 2508.525,
-        "retrieval_total_ms": 2861.595
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "Can a gift given during lifetime affect inheritance share?",
-      "chunk_ids": [
-        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0005_bd871af2",
-        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
-        "high court case 17 - 2018 gifts vs inheritance_0012_a35212a9",
-        "Womens right to property Case-Law-Book_0082_2c5891a6",
-        "Succession act 1925_0087_762eac6f"
-      ],
-      "timings_ms": {
-        "bm25_ms": 61.847,
-        "embedding_ms": 104.118,
-        "pinecone_ms": 284.867,
-        "semantic_total_ms": 389.132,
-        "fusion_ms": 0.134,
-        "rerank_ms": 2855.268,
-        "retrieval_total_ms": 3306.421
-      }
-    },
-    {
-      "repeat": 1,
-      "query": "What is the waiting period before inheritance can be claimed?",
-      "chunk_ids": [
-        "citationscase law study on succession - paklawyercom_0004_7af18afe",
-        "Succession act 1925_0068_060b2bc7",
-        "Womens right to property Case-Law-Book_0082_2c5891a6",
-        "Succession act 1925_0080_17f025a8",
-        "Succession act 1925_0088_eeb9836c"
-      ],
-      "timings_ms": {
-        "bm25_ms": 6.399,
-        "embedding_ms": 24.553,
-        "pinecone_ms": 378.682,
-        "semantic_total_ms": 403.32,
-        "fusion_ms": 0.054,
-        "rerank_ms": 3929.249,
-        "retrieval_total_ms": 4339.063
-      }
-    },
-    {
-      "repeat": 2,
-      "query": "Who inherits property when a person dies without a will?",
-      "chunk_ids": [
-        "theislamicinheritncesystem_0004_b2f48a28",
-        "Succession act 1925_0059_1f7f4c1c",
-        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
-        "high court case 5 - 2023_0006_550810cf",
-        "Succession act 1925_0091_0a82a258"
-      ],
-      "timings_ms": {
-        "bm25_ms": 7.391,
-        "embedding_ms": 40.423,
-        "pinecone_ms": 230.654,
-        "semantic_total_ms": 271.139,
+        "bm25_ms": 9.479,
+        "embedding_ms": 63.933,
+        "pinecone_ms": 312.989,
+        "semantic_total_ms": 377.039,
         "fusion_ms": 0.081,
-        "rerank_ms": 2583.272,
-        "retrieval_total_ms": 2861.921
+        "rerank_ms": 3012.574,
+        "retrieval_total_ms": 3399.21
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "theislamicinheritncesystem_0004_b2f48a28",
+        "zallpinheritancelaw_0002_fe716ff0",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664"
+      ],
+      "timings_ms": {
+        "bm25_ms": 4.91,
+        "embedding_ms": 19.966,
+        "pinecone_ms": 445.643,
+        "semantic_total_ms": 465.681,
+        "fusion_ms": 0.07,
+        "rerank_ms": 2470.406,
+        "retrieval_total_ms": 2941.094
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "Womens right to property Case-Law-Book_0042_e6ad7d87",
+        "Womens right to property Case-Law-Book_0070_9ea28032",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1"
+      ],
+      "timings_ms": {
+        "bm25_ms": 7.739,
+        "embedding_ms": 35.22,
+        "pinecone_ms": 697.441,
+        "semantic_total_ms": 732.733,
+        "fusion_ms": 0.072,
+        "rerank_ms": 2483.025,
+        "retrieval_total_ms": 3223.605
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "RP on Section4MFLO_0001_8887eafd",
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
+        "high court case 11 - 2025 hindu_0002_245e53b3",
+        "Divergent interpretations Section4MFLO_0010_f9ed31ab"
+      ],
+      "timings_ms": {
+        "bm25_ms": 7.152,
+        "embedding_ms": 35.832,
+        "pinecone_ms": 514.566,
+        "semantic_total_ms": 550.479,
+        "fusion_ms": 0.075,
+        "rerank_ms": 4171.991,
+        "retrieval_total_ms": 4729.737
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0035_8b5802d0",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d",
+        "Succession act 1925_0039_df7753a3"
+      ],
+      "timings_ms": {
+        "bm25_ms": 7.702,
+        "embedding_ms": 35.607,
+        "pinecone_ms": 4991.174,
+        "semantic_total_ms": 5027.144,
+        "fusion_ms": 0.387,
+        "rerank_ms": 13636.887,
+        "retrieval_total_ms": 18672.196
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0058_442793ab",
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Succession act 1925_0174_fcc111a6",
+        "Succession act 1925_0112_a1481ee9"
+      ],
+      "timings_ms": {
+        "bm25_ms": 33.25,
+        "embedding_ms": 203.472,
+        "pinecone_ms": 1898.769,
+        "semantic_total_ms": 2102.395,
+        "fusion_ms": 0.179,
+        "rerank_ms": 8272.74,
+        "retrieval_total_ms": 10408.812
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "high court case 3 - 2023_0006_8e89ea6f",
+        "Succession act 1925_0058_442793ab",
+        "tenyalawcomserviceinheritance-law_0001_24f218bc",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0011_95b0ce66",
+        "high court case 14 - 2015 hindu_0002_7b3c19e0"
+      ],
+      "timings_ms": {
+        "bm25_ms": 16.939,
+        "embedding_ms": 65.122,
+        "pinecone_ms": 1175.596,
+        "semantic_total_ms": 1240.833,
+        "fusion_ms": 0.117,
+        "rerank_ms": 6564.304,
+        "retrieval_total_ms": 7822.258
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2025 amendment_0001_76350bec",
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "guardians and wards act 1890_0014_ab85d6f8",
+        "Womens right to property Case-Law-Book_0050_15205c49",
+        "guardians and wards act 1890_0008_ea6f5a7f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 7.036,
+        "embedding_ms": 56.589,
+        "pinecone_ms": 2596.996,
+        "semantic_total_ms": 2653.714,
+        "fusion_ms": 0.154,
+        "rerank_ms": 6471.252,
+        "retrieval_total_ms": 9132.207
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0166_f19ae058",
+        "Succession act 1925_0155_16c4d075",
+        "Succession act 1925_0164_1ee3be81",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0017_51c6956a"
+      ],
+      "timings_ms": {
+        "bm25_ms": 13.626,
+        "embedding_ms": 57.266,
+        "pinecone_ms": 1381.383,
+        "semantic_total_ms": 1438.778,
+        "fusion_ms": 0.257,
+        "rerank_ms": 6059.321,
+        "retrieval_total_ms": 7512.047
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0041_48c923e8",
+        "Womens right to property Case-Law-Book_0064_ce0081a7",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0001_6e1e7d32",
+        "RP on Section4MFLO_0039_b8d48b09"
+      ],
+      "timings_ms": {
+        "bm25_ms": 27.26,
+        "embedding_ms": 63.928,
+        "pinecone_ms": 1376.117,
+        "semantic_total_ms": 1440.151,
+        "fusion_ms": 0.12,
+        "rerank_ms": 4226.49,
+        "retrieval_total_ms": 5694.07
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
+        "Womens right to property Case-Law-Book_0070_9ea28032",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0003_69172c35",
+        "family courts act 1964_0004_7297f63c",
+        "Womens right to property Case-Law-Book_0075_75c9fdda"
+      ],
+      "timings_ms": {
+        "bm25_ms": 21.739,
+        "embedding_ms": 39.975,
+        "pinecone_ms": 1417.587,
+        "semantic_total_ms": 1457.684,
+        "fusion_ms": 0.157,
+        "rerank_ms": 3917.633,
+        "retrieval_total_ms": 5397.274
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0005_bd871af2",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "high court case 17 - 2018 gifts vs inheritance_0012_a35212a9",
+        "Womens right to property Case-Law-Book_0082_2c5891a6",
+        "Succession act 1925_0087_762eac6f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 14.757,
+        "embedding_ms": 29.684,
+        "pinecone_ms": 1681.395,
+        "semantic_total_ms": 1711.206,
+        "fusion_ms": 0.13,
+        "rerank_ms": 5395.442,
+        "retrieval_total_ms": 7121.589
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "citationscase law study on succession - paklawyercom_0004_7af18afe",
+        "Succession act 1925_0068_060b2bc7",
+        "Womens right to property Case-Law-Book_0082_2c5891a6",
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 8.998,
+        "embedding_ms": 37.372,
+        "pinecone_ms": 1439.886,
+        "semantic_total_ms": 1477.478,
+        "fusion_ms": 0.168,
+        "rerank_ms": 5124.016,
+        "retrieval_total_ms": 6610.718
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "theislamicinheritncesystem_0004_b2f48a28",
+        "Succession act 1925_0059_1f7f4c1c",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "high court case 5 - 2023_0006_550810cf",
+        "Succession act 1925_0091_0a82a258"
+      ],
+      "timings_ms": {
+        "bm25_ms": 45.899,
+        "embedding_ms": 121.203,
+        "pinecone_ms": 1427.122,
+        "semantic_total_ms": 1548.451,
+        "fusion_ms": 0.122,
+        "rerank_ms": 4873.063,
+        "retrieval_total_ms": 6467.588
       }
     },
     {
@@ -409,13 +409,13 @@
         "RP on Section4MFLO_0027_95266386"
       ],
       "timings_ms": {
-        "bm25_ms": 7.915,
-        "embedding_ms": 20.133,
-        "pinecone_ms": 326.57,
-        "semantic_total_ms": 346.795,
-        "fusion_ms": 0.102,
-        "rerank_ms": 2817.521,
-        "retrieval_total_ms": 3172.375
+        "bm25_ms": 13.654,
+        "embedding_ms": 148.089,
+        "pinecone_ms": 1551.861,
+        "semantic_total_ms": 1700.079,
+        "fusion_ms": 0.104,
+        "rerank_ms": 3721.477,
+        "retrieval_total_ms": 5435.357
       }
     },
     {
@@ -429,13 +429,13 @@
         "Womens right to property Case-Law-Book_0072_5cb4ed6d"
       ],
       "timings_ms": {
-        "bm25_ms": 8.968,
-        "embedding_ms": 20.745,
-        "pinecone_ms": 235.95,
-        "semantic_total_ms": 256.747,
-        "fusion_ms": 0.045,
-        "rerank_ms": 2911.858,
-        "retrieval_total_ms": 3177.645
+        "bm25_ms": 6.213,
+        "embedding_ms": 25.148,
+        "pinecone_ms": 354.948,
+        "semantic_total_ms": 380.373,
+        "fusion_ms": 0.217,
+        "rerank_ms": 5777.877,
+        "retrieval_total_ms": 6164.764
       }
     },
     {
@@ -449,13 +449,13 @@
         "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664"
       ],
       "timings_ms": {
-        "bm25_ms": 3.704,
-        "embedding_ms": 20.214,
-        "pinecone_ms": 283.35,
-        "semantic_total_ms": 303.719,
-        "fusion_ms": 0.135,
-        "rerank_ms": 3018.391,
-        "retrieval_total_ms": 3325.992
+        "bm25_ms": 11.739,
+        "embedding_ms": 43.553,
+        "pinecone_ms": 1337.808,
+        "semantic_total_ms": 1381.473,
+        "fusion_ms": 0.118,
+        "rerank_ms": 6649.384,
+        "retrieval_total_ms": 8042.77
       }
     },
     {
@@ -469,13 +469,13 @@
         "Muslim Law of Inheritance Hanafi School_0006_b5a313d1"
       ],
       "timings_ms": {
-        "bm25_ms": 8.261,
-        "embedding_ms": 35.775,
-        "pinecone_ms": 286.131,
-        "semantic_total_ms": 321.994,
-        "fusion_ms": 0.1,
-        "rerank_ms": 5313.5,
-        "retrieval_total_ms": 5643.915
+        "bm25_ms": 12.533,
+        "embedding_ms": 42.748,
+        "pinecone_ms": 1109.089,
+        "semantic_total_ms": 1151.941,
+        "fusion_ms": 0.132,
+        "rerank_ms": 6220.717,
+        "retrieval_total_ms": 7385.374
       }
     },
     {
@@ -489,13 +489,13 @@
         "Divergent interpretations Section4MFLO_0010_f9ed31ab"
       ],
       "timings_ms": {
-        "bm25_ms": 103.811,
-        "embedding_ms": 1321.258,
-        "pinecone_ms": 1369.097,
-        "semantic_total_ms": 2690.452,
-        "fusion_ms": 0.084,
-        "rerank_ms": 3416.173,
-        "retrieval_total_ms": 6210.569
+        "bm25_ms": 10.049,
+        "embedding_ms": 50.999,
+        "pinecone_ms": 1534.03,
+        "semantic_total_ms": 1585.151,
+        "fusion_ms": 0.12,
+        "rerank_ms": 5588.354,
+        "retrieval_total_ms": 7183.723
       }
     },
     {
@@ -509,13 +509,13 @@
         "Succession act 1925_0039_df7753a3"
       ],
       "timings_ms": {
-        "bm25_ms": 7.804,
-        "embedding_ms": 17.045,
-        "pinecone_ms": 349.918,
-        "semantic_total_ms": 367.05,
-        "fusion_ms": 0.1,
-        "rerank_ms": 2723.979,
-        "retrieval_total_ms": 3098.97
+        "bm25_ms": 13.525,
+        "embedding_ms": 49.353,
+        "pinecone_ms": 1275.095,
+        "semantic_total_ms": 1324.59,
+        "fusion_ms": 0.159,
+        "rerank_ms": 5715.973,
+        "retrieval_total_ms": 7054.292
       }
     },
     {
@@ -529,13 +529,13 @@
         "Succession act 1925_0112_a1481ee9"
       ],
       "timings_ms": {
-        "bm25_ms": 22.517,
-        "embedding_ms": 116.728,
-        "pinecone_ms": 293.198,
-        "semantic_total_ms": 410.193,
-        "fusion_ms": 0.182,
-        "rerank_ms": 2409.312,
-        "retrieval_total_ms": 2842.252
+        "bm25_ms": 33.635,
+        "embedding_ms": 66.648,
+        "pinecone_ms": 1183.529,
+        "semantic_total_ms": 1250.296,
+        "fusion_ms": 0.118,
+        "rerank_ms": 4452.255,
+        "retrieval_total_ms": 5737.577
       }
     },
     {
@@ -549,13 +549,13 @@
         "high court case 14 - 2015 hindu_0002_7b3c19e0"
       ],
       "timings_ms": {
-        "bm25_ms": 9.194,
-        "embedding_ms": 59.651,
-        "pinecone_ms": 232.323,
-        "semantic_total_ms": 292.101,
-        "fusion_ms": 0.144,
-        "rerank_ms": 3602.579,
-        "retrieval_total_ms": 3904.06
+        "bm25_ms": 17.336,
+        "embedding_ms": 70.944,
+        "pinecone_ms": 1594.567,
+        "semantic_total_ms": 1665.642,
+        "fusion_ms": 0.137,
+        "rerank_ms": 5156.479,
+        "retrieval_total_ms": 6839.65
       }
     },
     {
@@ -569,13 +569,13 @@
         "guardians and wards act 1890_0008_ea6f5a7f"
       ],
       "timings_ms": {
-        "bm25_ms": 14.942,
-        "embedding_ms": 81.533,
-        "pinecone_ms": 287.162,
-        "semantic_total_ms": 368.895,
-        "fusion_ms": 0.109,
-        "rerank_ms": 7653.031,
-        "retrieval_total_ms": 8037.021
+        "bm25_ms": 9.75,
+        "embedding_ms": 44.514,
+        "pinecone_ms": 1243.177,
+        "semantic_total_ms": 1287.8,
+        "fusion_ms": 0.189,
+        "rerank_ms": 5651.813,
+        "retrieval_total_ms": 6949.616
       }
     },
     {
@@ -589,13 +589,13 @@
         "Succession act 1925_0017_51c6956a"
       ],
       "timings_ms": {
-        "bm25_ms": 7.728,
-        "embedding_ms": 29.986,
-        "pinecone_ms": 1187.915,
-        "semantic_total_ms": 1217.981,
-        "fusion_ms": 0.097,
-        "rerank_ms": 3109.522,
-        "retrieval_total_ms": 4335.36
+        "bm25_ms": 11.324,
+        "embedding_ms": 46.16,
+        "pinecone_ms": 1522.226,
+        "semantic_total_ms": 1568.523,
+        "fusion_ms": 0.157,
+        "rerank_ms": 4825.013,
+        "retrieval_total_ms": 6405.091
       }
     },
     {
@@ -609,13 +609,13 @@
         "RP on Section4MFLO_0039_b8d48b09"
       ],
       "timings_ms": {
-        "bm25_ms": 7.028,
-        "embedding_ms": 24.039,
-        "pinecone_ms": 295.869,
-        "semantic_total_ms": 320.059,
-        "fusion_ms": 0.143,
-        "rerank_ms": 3351.852,
-        "retrieval_total_ms": 3679.134
+        "bm25_ms": 8.549,
+        "embedding_ms": 56.651,
+        "pinecone_ms": 1211.101,
+        "semantic_total_ms": 1267.894,
+        "fusion_ms": 0.163,
+        "rerank_ms": 4099.046,
+        "retrieval_total_ms": 5375.709
       }
     },
     {
@@ -629,13 +629,13 @@
         "Womens right to property Case-Law-Book_0075_75c9fdda"
       ],
       "timings_ms": {
-        "bm25_ms": 8.947,
-        "embedding_ms": 31.263,
-        "pinecone_ms": 262.195,
-        "semantic_total_ms": 293.586,
-        "fusion_ms": 0.143,
-        "rerank_ms": 3903.924,
-        "retrieval_total_ms": 4206.652
+        "bm25_ms": 17.755,
+        "embedding_ms": 104.617,
+        "pinecone_ms": 1440.464,
+        "semantic_total_ms": 1545.201,
+        "fusion_ms": 0.148,
+        "rerank_ms": 4089.993,
+        "retrieval_total_ms": 5653.179
       }
     },
     {
@@ -649,13 +649,13 @@
         "Succession act 1925_0087_762eac6f"
       ],
       "timings_ms": {
-        "bm25_ms": 7.049,
-        "embedding_ms": 40.257,
-        "pinecone_ms": 244.31,
-        "semantic_total_ms": 284.64,
-        "fusion_ms": 0.071,
-        "rerank_ms": 2780.726,
-        "retrieval_total_ms": 3072.518
+        "bm25_ms": 15.763,
+        "embedding_ms": 62.741,
+        "pinecone_ms": 280.45,
+        "semantic_total_ms": 343.323,
+        "fusion_ms": 0.125,
+        "rerank_ms": 6451.884,
+        "retrieval_total_ms": 6811.155
       }
     },
     {
@@ -669,13 +669,13 @@
         "Succession act 1925_0088_eeb9836c"
       ],
       "timings_ms": {
-        "bm25_ms": 3.983,
-        "embedding_ms": 21.2,
-        "pinecone_ms": 225.715,
-        "semantic_total_ms": 247.012,
-        "fusion_ms": 0.094,
-        "rerank_ms": 3223.951,
-        "retrieval_total_ms": 3475.071
+        "bm25_ms": 11.988,
+        "embedding_ms": 44.785,
+        "pinecone_ms": 1626.911,
+        "semantic_total_ms": 1671.805,
+        "fusion_ms": 0.128,
+        "rerank_ms": 5560.162,
+        "retrieval_total_ms": 7244.134
       }
     },
     {
@@ -689,13 +689,13 @@
         "Succession act 1925_0091_0a82a258"
       ],
       "timings_ms": {
-        "bm25_ms": 6.409,
-        "embedding_ms": 21.885,
-        "pinecone_ms": 234.767,
-        "semantic_total_ms": 256.705,
-        "fusion_ms": 0.047,
-        "rerank_ms": 2850.217,
-        "retrieval_total_ms": 3113.435
+        "bm25_ms": 9.585,
+        "embedding_ms": 174.783,
+        "pinecone_ms": 1465.21,
+        "semantic_total_ms": 1640.127,
+        "fusion_ms": 0.175,
+        "rerank_ms": 5314.723,
+        "retrieval_total_ms": 6964.667
       }
     },
     {
@@ -709,13 +709,13 @@
         "RP on Section4MFLO_0027_95266386"
       ],
       "timings_ms": {
-        "bm25_ms": 14.805,
-        "embedding_ms": 30.49,
-        "pinecone_ms": 236.639,
-        "semantic_total_ms": 267.286,
-        "fusion_ms": 0.148,
-        "rerank_ms": 2553.678,
-        "retrieval_total_ms": 2835.962
+        "bm25_ms": 12.125,
+        "embedding_ms": 164.906,
+        "pinecone_ms": 1395.068,
+        "semantic_total_ms": 1560.116,
+        "fusion_ms": 0.175,
+        "rerank_ms": 4626.28,
+        "retrieval_total_ms": 6198.748
       }
     },
     {
@@ -729,13 +729,13 @@
         "Womens right to property Case-Law-Book_0072_5cb4ed6d"
       ],
       "timings_ms": {
-        "bm25_ms": 18.246,
-        "embedding_ms": 185.871,
-        "pinecone_ms": 299.516,
-        "semantic_total_ms": 485.471,
-        "fusion_ms": 0.077,
-        "rerank_ms": 2919.355,
-        "retrieval_total_ms": 3423.191
+        "bm25_ms": 93.759,
+        "embedding_ms": 227.985,
+        "pinecone_ms": 1462.304,
+        "semantic_total_ms": 1690.406,
+        "fusion_ms": 0.116,
+        "rerank_ms": 3521.151,
+        "retrieval_total_ms": 5305.503
       }
     },
     {
@@ -749,13 +749,13 @@
         "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664"
       ],
       "timings_ms": {
-        "bm25_ms": 5.667,
-        "embedding_ms": 20.547,
-        "pinecone_ms": 283.303,
-        "semantic_total_ms": 303.932,
-        "fusion_ms": 0.074,
-        "rerank_ms": 3141.666,
-        "retrieval_total_ms": 3451.376
+        "bm25_ms": 23.947,
+        "embedding_ms": 74.167,
+        "pinecone_ms": 443.854,
+        "semantic_total_ms": 518.156,
+        "fusion_ms": 0.131,
+        "rerank_ms": 5158.477,
+        "retrieval_total_ms": 5700.772
       }
     },
     {
@@ -769,13 +769,13 @@
         "Muslim Law of Inheritance Hanafi School_0006_b5a313d1"
       ],
       "timings_ms": {
-        "bm25_ms": 3.632,
-        "embedding_ms": 23.444,
-        "pinecone_ms": 355.592,
-        "semantic_total_ms": 379.11,
-        "fusion_ms": 0.082,
-        "rerank_ms": 3030.173,
-        "retrieval_total_ms": 3413.03
+        "bm25_ms": 14.28,
+        "embedding_ms": 58.99,
+        "pinecone_ms": 1853.383,
+        "semantic_total_ms": 1912.535,
+        "fusion_ms": 0.127,
+        "rerank_ms": 4725.302,
+        "retrieval_total_ms": 6652.312
       }
     },
     {
@@ -789,13 +789,13 @@
         "Divergent interpretations Section4MFLO_0010_f9ed31ab"
       ],
       "timings_ms": {
-        "bm25_ms": 9.756,
-        "embedding_ms": 41.531,
-        "pinecone_ms": 240.393,
-        "semantic_total_ms": 282.079,
-        "fusion_ms": 0.145,
-        "rerank_ms": 2781.129,
-        "retrieval_total_ms": 3073.151
+        "bm25_ms": 10.413,
+        "embedding_ms": 37.101,
+        "pinecone_ms": 1263.446,
+        "semantic_total_ms": 1300.651,
+        "fusion_ms": 0.108,
+        "rerank_ms": 5592.398,
+        "retrieval_total_ms": 6903.616
       }
     },
     {
@@ -809,13 +809,13 @@
         "Succession act 1925_0039_df7753a3"
       ],
       "timings_ms": {
-        "bm25_ms": 4.329,
-        "embedding_ms": 24.816,
-        "pinecone_ms": 287.124,
-        "semantic_total_ms": 312.023,
-        "fusion_ms": 0.082,
-        "rerank_ms": 3324.195,
-        "retrieval_total_ms": 3640.664
+        "bm25_ms": 9.676,
+        "embedding_ms": 45.791,
+        "pinecone_ms": 1420.295,
+        "semantic_total_ms": 1466.213,
+        "fusion_ms": 0.138,
+        "rerank_ms": 3798.769,
+        "retrieval_total_ms": 5274.837
       }
     },
     {
@@ -829,13 +829,13 @@
         "Succession act 1925_0112_a1481ee9"
       ],
       "timings_ms": {
-        "bm25_ms": 6.119,
-        "embedding_ms": 81.582,
-        "pinecone_ms": 223.843,
-        "semantic_total_ms": 305.48,
-        "fusion_ms": 0.044,
-        "rerank_ms": 4006.128,
-        "retrieval_total_ms": 4317.805
+        "bm25_ms": 14.231,
+        "embedding_ms": 87.385,
+        "pinecone_ms": 263.917,
+        "semantic_total_ms": 351.492,
+        "fusion_ms": 0.126,
+        "rerank_ms": 4741.132,
+        "retrieval_total_ms": 5107.057
       }
     },
     {
@@ -849,13 +849,13 @@
         "high court case 14 - 2015 hindu_0002_7b3c19e0"
       ],
       "timings_ms": {
-        "bm25_ms": 5.067,
-        "embedding_ms": 20.56,
-        "pinecone_ms": 303.337,
-        "semantic_total_ms": 323.983,
-        "fusion_ms": 0.063,
-        "rerank_ms": 2925.613,
-        "retrieval_total_ms": 3254.762
+        "bm25_ms": 14.093,
+        "embedding_ms": 71.015,
+        "pinecone_ms": 1596.844,
+        "semantic_total_ms": 1667.995,
+        "fusion_ms": 0.134,
+        "rerank_ms": 4054.486,
+        "retrieval_total_ms": 5736.764
       }
     },
     {
@@ -869,13 +869,13 @@
         "guardians and wards act 1890_0008_ea6f5a7f"
       ],
       "timings_ms": {
-        "bm25_ms": 4.85,
-        "embedding_ms": 70.929,
-        "pinecone_ms": 264.836,
-        "semantic_total_ms": 335.891,
-        "fusion_ms": 0.143,
-        "rerank_ms": 2774.032,
-        "retrieval_total_ms": 3114.957
+        "bm25_ms": 4.33,
+        "embedding_ms": 31.232,
+        "pinecone_ms": 267.566,
+        "semantic_total_ms": 298.92,
+        "fusion_ms": 0.132,
+        "rerank_ms": 5484.972,
+        "retrieval_total_ms": 5788.399
       }
     },
     {
@@ -889,13 +889,13 @@
         "Succession act 1925_0017_51c6956a"
       ],
       "timings_ms": {
-        "bm25_ms": 4.447,
-        "embedding_ms": 29.302,
-        "pinecone_ms": 226.518,
-        "semantic_total_ms": 255.864,
-        "fusion_ms": 0.039,
-        "rerank_ms": 3188.053,
-        "retrieval_total_ms": 3448.431
+        "bm25_ms": 16.843,
+        "embedding_ms": 64.737,
+        "pinecone_ms": 1525.542,
+        "semantic_total_ms": 1590.391,
+        "fusion_ms": 0.259,
+        "rerank_ms": 5145.989,
+        "retrieval_total_ms": 6753.54
       }
     },
     {
@@ -909,13 +909,13 @@
         "RP on Section4MFLO_0039_b8d48b09"
       ],
       "timings_ms": {
-        "bm25_ms": 3.398,
-        "embedding_ms": 22.68,
-        "pinecone_ms": 228.138,
-        "semantic_total_ms": 250.945,
-        "fusion_ms": 0.131,
-        "rerank_ms": 4516.76,
-        "retrieval_total_ms": 4771.276
+        "bm25_ms": 9.288,
+        "embedding_ms": 46.151,
+        "pinecone_ms": 1453.079,
+        "semantic_total_ms": 1499.343,
+        "fusion_ms": 0.164,
+        "rerank_ms": 5305.107,
+        "retrieval_total_ms": 6813.982
       }
     },
     {
@@ -929,13 +929,13 @@
         "Womens right to property Case-Law-Book_0075_75c9fdda"
       ],
       "timings_ms": {
-        "bm25_ms": 7.626,
-        "embedding_ms": 34.044,
-        "pinecone_ms": 1313.773,
-        "semantic_total_ms": 1348.05,
-        "fusion_ms": 0.145,
-        "rerank_ms": 3199.436,
-        "retrieval_total_ms": 4555.361
+        "bm25_ms": 7.928,
+        "embedding_ms": 35.727,
+        "pinecone_ms": 1570.713,
+        "semantic_total_ms": 1606.55,
+        "fusion_ms": 0.134,
+        "rerank_ms": 3878.352,
+        "retrieval_total_ms": 5493.016
       }
     },
     {
@@ -949,13 +949,13 @@
         "Succession act 1925_0087_762eac6f"
       ],
       "timings_ms": {
-        "bm25_ms": 4.839,
-        "embedding_ms": 24.246,
-        "pinecone_ms": 235.742,
-        "semantic_total_ms": 260.106,
-        "fusion_ms": 0.12,
-        "rerank_ms": 2587.665,
-        "retrieval_total_ms": 2852.767
+        "bm25_ms": 18.71,
+        "embedding_ms": 77.26,
+        "pinecone_ms": 265.827,
+        "semantic_total_ms": 343.309,
+        "fusion_ms": 0.193,
+        "rerank_ms": 4410.171,
+        "retrieval_total_ms": 4772.456
       }
     },
     {
@@ -969,13 +969,613 @@
         "Succession act 1925_0088_eeb9836c"
       ],
       "timings_ms": {
-        "bm25_ms": 9.545,
-        "embedding_ms": 40.367,
-        "pinecone_ms": 218.024,
-        "semantic_total_ms": 258.467,
-        "fusion_ms": 0.069,
-        "rerank_ms": 2896.125,
-        "retrieval_total_ms": 3164.239
+        "bm25_ms": 23.882,
+        "embedding_ms": 94.862,
+        "pinecone_ms": 1362.065,
+        "semantic_total_ms": 1457.048,
+        "fusion_ms": 0.127,
+        "rerank_ms": 4399.354,
+        "retrieval_total_ms": 5880.466
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "theislamicinheritncesystem_0004_b2f48a28",
+        "Succession act 1925_0059_1f7f4c1c",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "high court case 5 - 2023_0006_550810cf",
+        "Succession act 1925_0091_0a82a258"
+      ],
+      "timings_ms": {
+        "bm25_ms": 17.864,
+        "embedding_ms": 69.861,
+        "pinecone_ms": 1447.843,
+        "semantic_total_ms": 1517.862,
+        "fusion_ms": 0.155,
+        "rerank_ms": 5100.982,
+        "retrieval_total_ms": 6636.96
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd",
+        "Divergent interpretations Section4MFLO_0028_9449e8d2",
+        "theislamicinheritncesystem_0009_83138026",
+        "RP on Section4MFLO_0027_95266386"
+      ],
+      "timings_ms": {
+        "bm25_ms": 15.91,
+        "embedding_ms": 59.779,
+        "pinecone_ms": 1522.741,
+        "semantic_total_ms": 1582.755,
+        "fusion_ms": 0.114,
+        "rerank_ms": 5285.762,
+        "retrieval_total_ms": 6884.618
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0067_54d65d93",
+        "Womens right to property Case-Law-Book_0068_5a8d9cfb",
+        "theislamicinheritncesystem_0003_e761bbcd",
+        "Divergent interpretations Section4MFLO_0034_d95a57e4",
+        "Womens right to property Case-Law-Book_0072_5cb4ed6d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 12.795,
+        "embedding_ms": 50.3,
+        "pinecone_ms": 1587.42,
+        "semantic_total_ms": 1637.832,
+        "fusion_ms": 0.108,
+        "rerank_ms": 6008.179,
+        "retrieval_total_ms": 7658.961
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "theislamicinheritncesystem_0004_b2f48a28",
+        "zallpinheritancelaw_0002_fe716ff0",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664"
+      ],
+      "timings_ms": {
+        "bm25_ms": 19.584,
+        "embedding_ms": 95.716,
+        "pinecone_ms": 1329.641,
+        "semantic_total_ms": 1425.467,
+        "fusion_ms": 0.119,
+        "rerank_ms": 3948.518,
+        "retrieval_total_ms": 5393.739
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "Womens right to property Case-Law-Book_0042_e6ad7d87",
+        "Womens right to property Case-Law-Book_0070_9ea28032",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1"
+      ],
+      "timings_ms": {
+        "bm25_ms": 18.537,
+        "embedding_ms": 103.298,
+        "pinecone_ms": 342.323,
+        "semantic_total_ms": 445.755,
+        "fusion_ms": 0.191,
+        "rerank_ms": 4315.389,
+        "retrieval_total_ms": 4779.939
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "RP on Section4MFLO_0001_8887eafd",
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
+        "high court case 11 - 2025 hindu_0002_245e53b3",
+        "Divergent interpretations Section4MFLO_0010_f9ed31ab"
+      ],
+      "timings_ms": {
+        "bm25_ms": 20.897,
+        "embedding_ms": 90.035,
+        "pinecone_ms": 1406.597,
+        "semantic_total_ms": 1496.863,
+        "fusion_ms": 0.249,
+        "rerank_ms": 4096.844,
+        "retrieval_total_ms": 5614.941
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0035_8b5802d0",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d",
+        "Succession act 1925_0039_df7753a3"
+      ],
+      "timings_ms": {
+        "bm25_ms": 12.282,
+        "embedding_ms": 73.205,
+        "pinecone_ms": 382.185,
+        "semantic_total_ms": 455.621,
+        "fusion_ms": 0.269,
+        "rerank_ms": 6108.575,
+        "retrieval_total_ms": 6576.849
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0058_442793ab",
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Succession act 1925_0174_fcc111a6",
+        "Succession act 1925_0112_a1481ee9"
+      ],
+      "timings_ms": {
+        "bm25_ms": 32.728,
+        "embedding_ms": 76.155,
+        "pinecone_ms": 1488.657,
+        "semantic_total_ms": 1564.955,
+        "fusion_ms": 0.109,
+        "rerank_ms": 13042.232,
+        "retrieval_total_ms": 14640.105
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "high court case 3 - 2023_0006_8e89ea6f",
+        "Succession act 1925_0058_442793ab",
+        "tenyalawcomserviceinheritance-law_0001_24f218bc",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0011_95b0ce66",
+        "high court case 14 - 2015 hindu_0002_7b3c19e0"
+      ],
+      "timings_ms": {
+        "bm25_ms": 11.051,
+        "embedding_ms": 51.694,
+        "pinecone_ms": 1405.764,
+        "semantic_total_ms": 1457.591,
+        "fusion_ms": 0.204,
+        "rerank_ms": 5445.604,
+        "retrieval_total_ms": 6914.505
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2025 amendment_0001_76350bec",
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "guardians and wards act 1890_0014_ab85d6f8",
+        "Womens right to property Case-Law-Book_0050_15205c49",
+        "guardians and wards act 1890_0008_ea6f5a7f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 9.326,
+        "embedding_ms": 52.343,
+        "pinecone_ms": 1536.586,
+        "semantic_total_ms": 1589.128,
+        "fusion_ms": 0.118,
+        "rerank_ms": 13966.342,
+        "retrieval_total_ms": 15564.987
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0166_f19ae058",
+        "Succession act 1925_0155_16c4d075",
+        "Succession act 1925_0164_1ee3be81",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0017_51c6956a"
+      ],
+      "timings_ms": {
+        "bm25_ms": 17.789,
+        "embedding_ms": 115.653,
+        "pinecone_ms": 3715.909,
+        "semantic_total_ms": 3831.723,
+        "fusion_ms": 0.146,
+        "rerank_ms": 5055.984,
+        "retrieval_total_ms": 8905.698
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0041_48c923e8",
+        "Womens right to property Case-Law-Book_0064_ce0081a7",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0001_6e1e7d32",
+        "RP on Section4MFLO_0039_b8d48b09"
+      ],
+      "timings_ms": {
+        "bm25_ms": 9.592,
+        "embedding_ms": 84.049,
+        "pinecone_ms": 1370.915,
+        "semantic_total_ms": 1455.071,
+        "fusion_ms": 0.103,
+        "rerank_ms": 5378.224,
+        "retrieval_total_ms": 6843.045
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
+        "Womens right to property Case-Law-Book_0070_9ea28032",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0003_69172c35",
+        "family courts act 1964_0004_7297f63c",
+        "Womens right to property Case-Law-Book_0075_75c9fdda"
+      ],
+      "timings_ms": {
+        "bm25_ms": 10.33,
+        "embedding_ms": 41.153,
+        "pinecone_ms": 1583.292,
+        "semantic_total_ms": 1624.547,
+        "fusion_ms": 0.122,
+        "rerank_ms": 5512.783,
+        "retrieval_total_ms": 7147.836
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0005_bd871af2",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "high court case 17 - 2018 gifts vs inheritance_0012_a35212a9",
+        "Womens right to property Case-Law-Book_0082_2c5891a6",
+        "Succession act 1925_0087_762eac6f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 11.206,
+        "embedding_ms": 43.648,
+        "pinecone_ms": 1178.086,
+        "semantic_total_ms": 1221.863,
+        "fusion_ms": 0.141,
+        "rerank_ms": 5530.415,
+        "retrieval_total_ms": 6763.68
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "citationscase law study on succession - paklawyercom_0004_7af18afe",
+        "Succession act 1925_0068_060b2bc7",
+        "Womens right to property Case-Law-Book_0082_2c5891a6",
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 10.703,
+        "embedding_ms": 32.313,
+        "pinecone_ms": 1233.924,
+        "semantic_total_ms": 1266.397,
+        "fusion_ms": 0.186,
+        "rerank_ms": 5142.964,
+        "retrieval_total_ms": 6420.357
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "theislamicinheritncesystem_0004_b2f48a28",
+        "Succession act 1925_0059_1f7f4c1c",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "high court case 5 - 2023_0006_550810cf",
+        "Succession act 1925_0091_0a82a258"
+      ],
+      "timings_ms": {
+        "bm25_ms": 40.667,
+        "embedding_ms": 216.083,
+        "pinecone_ms": 1549.282,
+        "semantic_total_ms": 1765.517,
+        "fusion_ms": 0.15,
+        "rerank_ms": 4921.382,
+        "retrieval_total_ms": 6727.772
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd",
+        "Divergent interpretations Section4MFLO_0028_9449e8d2",
+        "theislamicinheritncesystem_0009_83138026",
+        "RP on Section4MFLO_0027_95266386"
+      ],
+      "timings_ms": {
+        "bm25_ms": 16.843,
+        "embedding_ms": 67.754,
+        "pinecone_ms": 1401.469,
+        "semantic_total_ms": 1469.346,
+        "fusion_ms": 0.116,
+        "rerank_ms": 5739.806,
+        "retrieval_total_ms": 7226.164
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0067_54d65d93",
+        "Womens right to property Case-Law-Book_0068_5a8d9cfb",
+        "theislamicinheritncesystem_0003_e761bbcd",
+        "Divergent interpretations Section4MFLO_0034_d95a57e4",
+        "Womens right to property Case-Law-Book_0072_5cb4ed6d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 11.111,
+        "embedding_ms": 50.924,
+        "pinecone_ms": 1202.3,
+        "semantic_total_ms": 1253.35,
+        "fusion_ms": 0.148,
+        "rerank_ms": 6378.883,
+        "retrieval_total_ms": 7643.549
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "theislamicinheritncesystem_0004_b2f48a28",
+        "zallpinheritancelaw_0002_fe716ff0",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664"
+      ],
+      "timings_ms": {
+        "bm25_ms": 14.563,
+        "embedding_ms": 59.234,
+        "pinecone_ms": 1410.573,
+        "semantic_total_ms": 1469.984,
+        "fusion_ms": 0.17,
+        "rerank_ms": 5327.224,
+        "retrieval_total_ms": 6812.006
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "Womens right to property Case-Law-Book_0042_e6ad7d87",
+        "Womens right to property Case-Law-Book_0070_9ea28032",
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1"
+      ],
+      "timings_ms": {
+        "bm25_ms": 10.834,
+        "embedding_ms": 41.278,
+        "pinecone_ms": 7114.739,
+        "semantic_total_ms": 7156.2,
+        "fusion_ms": 0.194,
+        "rerank_ms": 4145.962,
+        "retrieval_total_ms": 11313.281
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "RP on Section4MFLO_0001_8887eafd",
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
+        "high court case 11 - 2025 hindu_0002_245e53b3",
+        "Divergent interpretations Section4MFLO_0010_f9ed31ab"
+      ],
+      "timings_ms": {
+        "bm25_ms": 6.913,
+        "embedding_ms": 27.68,
+        "pinecone_ms": 404.149,
+        "semantic_total_ms": 431.903,
+        "fusion_ms": 0.077,
+        "rerank_ms": 5240.461,
+        "retrieval_total_ms": 5679.4
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0035_8b5802d0",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d",
+        "Succession act 1925_0039_df7753a3"
+      ],
+      "timings_ms": {
+        "bm25_ms": 11.45,
+        "embedding_ms": 48.766,
+        "pinecone_ms": 1671.247,
+        "semantic_total_ms": 1720.159,
+        "fusion_ms": 0.146,
+        "rerank_ms": 5445.554,
+        "retrieval_total_ms": 7177.36
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0058_442793ab",
+        "tenyalawcomserviceinheritance-law_0003_70534e9a",
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Succession act 1925_0174_fcc111a6",
+        "Succession act 1925_0112_a1481ee9"
+      ],
+      "timings_ms": {
+        "bm25_ms": 9.574,
+        "embedding_ms": 43.862,
+        "pinecone_ms": 9374.985,
+        "semantic_total_ms": 9418.97,
+        "fusion_ms": 0.138,
+        "rerank_ms": 4877.312,
+        "retrieval_total_ms": 14306.043
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "high court case 3 - 2023_0006_8e89ea6f",
+        "Succession act 1925_0058_442793ab",
+        "tenyalawcomserviceinheritance-law_0001_24f218bc",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0011_95b0ce66",
+        "high court case 14 - 2015 hindu_0002_7b3c19e0"
+      ],
+      "timings_ms": {
+        "bm25_ms": 11.984,
+        "embedding_ms": 57.557,
+        "pinecone_ms": 3384.697,
+        "semantic_total_ms": 3442.409,
+        "fusion_ms": 0.154,
+        "rerank_ms": 3406.731,
+        "retrieval_total_ms": 6861.336
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2025 amendment_0001_76350bec",
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "guardians and wards act 1890_0014_ab85d6f8",
+        "Womens right to property Case-Law-Book_0050_15205c49",
+        "guardians and wards act 1890_0008_ea6f5a7f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 13.641,
+        "embedding_ms": 94.115,
+        "pinecone_ms": 807.594,
+        "semantic_total_ms": 901.865,
+        "fusion_ms": 0.123,
+        "rerank_ms": 5390.216,
+        "retrieval_total_ms": 6305.916
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0166_f19ae058",
+        "Succession act 1925_0155_16c4d075",
+        "Succession act 1925_0164_1ee3be81",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0017_51c6956a"
+      ],
+      "timings_ms": {
+        "bm25_ms": 12.33,
+        "embedding_ms": 46.903,
+        "pinecone_ms": 1873.046,
+        "semantic_total_ms": 1920.097,
+        "fusion_ms": 0.146,
+        "rerank_ms": 5343.829,
+        "retrieval_total_ms": 7276.465
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0041_48c923e8",
+        "Womens right to property Case-Law-Book_0064_ce0081a7",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0003_b2ace664",
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0001_6e1e7d32",
+        "RP on Section4MFLO_0039_b8d48b09"
+      ],
+      "timings_ms": {
+        "bm25_ms": 8.837,
+        "embedding_ms": 46.934,
+        "pinecone_ms": 2658.841,
+        "semantic_total_ms": 2705.878,
+        "fusion_ms": 0.105,
+        "rerank_ms": 4103.33,
+        "retrieval_total_ms": 6818.192
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c",
+        "Womens right to property Case-Law-Book_0070_9ea28032",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0003_69172c35",
+        "family courts act 1964_0004_7297f63c",
+        "Womens right to property Case-Law-Book_0075_75c9fdda"
+      ],
+      "timings_ms": {
+        "bm25_ms": 7.883,
+        "embedding_ms": 48.453,
+        "pinecone_ms": 1415.714,
+        "semantic_total_ms": 1464.284,
+        "fusion_ms": 0.114,
+        "rerank_ms": 3961.699,
+        "retrieval_total_ms": 5434.038
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0005_bd871af2",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "high court case 17 - 2018 gifts vs inheritance_0012_a35212a9",
+        "Womens right to property Case-Law-Book_0082_2c5891a6",
+        "Succession act 1925_0087_762eac6f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 24.313,
+        "embedding_ms": 45.245,
+        "pinecone_ms": 356.399,
+        "semantic_total_ms": 401.758,
+        "fusion_ms": 0.126,
+        "rerank_ms": 4638.509,
+        "retrieval_total_ms": 5064.757
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "citationscase law study on succession - paklawyercom_0004_7af18afe",
+        "Succession act 1925_0068_060b2bc7",
+        "Womens right to property Case-Law-Book_0082_2c5891a6",
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 22.77,
+        "embedding_ms": 125.149,
+        "pinecone_ms": 1246.228,
+        "semantic_total_ms": 1371.523,
+        "fusion_ms": 0.152,
+        "rerank_ms": 7700.852,
+        "retrieval_total_ms": 9095.437
       }
     }
   ]

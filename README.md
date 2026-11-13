@@ -520,15 +520,26 @@ retrieval span records BM25, embedding, Pinecone, fusion, reranking, and total
 retrieval latency separately.
 
 ```bash
-python -m src.latency_benchmark --strategy fixed --mode hybrid --top-k 5 --repeats 3
+python -m src.latency_benchmark --strategy fixed --mode hybrid --top-k 5 --repeats 5
+python -m src.latency_benchmark --strategy fixed --mode semantic --top-k 3 --repeats 5
 ```
 
-The verified 45-request warm benchmark produced mean/median/p95 retrieval
-latencies of **3,730 / 3,451 / 5,469 ms**. Cross-encoder reranking remained the
-largest stage at 87.6% of mean retrieval time. The previous tracked
-fixed-hybrid-top5 retrieval mean was 26,287 ms, so the new measured mean is
-85.8% lower. The complete core-v2 comparison below verifies quality under the
-new fractional fact-coverage lineage.
+The final validation used the same 15-question benchmark set for five repeats,
+giving 75 warm requests per profile. It deliberately excludes generation and
+judges, so it consumes no Groq quota and isolates retrieval performance.
+
+| Profile | Samples | Mean | Median | P95 | Min | Max | MLflow run |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Quality champion: `fixed-hybrid-top5` | 75 | 6,975 ms | 6,754 ms | 12,211 ms | 2,941 ms | 18,672 ms | `ae428d443faa4487a2c01659b2923281` |
+| Speed challenger: `fixed-semantic-top3` | 75 | **528 ms** | **394 ms** | **1,341 ms** | **298 ms** | **1,913 ms** | `c672c620f2b242a9a7a3baf6d4614b1a` |
+
+The semantic challenger reduced median retrieval latency by **94.2%** and mean
+latency by **92.4%** relative to the hybrid champion. For the champion,
+cross-encoder reranking remained the main cost at 5,304 ms mean, or 76.0% of
+mean retrieval time. The champion is still 73.5% faster than the original
+tracked 26,287 ms retrieval mean, although the wider validation sample exposes
+more Pinecone and reranker variance than the earlier 45-request benchmark.
+Quality remains evaluated separately through the controlled core-v2 runs below.
 
 The first improved managed run, `518b7c4824cb4a74bc9dcbd676058b3a`,
 measured **7,434 ms mean end-to-end inference**: 6,099 ms retrieval and 1,335

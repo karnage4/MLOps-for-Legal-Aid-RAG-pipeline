@@ -1,0 +1,1432 @@
+{
+  "status": "completed",
+  "timestamp_utc": "2026-11-13T09:37:40.591788+00:00",
+  "run_id": "c672c620f2b242a9a7a3baf6d4614b1a",
+  "profile": {
+    "label": "fixed-semantic-top3",
+    "chunking_strategy": "fixed",
+    "retrieval_mode": "semantic",
+    "top_k": 3
+  },
+  "candidate_limits": {
+    "bm25": 10,
+    "semantic": 10,
+    "rerank": 12
+  },
+  "component_load_ms": 23560.537,
+  "warmup_timings_ms": {
+    "bm25_ms": 0.0,
+    "embedding_ms": 2681.159,
+    "pinecone_ms": 5350.177,
+    "semantic_total_ms": 8040.119,
+    "fusion_ms": 0.0,
+    "rerank_ms": 0.0,
+    "retrieval_total_ms": 8040.155
+  },
+  "summary": {
+    "sample_count": 75,
+    "stages": {
+      "bm25_ms": {
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "embedding_ms": {
+        "mean": 102.113,
+        "median": 51.193,
+        "p95": 393.255,
+        "min": 23.124,
+        "max": 805.778
+      },
+      "pinecone_ms": {
+        "mean": 425.94,
+        "median": 322.749,
+        "p95": 1269.714,
+        "min": 227.827,
+        "max": 1862.843
+      },
+      "semantic_total_ms": {
+        "mean": 528.187,
+        "median": 394.412,
+        "p95": 1341.298,
+        "min": 298.363,
+        "max": 1912.781
+      },
+      "fusion_ms": {
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "rerank_ms": {
+        "mean": 0.0,
+        "median": 0.0,
+        "p95": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "retrieval_total_ms": {
+        "mean": 528.205,
+        "median": 394.426,
+        "p95": 1341.315,
+        "min": 298.375,
+        "max": 1912.79
+      }
+    }
+  },
+  "records": [
+    {
+      "repeat": 1,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "Succession act 1925_0002_9a467911",
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 70.114,
+        "pinecone_ms": 1484.48,
+        "semantic_total_ms": 1554.736,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1554.751
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0024_6bdd12fd",
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 50.048,
+        "pinecone_ms": 284.568,
+        "semantic_total_ms": 334.734,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 334.75
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Womens right to property Case-Law-Book_0069_b3fea366",
+        "Womens right to property Case-Law-Book_0067_54d65d93"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 82.234,
+        "pinecone_ms": 294.714,
+        "semantic_total_ms": 377.066,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 377.082
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0007_979d96ba",
+        "theislamicinheritncesystem_0004_b2f48a28"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 171.287,
+        "pinecone_ms": 271.089,
+        "semantic_total_ms": 442.492,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 442.507
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0109_6bf6ba7f",
+        "high court case 16 - 2016_0007_24b86635",
+        "citationscase law study on succession - paklawyercom_0002_5692005f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 70.566,
+        "pinecone_ms": 273.059,
+        "semantic_total_ms": 343.789,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 343.813
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0002_c5bc8963",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 101.459,
+        "pinecone_ms": 340.83,
+        "semantic_total_ms": 442.407,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 442.421
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 48.614,
+        "pinecone_ms": 316.78,
+        "semantic_total_ms": 365.504,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 365.518
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0112_a1481ee9",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 53.149,
+        "pinecone_ms": 245.104,
+        "semantic_total_ms": 298.363,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 298.375
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0002_9a467911"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 179.588,
+        "pinecone_ms": 441.508,
+        "semantic_total_ms": 621.21,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 621.224
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "Succession act 1925_0190_08a15628",
+        "Divergent interpretations Section4MFLO_0003_e85d43c7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 45.906,
+        "pinecone_ms": 265.691,
+        "semantic_total_ms": 311.707,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 311.719
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 48.705,
+        "pinecone_ms": 284.826,
+        "semantic_total_ms": 333.83,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 333.875
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0050_47cf577f",
+        "Womens right to property Case-Law-Book_0051_a0c9f93f",
+        "Womens right to property Case-Law-Book_0064_ce0081a7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 77.85,
+        "pinecone_ms": 394.479,
+        "semantic_total_ms": 472.454,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 472.472
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0004_ed5a9bc0",
+        "Succession act 1925_0002_9a467911",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0001_9680d291"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 50.428,
+        "pinecone_ms": 320.799,
+        "semantic_total_ms": 371.351,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 371.366
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0015_6bd006b4",
+        "Womens right to property Case-Law-Book_0092_d61b9284"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 46.114,
+        "pinecone_ms": 277.988,
+        "semantic_total_ms": 324.246,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 324.263
+      }
+    },
+    {
+      "repeat": 1,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0068_060b2bc7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 41.31,
+        "pinecone_ms": 313.076,
+        "semantic_total_ms": 354.499,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 354.511
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "Succession act 1925_0002_9a467911",
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 46.274,
+        "pinecone_ms": 294.092,
+        "semantic_total_ms": 340.505,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 340.522
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0024_6bdd12fd",
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 210.467,
+        "pinecone_ms": 264.848,
+        "semantic_total_ms": 475.424,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 475.437
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Womens right to property Case-Law-Book_0069_b3fea366",
+        "Womens right to property Case-Law-Book_0067_54d65d93"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 60.647,
+        "pinecone_ms": 375.763,
+        "semantic_total_ms": 436.639,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 436.666
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0007_979d96ba",
+        "theislamicinheritncesystem_0004_b2f48a28"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 122.6,
+        "pinecone_ms": 436.207,
+        "semantic_total_ms": 558.93,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 558.944
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0109_6bf6ba7f",
+        "high court case 16 - 2016_0007_24b86635",
+        "citationscase law study on succession - paklawyercom_0002_5692005f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 389.823,
+        "pinecone_ms": 344.83,
+        "semantic_total_ms": 734.752,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 734.764
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0002_c5bc8963",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 42.51,
+        "pinecone_ms": 289.799,
+        "semantic_total_ms": 332.44,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 332.455
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 43.742,
+        "pinecone_ms": 319.153,
+        "semantic_total_ms": 363.025,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 363.042
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0112_a1481ee9",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 32.668,
+        "pinecone_ms": 407.838,
+        "semantic_total_ms": 440.608,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 440.618
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0002_9a467911"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 45.973,
+        "pinecone_ms": 325.546,
+        "semantic_total_ms": 371.642,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 371.657
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "Succession act 1925_0190_08a15628",
+        "Divergent interpretations Section4MFLO_0003_e85d43c7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 23.124,
+        "pinecone_ms": 339.162,
+        "semantic_total_ms": 362.409,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 362.423
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 58.982,
+        "pinecone_ms": 657.207,
+        "semantic_total_ms": 716.259,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 716.267
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0050_47cf577f",
+        "Womens right to property Case-Law-Book_0051_a0c9f93f",
+        "Womens right to property Case-Law-Book_0064_ce0081a7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 31.777,
+        "pinecone_ms": 448.565,
+        "semantic_total_ms": 480.459,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 480.473
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0004_ed5a9bc0",
+        "Succession act 1925_0002_9a467911",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0001_9680d291"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 46.271,
+        "pinecone_ms": 324.976,
+        "semantic_total_ms": 371.396,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 371.416
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0015_6bd006b4",
+        "Womens right to property Case-Law-Book_0092_d61b9284"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 27.797,
+        "pinecone_ms": 452.942,
+        "semantic_total_ms": 480.877,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 480.908
+      }
+    },
+    {
+      "repeat": 2,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0068_060b2bc7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 49.862,
+        "pinecone_ms": 1862.843,
+        "semantic_total_ms": 1912.781,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1912.79
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "Succession act 1925_0002_9a467911",
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 38.319,
+        "pinecone_ms": 509.413,
+        "semantic_total_ms": 547.844,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 547.857
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0024_6bdd12fd",
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 53.936,
+        "pinecone_ms": 574.152,
+        "semantic_total_ms": 628.208,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 628.227
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Womens right to property Case-Law-Book_0069_b3fea366",
+        "Womens right to property Case-Law-Book_0067_54d65d93"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 45.12,
+        "pinecone_ms": 994.846,
+        "semantic_total_ms": 1040.072,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1040.084
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0007_979d96ba",
+        "theislamicinheritncesystem_0004_b2f48a28"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 85.869,
+        "pinecone_ms": 1262.161,
+        "semantic_total_ms": 1348.15,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1348.165
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0109_6bf6ba7f",
+        "high court case 16 - 2016_0007_24b86635",
+        "citationscase law study on succession - paklawyercom_0002_5692005f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 24.772,
+        "pinecone_ms": 404.123,
+        "semantic_total_ms": 429.088,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 429.107
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0002_c5bc8963",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 63.965,
+        "pinecone_ms": 375.529,
+        "semantic_total_ms": 439.784,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 439.823
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 37.86,
+        "pinecone_ms": 338.52,
+        "semantic_total_ms": 376.583,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 376.702
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0112_a1481ee9",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 45.13,
+        "pinecone_ms": 282.425,
+        "semantic_total_ms": 327.691,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 327.707
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0002_9a467911"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 50.092,
+        "pinecone_ms": 340.063,
+        "semantic_total_ms": 390.271,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 390.284
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "Succession act 1925_0190_08a15628",
+        "Divergent interpretations Section4MFLO_0003_e85d43c7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 435.408,
+        "pinecone_ms": 335.156,
+        "semantic_total_ms": 770.685,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 770.699
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 32.945,
+        "pinecone_ms": 296.222,
+        "semantic_total_ms": 329.241,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 329.249
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0050_47cf577f",
+        "Womens right to property Case-Law-Book_0051_a0c9f93f",
+        "Womens right to property Case-Law-Book_0064_ce0081a7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 31.697,
+        "pinecone_ms": 269.034,
+        "semantic_total_ms": 300.86,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 300.875
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0004_ed5a9bc0",
+        "Succession act 1925_0002_9a467911",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0001_9680d291"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 50.968,
+        "pinecone_ms": 459.915,
+        "semantic_total_ms": 511.013,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 511.028
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0015_6bd006b4",
+        "Womens right to property Case-Law-Book_0092_d61b9284"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 76.87,
+        "pinecone_ms": 298.743,
+        "semantic_total_ms": 375.725,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 375.736
+      }
+    },
+    {
+      "repeat": 3,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0068_060b2bc7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 158.789,
+        "pinecone_ms": 1472.273,
+        "semantic_total_ms": 1631.149,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1631.16
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "Succession act 1925_0002_9a467911",
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 295.435,
+        "pinecone_ms": 297.29,
+        "semantic_total_ms": 592.826,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 592.839
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0024_6bdd12fd",
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 35.42,
+        "pinecone_ms": 350.986,
+        "semantic_total_ms": 386.49,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 386.5
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Womens right to property Case-Law-Book_0069_b3fea366",
+        "Womens right to property Case-Law-Book_0067_54d65d93"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 51.635,
+        "pinecone_ms": 318.965,
+        "semantic_total_ms": 370.719,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 370.734
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0007_979d96ba",
+        "theislamicinheritncesystem_0004_b2f48a28"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 24.579,
+        "pinecone_ms": 284.713,
+        "semantic_total_ms": 309.45,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 309.472
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0109_6bf6ba7f",
+        "high court case 16 - 2016_0007_24b86635",
+        "citationscase law study on succession - paklawyercom_0002_5692005f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 350.235,
+        "pinecone_ms": 318.38,
+        "semantic_total_ms": 668.745,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 668.761
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0002_c5bc8963",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 217.119,
+        "pinecone_ms": 277.564,
+        "semantic_total_ms": 494.743,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 494.75
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 85.503,
+        "pinecone_ms": 311.727,
+        "semantic_total_ms": 397.339,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 397.351
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0112_a1481ee9",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 102.671,
+        "pinecone_ms": 291.631,
+        "semantic_total_ms": 394.412,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 394.426
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0002_9a467911"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 68.523,
+        "pinecone_ms": 274.228,
+        "semantic_total_ms": 342.836,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 342.847
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "Succession act 1925_0190_08a15628",
+        "Divergent interpretations Section4MFLO_0003_e85d43c7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 460.37,
+        "pinecone_ms": 268.726,
+        "semantic_total_ms": 729.228,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 729.24
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 150.73,
+        "pinecone_ms": 227.827,
+        "semantic_total_ms": 378.827,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 378.837
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0050_47cf577f",
+        "Womens right to property Case-Law-Book_0051_a0c9f93f",
+        "Womens right to property Case-Law-Book_0064_ce0081a7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 51.193,
+        "pinecone_ms": 329.947,
+        "semantic_total_ms": 381.212,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 381.223
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0004_ed5a9bc0",
+        "Succession act 1925_0002_9a467911",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0001_9680d291"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 30.902,
+        "pinecone_ms": 316.529,
+        "semantic_total_ms": 347.528,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 347.544
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0015_6bd006b4",
+        "Womens right to property Case-Law-Book_0092_d61b9284"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 45.678,
+        "pinecone_ms": 303.257,
+        "semantic_total_ms": 349.134,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 349.159
+      }
+    },
+    {
+      "repeat": 4,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0068_060b2bc7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 44.135,
+        "pinecone_ms": 322.749,
+        "semantic_total_ms": 367.207,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 367.235
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Who inherits property when a person dies without a will?",
+      "chunk_ids": [
+        "Succession act 1925_0002_9a467911",
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0088_eeb9836c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 401.264,
+        "pinecone_ms": 620.974,
+        "semantic_total_ms": 1022.469,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1022.495
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the share of a daughter in Islamic inheritance?",
+      "chunk_ids": [
+        "ShiaandSunniLawsofInheritanceAComparativeAnalysis_0024_6bdd12fd",
+        "Muslim Law of Inheritance Hanafi School_0009_196b6f3c",
+        "theislamicinheritncesystem_0003_e761bbcd"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 41.475,
+        "pinecone_ms": 272.319,
+        "semantic_total_ms": 313.989,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 314.011
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a non-Muslim inherit from a Muslim's estate?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "Womens right to property Case-Law-Book_0069_b3fea366",
+        "Womens right to property Case-Law-Book_0067_54d65d93"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 47.373,
+        "pinecone_ms": 298.892,
+        "semantic_total_ms": 346.32,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 346.327
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "How is the estate divided when there are multiple heirs?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0008_e969ae0a",
+        "Muslim Law of Inheritance Hanafi School_0007_979d96ba",
+        "theislamicinheritncesystem_0004_b2f48a28"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 98.147,
+        "pinecone_ms": 343.507,
+        "semantic_total_ms": 441.766,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 441.778
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What rights does a spouse have over inherited property?",
+      "chunk_ids": [
+        "Womens right to property Case-Law-Book_0109_6bf6ba7f",
+        "high court case 16 - 2016_0007_24b86635",
+        "citationscase law study on succession - paklawyercom_0002_5692005f"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 91.705,
+        "pinecone_ms": 380.052,
+        "semantic_total_ms": 471.892,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 471.908
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a person be disinherited under Pakistani inheritance law?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0000_bf349cdf",
+        "tenyalawcomserviceinheritance-law_0002_c5bc8963",
+        "tenyalawcomserviceinheritance-law_0000_4760fa4c"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 92.154,
+        "pinecone_ms": 276.099,
+        "semantic_total_ms": 368.331,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 368.34
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the difference between a will and intestate succession?",
+      "chunk_ids": [
+        "Succession act 1925_0037_e234e791",
+        "Succession act 1925_0002_9a467911",
+        "Succession act 1925_0034_bab7114d"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 47.538,
+        "pinecone_ms": 346.858,
+        "semantic_total_ms": 394.52,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 394.533
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "How are debts handled before distributing an inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0112_a1481ee9",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 45.888,
+        "pinecone_ms": 268.092,
+        "semantic_total_ms": 314.141,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 314.16
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What happens to property if all direct heirs are deceased?",
+      "chunk_ids": [
+        "Succession Rights of Orphaned Grandchildren in PakistanMFLO1961_0039_b9be61c8",
+        "Succession act 1925_0058_442793ab",
+        "Succession act 1925_0002_9a467911"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 56.551,
+        "pinecone_ms": 275.419,
+        "semantic_total_ms": 332.143,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 332.164
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a minor child be an heir?",
+      "chunk_ids": [
+        "Muslim Law of Inheritance Hanafi School_0006_b5a313d1",
+        "Succession act 1925_0190_08a15628",
+        "Divergent interpretations Section4MFLO_0003_e85d43c7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 50.897,
+        "pinecone_ms": 1287.339,
+        "semantic_total_ms": 1338.362,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1338.379
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the role of an executor in inheritance proceedings?",
+      "chunk_ids": [
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0157_87520724",
+        "Succession act 1925_0166_f19ae058"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 75.305,
+        "pinecone_ms": 391.031,
+        "semantic_total_ms": 466.487,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 466.502
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "How is agricultural land treated differently in inheritance?",
+      "chunk_ids": [
+        "Succession act 1925_0050_47cf577f",
+        "Womens right to property Case-Law-Book_0051_a0c9f93f",
+        "Womens right to property Case-Law-Book_0064_ce0081a7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 41.124,
+        "pinecone_ms": 501.942,
+        "semantic_total_ms": 543.241,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 543.265
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What documents are required to claim inheritance?",
+      "chunk_ids": [
+        "zallpinheritancelaw_0004_ed5a9bc0",
+        "Succession act 1925_0002_9a467911",
+        "THE SINDH LETTERS OF ADMINISTRATION AND SUCCESSION 2021_0001_9680d291"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 94.719,
+        "pinecone_ms": 429.974,
+        "semantic_total_ms": 524.803,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 524.817
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "Can a gift given during lifetime affect inheritance share?",
+      "chunk_ids": [
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0023_339f5974",
+        "English+05.+Preferential+Gifts+in+Islamic+Law+A+Critical+Analysis+of+Hiba+Tafzili_0015_6bd006b4",
+        "Womens right to property Case-Law-Book_0092_d61b9284"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 52.788,
+        "pinecone_ms": 326.127,
+        "semantic_total_ms": 379.049,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 379.062
+      }
+    },
+    {
+      "repeat": 5,
+      "query": "What is the waiting period before inheritance can be claimed?",
+      "chunk_ids": [
+        "Succession act 1925_0080_17f025a8",
+        "Succession act 1925_0088_eeb9836c",
+        "Succession act 1925_0068_060b2bc7"
+      ],
+      "timings_ms": {
+        "bm25_ms": 0.0,
+        "embedding_ms": 805.778,
+        "pinecone_ms": 267.048,
+        "semantic_total_ms": 1072.937,
+        "fusion_ms": 0.0,
+        "rerank_ms": 0.0,
+        "retrieval_total_ms": 1072.951
+      }
+    }
+  ]
+}
