@@ -30,7 +30,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import nltk
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, CrossEncoder
-from pinecone import Pinecone
+from pinecone import Pinecone, PineconeConnectionError, PineconeTimeoutError
 import mlflow
 from mlflow.entities import SpanType
 
@@ -59,6 +59,12 @@ SEMANTIC_TOP_K      = max(10, int(os.getenv("SEMANTIC_CANDIDATE_K", "10")))
 RERANK_CANDIDATE_K = max(10, int(os.getenv("RERANK_CANDIDATE_K", "12")))
 RRF_K               = 60    # RRF constant (standard value — do not change)
 FINAL_TOP_K         = 5     # chunks sent to LLM after re-ranking
+PINECONE_QUERY_MAX_ATTEMPTS = max(
+    1, int(os.getenv("PINECONE_QUERY_MAX_ATTEMPTS", "3"))
+)
+PINECONE_RETRY_BASE_SECONDS = max(
+    0.0, float(os.getenv("PINECONE_RETRY_BASE_SECONDS", "1.5"))
+)
 
 CHUNKING_STRATEGIES = {
     "recursive": {
@@ -237,7 +243,7 @@ def semantic_search(
     if namespace:
         query_args["namespace"] = namespace
     pinecone_started = time.perf_counter()
-    response = pinecone_index.query(**query_args)
+    response = _query_pinecone_with_retry(pinecone_index, query_args)
     if timings_ms is not None:
         timings_ms["pinecone_ms"] = round(
             (time.perf_counter() - pinecone_started) * 1000, 3
@@ -262,6 +268,25 @@ def semantic_search(
         })
 
     return results
+
+
+def _query_pinecone_with_retry(pinecone_index, query_args: Dict):
+    """Retry only transient Pinecone transport failures with bounded backoff."""
+    for attempt in range(1, PINECONE_QUERY_MAX_ATTEMPTS + 1):
+        try:
+            return pinecone_index.query(**query_args)
+        except (PineconeConnectionError, PineconeTimeoutError):
+            if attempt == PINECONE_QUERY_MAX_ATTEMPTS:
+                raise
+            delay = PINECONE_RETRY_BASE_SECONDS * attempt
+            print(
+                "Transient Pinecone query failure; retrying "
+                f"in {delay:.1f}s ({attempt}/{PINECONE_QUERY_MAX_ATTEMPTS})...",
+                flush=True,
+            )
+            time.sleep(delay)
+
+    raise RuntimeError("unreachable Pinecone retry state")
 
 
 # ─────────────────────────────────────────────

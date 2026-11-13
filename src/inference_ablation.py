@@ -15,7 +15,6 @@ from dotenv import load_dotenv
 from src.genai_comparison import (
     SCORER_MAX_ATTEMPTS,
     SCORER_TIMEOUT_SECONDS,
-    build_retrying_scorers,
     rank_score_cards,
     score_card,
 )
@@ -28,14 +27,17 @@ from src.genai_evaluation import (
     validate_managed_dataset,
 )
 from src.generation import DEFAULT_PROMPT_VARIANT, PROMPT_VARIANTS
+from src.genai_judges import CORE_JUDGE_NAMES
+from src.core_genai_scorer import core_rag_quality
 from src.mlflow_config import configure_mlflow
 
 
 load_dotenv()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_DIR = PROJECT_ROOT / "output" / "inference_ablation"
-ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "inference_ablation"
+EVALUATION_LINEAGE = "core_v2"
+OUTPUT_DIR = PROJECT_ROOT / "output" / "inference_ablation" / EVALUATION_LINEAGE
+ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "inference_ablation" / EVALUATION_LINEAGE
 COMPARISON_OUTPUT_PATH = OUTPUT_DIR / "comparison.json"
 COMPARISON_ARTIFACT_PATH = ARTIFACT_DIR / "comparison.json"
 
@@ -141,7 +143,10 @@ def is_reusable_report(
         and float(stored.get("generation_temperature", -1)) == config.temperature
         and report.get("dataset", {}).get("dataset_digest")
         == dataset_report.get("dataset_digest")
+        and report.get("dataset", {}).get("expectation_version")
+        == dataset_report.get("expectation_version")
         and report.get("judges") == _lineage(judges)
+        and len(report.get("rows", [])) == dataset_report.get("record_count")
     )
 
 
@@ -182,9 +187,6 @@ def _effect_cards(cards: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     }
     metrics = (
         "fact_coverage",
-        "correctness",
-        "retrieval_sufficiency",
-        "legal_answer_quality",
         "retrieval_groundedness",
         "retrieval_relevance",
         "relevance_to_query",
@@ -221,6 +223,7 @@ def _comparison_report(
     return {
         "status": "completed" if complete else ("interrupted" if error else "in_progress"),
         "objective": "Controlled prompt, model, and temperature inference ablation",
+        "evaluation_lineage": EVALUATION_LINEAGE,
         "fixed_retrieval_profile": {
             "chunking_strategy": BASELINE_PROFILE.chunking_strategy,
             "retrieval_mode": BASELINE_PROFILE.retrieval_mode,
@@ -268,8 +271,10 @@ def run_inference_ablation(
     experiment = configure_mlflow()
     dataset = get_managed_dataset()
     dataset_report = validate_managed_dataset(dataset)
-    judges = load_registered_judges(str(experiment.experiment_id))
-    scorers = build_retrying_scorers(judges)
+    judges = load_registered_judges(
+        str(experiment.experiment_id), CORE_JUDGE_NAMES
+    )
+    scorers = [core_rag_quality]
 
     reports: dict[str, dict[str, Any]] = {}
     for config in INFERENCE_CONFIGS:
@@ -291,6 +296,7 @@ def run_inference_ablation(
                 dataset=dataset,
                 judges=judges,
                 evaluation_scorers=scorers,
+                feedback_names=CORE_JUDGE_NAMES,
                 scorer_max_attempts=SCORER_MAX_ATTEMPTS,
                 scorer_timeout_seconds=SCORER_TIMEOUT_SECONDS,
                 retriever_components=retriever,

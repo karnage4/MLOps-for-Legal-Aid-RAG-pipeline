@@ -56,7 +56,11 @@ def test_inference_config_validation(kwargs):
 def test_reusable_report_requires_exact_generation_and_lineage():
     config = inference_ablation.INFERENCE_CONFIGS[0]
     judges = [SimpleNamespace(name="judge", scorer_version=1)]
-    dataset = {"dataset_digest": "digest"}
+    dataset = {
+        "dataset_digest": "digest",
+        "expectation_version": "v2",
+        "record_count": 1,
+    }
     report = {
         "status": "completed",
         "scorer_failures": [],
@@ -69,6 +73,7 @@ def test_reusable_report_requires_exact_generation_and_lineage():
         },
         "dataset": dataset,
         "judges": [{"name": "judge", "version": 1}],
+        "rows": [{}],
     }
 
     assert inference_ablation.is_reusable_report(
@@ -90,15 +95,16 @@ def test_effect_cards_report_deltas_from_shared_baseline():
     baseline = {
         "label": "baseline-low-temp",
         "fact_coverage": 0.5,
-        "correctness": 0.5,
-        "retrieval_sufficiency": 0.5,
-        "legal_answer_quality": 0.5,
         "retrieval_groundedness": 0.5,
         "retrieval_relevance": 0.5,
         "relevance_to_query": 0.5,
         "avg_total_ms": 100.0,
     }
-    prompt = {**baseline, "label": "prompt-structured", "correctness": 0.75}
+    prompt = {
+        **baseline,
+        "label": "prompt-structured",
+        "retrieval_groundedness": 0.75,
+    }
 
     effects = inference_ablation._effect_cards([baseline, prompt])
 
@@ -109,10 +115,7 @@ def test_effect_cards_report_deltas_from_shared_baseline():
             "candidate": "prompt-structured",
             "deltas": {
                 "fact_coverage": 0.0,
-                "correctness": 0.25,
-                "retrieval_sufficiency": 0.0,
-                "legal_answer_quality": 0.0,
-                "retrieval_groundedness": 0.0,
+                "retrieval_groundedness": 0.25,
                 "retrieval_relevance": 0.0,
                 "relevance_to_query": 0.0,
                 "avg_total_ms": 0.0,

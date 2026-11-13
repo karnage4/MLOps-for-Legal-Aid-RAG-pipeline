@@ -73,14 +73,19 @@ The expanded MLflow comparison applies six pinned judges and reviewed expected f
 
 Retrieval was frozen to fixed-hybrid-top5 so each run changed one generation variable.
 
-| Run | Variable | Correctness | Legal quality | Retrieval relevance | Sufficiency | Avg. latency |
+| Run | Variable | Fact coverage | Groundedness | Retrieval relevance | Query relevance | Avg. latency |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Baseline low temperature | Control | 0.000 | 0.667 | 0.667 | 0.667 | 28,756 ms |
-| **Structured prompt** | Prompt | **0.333** | **1.000** | **0.733** | 0.667 | 21,272 ms |
-| GPT-OSS-120B | Model | 0.000 | 0.333 | 0.600 | 0.667 | 20,145 ms |
-| High temperature | Temperature 0.7 | 0.000 | 0.667 | 0.600 | 0.333 | **16,698 ms** |
+| Baseline low temperature | Control | 0.639 | 0.833 | 0.833 | 0.900 | **9,541 ms** |
+| Structured prompt | Prompt | 0.639 | **0.867** | **0.867** | **0.933** | 58,889 ms |
+| GPT-OSS-120B | Model | 0.639 | 0.850 | 0.833 | 0.817 | 106,638 ms |
+| **High temperature** | Temperature 0.7 | **0.833** | 0.667 | 0.850 | **0.933** | 52,733 ms |
 
-The **structured prompt is the generation champion**. Compared with the baseline, it improves correctness by 0.333, legal quality by 0.333, retrieval relevance by 0.067, and reduces mean latency by 7,484 ms. GPT-OSS-120B is faster but lowers legal quality. Higher temperature is fastest but halves retrieval sufficiency, from 0.667 to 0.333.
+The quality-first rule selects **temperature 0.7** for its higher fact
+coverage, but groundedness drops by 0.167. The structured prompt is the
+balanced faithfulness challenger: it improves groundedness, retrieval
+relevance, and query relevance by 0.033 each while coverage is unchanged.
+Latency is not attributed to the changed variable because intermittent
+Pinecone and generation-network delays affected these three-query runs.
 
 ## Serving, observability, and testing
 
@@ -88,11 +93,14 @@ The **structured prompt is the generation champion**. Compared with the baseline
 - Gradio exposes chunking strategy, retrieval mode, top-K, sources, and generation metadata for local manual testing.
 - MLflow stores one root RAG chain with nested retrieval and generation spans, plus the Groq model, retry attempts, latency, parameters, metrics, dataset lineage, and judge versions.
 - Groq is the sole generation provider and loads `GROQ_API_KEY` securely from `.env`; the removed Hugging Face model is no longer attempted.
-- The verified post-fix full repository regression recorded 107 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning.
+- The verified post-fix full repository regression recorded 109 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning.
 
 ## Final selection and limitation
 
-For the current evidence, use **fixed-hybrid-top5 retrieval with the `structured_legal_v2` prompt, Qwen 3.8-27B, and temperature 0.1**. This choice follows the richer managed judge rubric and the controlled generation ablation.
+For a quality-first experimental configuration, use **fixed-hybrid-top5 with
+`strict_grounded_v1`, Qwen 3.8-27B, and temperature 0.7**. For a more
+faithfulness-oriented production candidate, retain temperature 0.1 or validate
+`structured_legal_v2` on a larger reviewed set before promotion.
 
 The evaluation set contains only three human-reviewed questions. The results demonstrate reproducibility and configuration effects for Milestone 1, but they are not statistically generalizable. The next milestone should expand the reviewed dataset, add automated CI evaluation, and move MLflow to shared durable storage.
 

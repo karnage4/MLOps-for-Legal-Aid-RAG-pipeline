@@ -94,6 +94,23 @@ def test_semantic_search_queries_fixed_namespace_and_checks_strategy():
     assert results[0]["strategy"] == "fixed"
 
 
+def test_semantic_search_retries_transient_pinecone_connection_failure():
+    embedder = Mock()
+    embedder.encode.return_value.tolist.return_value = [0.1, 0.2]
+    index = Mock()
+    index.query.side_effect = [
+        retrieval.PineconeConnectionError("temporary DNS failure"),
+        {"matches": []},
+    ]
+
+    with patch.object(retrieval.time, "sleep") as sleep:
+        results = retrieval.semantic_search("question", embedder, index)
+
+    assert results == []
+    assert index.query.call_count == 2
+    sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
+
+
 def test_semantic_mode_skips_sparse_search_and_cross_encoder():
     semantic_results = _semantic_results()
 

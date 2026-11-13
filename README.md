@@ -105,7 +105,7 @@ The codebase is logically split into modular stages corresponding to the data in
 - `output/pdf/legal_aid_rag_post_m1_report.pdf`: Revised 18-page report with fractional fact coverage, the complete core-v2 matrix, and matching 75-request champion-challenger latency benchmarks.
 - `MILESTONE1_BRIEF.md`: Concise requirement tally, champion-challenger analysis, controlled inference findings, and final configuration recommendation.
 - `output/pptx/legal_aid_rag_milestone1_brief.pptx`: Editable seven-slide presentation summarizing the milestone evidence and configuration analysis.
-- `output/pptx/legal_aid_rag_post_m1_brief.pptx`: Revised seven-slide presentation with the corrected evaluation scores and explicit quality-versus-speed deployment choice.
+- `output/pptx/legal_aid_rag_post_m1_brief_core_v2.pptx`: Revised seven-slide presentation with the corrected prompt/model/temperature scores, quality-faithfulness trade-off, and quality-versus-speed retrieval choice.
 - `CONTRIBUTION.md`: Records student names, ERP IDs, and the Milestone 1 member-to-task allocation.
 
 ## Detailed setup and dependencies
@@ -257,7 +257,9 @@ top-K are also recorded on the nested MLflow trace.
 ### Controlled inference ablation
 
 The instructor-required prompt, model, and temperature comparisons use the
-same managed three-query dataset and six registered MLflow GenAI judges. The
+same managed three-query dataset and the corrected core-v2 judge lineage:
+fractional fact coverage, retrieval groundedness, retrieval relevance, and
+relevance to query. The
 retrieval configuration is frozen to the selected `fixed-hybrid-top5` profile
 so each run changes exactly one generation variable:
 
@@ -329,27 +331,31 @@ python -m src.inference_ablation
 ```
 
 Use `--config <label>` to run one configuration. Completed reports are reused
-only when prompt, model, temperature, dataset digest, and judge versions all
-match. MLflow records requested and actual model/provider, prompt variant,
-temperature, answer-quality assessments, provider behavior, and latency.
+only when prompt, model, temperature, dataset digest, expectation version,
+judge versions, and all three rows match. New reports are isolated under
+`artifacts/inference_ablation/core_v2/`; original six-judge artifacts remain
+unchanged. MLflow records requested and actual model/provider, prompt variant,
+temperature, core quality assessments, provider behavior, and stage latency.
 
-Final controlled results verified on 2026-11-05:
+Corrected controlled results verified on 2026-11-13:
 
-| Configuration | Correctness | Legal quality | Retrieval relevance | Avg. total latency | MLflow run |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Baseline | 0.000 | 0.667 | 0.667 | 28,756 ms | `f8eb6177b0a44c2e91cbd27926ca3efd` |
-| Structured prompt | 0.333 | 1.000 | 0.733 | 21,272 ms | `1528a96621d54a93819f01eab6b600a0` |
-| GPT-OSS-120B | 0.000 | 0.333 | 0.600 | 20,145 ms | `6db207d1847d4d96af0f42905fcf1bf1` |
-| High temperature | 0.000 | 0.667 | 0.600 | 16,698 ms | `caf08bcd4194455f9efc030ffc2a9634` |
+| Configuration | Fact coverage | Groundedness | Retrieval relevance | Query relevance | Avg. total latency | MLflow run |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Baseline | 0.639 | 0.833 | 0.833 | 0.900 | 9,541 ms | `fee1a16220074550b85f87e5386fb78c` |
+| Structured prompt | 0.639 | 0.867 | 0.867 | 0.933 | 58,889 ms | `be6d915b20814074b7890c207f05ae02` |
+| GPT-OSS-120B | 0.639 | 0.850 | 0.833 | 0.817 | 106,638 ms | `a15ad30048484b6fb7c5250bb8e8e455` |
+| High temperature | **0.833** | 0.667 | 0.850 | 0.933 | 52,733 ms | `ee28fe2d9aec4fcfbb862d3ddb24a873` |
 
-All four controlled runs completed with three valid rows and the same six
-judge versions. The structured prompt is strongest: it improved correctness and
-legal-answer quality while reducing latency. GPT-OSS-120B was faster than Qwen
-but reduced legal quality and retrieval relevance. Raising temperature from
-0.1 to 0.7 reduced retrieval sufficiency from 0.667 to 0.333 and retrieval
-relevance from 0.667 to 0.600, while groundedness increased from 0.667 to
-1.000. Because this held-out set has only three examples, latency and quality
-deltas are evidence for this milestone rather than broad statistical claims.
+The quality-first rule selects temperature 0.7 because it has the highest
+per-fact coverage. It is not an unconditional production promotion:
+groundedness falls by 0.167 versus baseline, exposing a creativity/faithfulness
+trade-off. The structured prompt is the balanced faithfulness challenger,
+improving groundedness, retrieval relevance, and query relevance by 0.033 each
+without improving coverage. GPT-OSS-120B does not improve coverage and lowers
+query relevance. Total latency is observational because Pinecone DNS/read
+delays and one generation retry varied between runs; use the separate
+75-request warm benchmark for retrieval-speed decisions. With three reviewed
+examples, these deltas demonstrate behavior rather than generalizability.
 
 ### Fixed-profile retrieval smoke test
 

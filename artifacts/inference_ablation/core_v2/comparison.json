@@ -1,0 +1,140 @@
+{
+  "status": "completed",
+  "objective": "Controlled prompt, model, and temperature inference ablation",
+  "evaluation_lineage": "core_v2",
+  "fixed_retrieval_profile": {
+    "chunking_strategy": "fixed",
+    "retrieval_mode": "hybrid",
+    "top_k": 5,
+    "pinecone_namespace": "fixed"
+  },
+  "dataset": {
+    "dataset_id": "d-fee7335515b9445dbb7feddfd68de247",
+    "dataset_name": "legal-aid-rag-held-out-v1",
+    "dataset_digest": "1f570963",
+    "record_count": 3,
+    "expectation_version": "1"
+  },
+  "judges": [
+    {
+      "name": "relevance_to_query",
+      "version": 3
+    },
+    {
+      "name": "retrieval_groundedness",
+      "version": 4
+    },
+    {
+      "name": "retrieval_relevance",
+      "version": 4
+    },
+    {
+      "name": "fact_coverage",
+      "version": 3
+    }
+  ],
+  "requested_configs": [
+    "baseline-low-temp",
+    "prompt-structured",
+    "model-b",
+    "temperature-high"
+  ],
+  "completed_configs": [
+    "baseline-low-temp",
+    "model-b",
+    "prompt-structured",
+    "temperature-high"
+  ],
+  "remaining_configs": [],
+  "best_config": {
+    "label": "temperature-high",
+    "run_id": "ee28fe2d9aec4fcfbb862d3ddb24a873",
+    "fact_coverage": 0.8333333333333334,
+    "retrieval_groundedness": 0.6666666666666666,
+    "retrieval_relevance": 0.8500000000000001,
+    "relevance_to_query": 0.9333333333333332,
+    "avg_total_ms": 52732.666666666664,
+    "fallback_rate": 0.0
+  },
+  "ranking": [
+    {
+      "label": "temperature-high",
+      "run_id": "ee28fe2d9aec4fcfbb862d3ddb24a873",
+      "fact_coverage": 0.8333333333333334,
+      "retrieval_groundedness": 0.6666666666666666,
+      "retrieval_relevance": 0.8500000000000001,
+      "relevance_to_query": 0.9333333333333332,
+      "avg_total_ms": 52732.666666666664,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "prompt-structured",
+      "run_id": "be6d915b20814074b7890c207f05ae02",
+      "fact_coverage": 0.6388888888888888,
+      "retrieval_groundedness": 0.8666666666666667,
+      "retrieval_relevance": 0.8666666666666667,
+      "relevance_to_query": 0.9333333333333332,
+      "avg_total_ms": 58889.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "model-b",
+      "run_id": "a15ad30048484b6fb7c5250bb8e8e455",
+      "fact_coverage": 0.6388888888888888,
+      "retrieval_groundedness": 0.8500000000000001,
+      "retrieval_relevance": 0.8333333333333334,
+      "relevance_to_query": 0.8166666666666665,
+      "avg_total_ms": 106637.66666666667,
+      "fallback_rate": 0.0
+    },
+    {
+      "label": "baseline-low-temp",
+      "run_id": "fee1a16220074550b85f87e5386fb78c",
+      "fact_coverage": 0.6388888888888888,
+      "retrieval_groundedness": 0.8333333333333334,
+      "retrieval_relevance": 0.8333333333333334,
+      "relevance_to_query": 0.9,
+      "avg_total_ms": 9540.666666666666,
+      "fallback_rate": 0.0
+    }
+  ],
+  "effects_vs_baseline": [
+    {
+      "dimension": "prompt",
+      "baseline": "baseline-low-temp",
+      "candidate": "prompt-structured",
+      "deltas": {
+        "fact_coverage": 0.0,
+        "retrieval_groundedness": 0.033333333333333326,
+        "retrieval_relevance": 0.033333333333333326,
+        "relevance_to_query": 0.033333333333333215,
+        "avg_total_ms": 49348.333333333336
+      }
+    },
+    {
+      "dimension": "model",
+      "baseline": "baseline-low-temp",
+      "candidate": "model-b",
+      "deltas": {
+        "fact_coverage": 0.0,
+        "retrieval_groundedness": 0.01666666666666672,
+        "retrieval_relevance": 0.0,
+        "relevance_to_query": -0.08333333333333348,
+        "avg_total_ms": 97097.0
+      }
+    },
+    {
+      "dimension": "temperature",
+      "baseline": "baseline-low-temp",
+      "candidate": "temperature-high",
+      "deltas": {
+        "fact_coverage": 0.19444444444444453,
+        "retrieval_groundedness": -0.16666666666666674,
+        "retrieval_relevance": 0.01666666666666672,
+        "relevance_to_query": 0.033333333333333215,
+        "avg_total_ms": 43192.0
+      }
+    }
+  ],
+  "error": null
+}

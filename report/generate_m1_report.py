@@ -65,7 +65,7 @@ genai = load_json("artifacts/genai_evaluation_comparison.json")
 core_v2 = load_json("artifacts/genai_evaluation_comparison_core_v2.json")
 champion_latency = load_json("artifacts/latency_benchmark_fixed-hybrid-top5.json")
 challenger_latency = load_json("artifacts/latency_benchmark_fixed-semantic-top3.json")
-ablation = load_json("artifacts/inference_ablation/comparison.json")
+ablation = load_json("artifacts/inference_ablation/core_v2/comparison.json")
 
 
 styles = getSampleStyleSheet()
@@ -353,14 +353,14 @@ def make_charts():
 
     ranking = ablation["ranking"]
     labels = [r["label"] for r in ranking]
-    metrics = ["correctness", "legal_answer_quality", "retrieval_relevance", "retrieval_groundedness", "retrieval_sufficiency"]
-    metric_labels = ["Correctness", "Legal quality", "Retrieval relevance", "Groundedness", "Sufficiency"]
+    metrics = ["fact_coverage", "retrieval_groundedness", "retrieval_relevance", "relevance_to_query"]
+    metric_labels = ["Fact coverage", "Groundedness", "Retrieval relevance", "Query relevance"]
     x = list(range(len(labels)))
-    width = 0.15
+    width = 0.18
     fig, ax = plt.subplots(figsize=(9.2, 4.8))
-    palette = ["#17324D", "#2867A8", "#198F8A", "#D79516", "#B34747"]
+    palette = ["#17324D", "#2867A8", "#198F8A", "#D79516"]
     for index, (metric, label, color) in enumerate(zip(metrics, metric_labels, palette)):
-        offset = (index - 2) * width
+        offset = (index - 1.5) * width
         ax.bar([v + offset for v in x], [r[metric] for r in ranking], width=width, label=label, color=color)
     ax.set_xticks(x, labels, rotation=10)
     ax.set_ylim(0, 1.08)
@@ -686,7 +686,7 @@ def build_story():
         ),
         figure(ASSETS / "inference_ablation_chart.png", "Figure 5. Controlled prompt, model, and temperature results on the same dataset and judge lineage.", 92 * mm),
     ]
-    ablation_rows = [["Run", "Prompt", "Model", "Temp", "Correct", "Legal", "Relevance", "Latency ms"]]
+    ablation_rows = [["Run", "Prompt", "Model", "Temp", "Coverage", "Grounded", "Query rel.", "Latency ms"]]
     configs = {
         "baseline-low-temp": ("strict_grounded_v1", "Qwen 3.8-27B", "0.1"),
         "prompt-structured": ("structured_legal_v2", "Qwen 3.8-27B", "0.1"),
@@ -703,24 +703,24 @@ def build_story():
                 prompt_name,
                 model_name,
                 temp,
-                f'{item["correctness"]:.3f}',
-                f'{item["legal_answer_quality"]:.3f}',
-                f'{item["retrieval_relevance"]:.3f}',
+                f'{item["fact_coverage"]:.3f}',
+                f'{item["retrieval_groundedness"]:.3f}',
+                f'{item["relevance_to_query"]:.3f}',
                 f'{item["avg_total_ms"]:,.0f}',
             ]
         )
     story.append(table(ablation_rows, [28 * mm, 36 * mm, 31 * mm, 12 * mm, 17 * mm, 14 * mm, 17 * mm, 19 * mm], font_size=6.4))
     story += subsection("Controlled findings")
     for text in [
-        "Prompt: structured_legal_v2 improved correctness from 0.000 to 0.333, legal quality from 0.667 to 1.000, and retrieval relevance from 0.667 to 0.733.",
-        "Model: GPT-OSS-120B was faster than Qwen in this sample but reduced legal quality to 0.333 and retrieval relevance to 0.600.",
-        "Temperature: raising 0.1 to 0.7 reduced retrieval sufficiency from 0.667 to 0.333 and relevance from 0.667 to 0.600, while groundedness increased to 1.000.",
-        "Selected generation configuration: structured_legal_v2 with qwen/qwen3.8-27b at temperature 0.1.",
+        "Prompt: structured_legal_v2 kept fact coverage at 0.639 and improved groundedness, retrieval relevance, and query relevance by 0.033 each.",
+        "Model: GPT-OSS-120B kept coverage at 0.639, slightly improved groundedness, and reduced query relevance from 0.900 to 0.817.",
+        "Temperature: raising 0.1 to 0.7 improved fact coverage from 0.639 to 0.833 but reduced groundedness from 0.833 to 0.667.",
+        "Quality-first selection: strict_grounded_v1 with qwen/qwen3.8-27b at temperature 0.7. The structured prompt remains the balanced faithfulness challenger.",
     ]:
         story.append(bullet(text))
     story.append(
         p(
-            "These scores are milestone evidence from three held-out examples, not statistically generalizable claims. Expanding the reviewed dataset is the most important next evaluation improvement."
+            "These scores are milestone evidence from three held-out examples, not statistically generalizable claims. Total latency is observational because transient Pinecone and generation-network delays varied between runs. Expanding the reviewed dataset is the most important next evaluation improvement."
         )
     )
     story.append(PageBreak())
@@ -818,7 +818,7 @@ def build_story():
     story += section("9. Testing, validation, and operational quality")
     story += [
         callout(
-            "Verification status: the post-M1 full repository regression completed with 108 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning. Live Gradio verification also completed through Pinecone and Groq in 10,699 ms total with zero generation retries.",
+            "Verification status: the post-M1 full repository regression completed with 109 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning. Live Gradio verification also completed through Pinecone and Groq in 10,699 ms total with zero generation retries.",
             PALE_GOLD,
         ),
         Spacer(1, 3 * mm),
@@ -964,10 +964,10 @@ def build_story():
                 ["Corrected core-v2 champion", "fixed-hybrid-top5", "96c173dc72b8408c8541e49ddff7ae7f"],
                 ["Champion latency benchmark", "fixed-hybrid-top5", "ae428d443faa4487a2c01659b2923281"],
                 ["Challenger latency benchmark", "fixed-semantic-top3", "c672c620f2b242a9a7a3baf6d4614b1a"],
-                ["Ablation baseline", "strict prompt, Qwen, temp 0.1", "f8eb6177b0a44c2e91cbd27926ca3efd"],
-                ["Selected structured prompt", "structured prompt, Qwen, temp 0.1", "1528a96621d54a93819f01eab6b600a0"],
-                ["Model comparison", "strict prompt, GPT-OSS-120B, temp 0.1", "6db207d1847d4d96af0f42905fcf1bf1"],
-                ["Temperature comparison", "strict prompt, Qwen, temp 0.7", "caf08bcd4194455f9efc030ffc2a9634"],
+                ["Core-v2 ablation baseline", "strict prompt, Qwen, temp 0.1", "fee1a16220074550b85f87e5386fb78c"],
+                ["Structured prompt challenger", "structured prompt, Qwen, temp 0.1", "be6d915b20814074b7890c207f05ae02"],
+                ["Core-v2 model comparison", "strict prompt, GPT-OSS-120B, temp 0.1", "a15ad30048484b6fb7c5250bb8e8e455"],
+                ["Core-v2 quality-first selection", "strict prompt, Qwen, temp 0.7", "ee28fe2d9aec4fcfbb862d3ddb24a873"],
             ],
             [51 * mm, 65 * mm, 54 * mm],
         )
@@ -979,7 +979,7 @@ def build_story():
         "artifacts/genai_evaluation_comparison_core_v2.json - corrected fractional fact-coverage ranking.",
         "artifacts/latency_benchmark_fixed-hybrid-top5.json - 75-request champion retrieval benchmark.",
         "artifacts/latency_benchmark_fixed-semantic-top3.json - 75-request challenger retrieval benchmark.",
-        "artifacts/inference_ablation/comparison.json - complete prompt/model/temperature comparison.",
+        "artifacts/inference_ablation/core_v2/comparison.json - corrected prompt/model/temperature comparison.",
         "README.md - setup, architecture, dataset access, commands, evaluation results, and training exemption.",
         "MLOPS_LOG.md - chronological implementation and manual-verification record.",
         "CONTRIBUTION.md - final member-to-task allocation.",
