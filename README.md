@@ -102,8 +102,10 @@ The codebase is logically split into modular stages corresponding to the data in
 - `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
 - `report/generate_m1_report.py`: Reproducibly builds the illustrated Milestone 1 report from tracked artifacts and verified screenshots.
 - `output/pdf/legal_aid_rag_milestone1_report.pdf`: Final rendered Milestone 1 report with architecture, metrics, run IDs, screenshots, testing evidence, and contributions.
+- `output/pdf/legal_aid_rag_post_m1_report.pdf`: Revised 18-page report with fractional fact coverage, the complete core-v2 matrix, and matching 75-request champion-challenger latency benchmarks.
 - `MILESTONE1_BRIEF.md`: Concise requirement tally, champion-challenger analysis, controlled inference findings, and final configuration recommendation.
 - `output/pptx/legal_aid_rag_milestone1_brief.pptx`: Editable seven-slide presentation summarizing the milestone evidence and configuration analysis.
+- `output/pptx/legal_aid_rag_post_m1_brief.pptx`: Revised seven-slide presentation with the corrected evaluation scores and explicit quality-versus-speed deployment choice.
 - `CONTRIBUTION.md`: Records student names, ERP IDs, and the Milestone 1 member-to-task allocation.
 
 ## Detailed setup and dependencies

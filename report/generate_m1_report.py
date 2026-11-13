@@ -39,7 +39,7 @@ from reportlab.platypus import (
 
 REPO = Path(__file__).resolve().parents[1]
 ASSETS = REPO / "tmp" / "pdfs" / "m1_report_assets"
-OUTPUT = REPO / "output" / "pdf" / "legal_aid_rag_milestone1_report.pdf"
+OUTPUT = REPO / "output" / "pdf" / "legal_aid_rag_post_m1_report.pdf"
 
 NAVY = colors.HexColor("#17324D")
 BLUE = colors.HexColor("#2867A8")
@@ -62,6 +62,9 @@ def load_json(relative: str):
 
 legacy = load_json("artifacts/rag_evaluation_summary.json")
 genai = load_json("artifacts/genai_evaluation_comparison.json")
+core_v2 = load_json("artifacts/genai_evaluation_comparison_core_v2.json")
+champion_latency = load_json("artifacts/latency_benchmark_fixed-hybrid-top5.json")
+challenger_latency = load_json("artifacts/latency_benchmark_fixed-semantic-top3.json")
 ablation = load_json("artifacts/inference_ablation/comparison.json")
 
 
@@ -330,20 +333,20 @@ def architecture_drawing():
 def make_charts():
     plt.rcParams.update({"font.size": 8, "font.family": "DejaVu Sans"})
 
-    ranking = genai["ranking"]
+    ranking = core_v2["ranking"]
     labels = [item["label"].replace("recursive", "rec").replace("semantic", "sem").replace("hybrid", "hyb").replace("fixed", "fix") for item in ranking]
     y = list(range(len(labels)))
     fig, ax = plt.subplots(figsize=(9.2, 4.8))
-    ax.barh([v + 0.22 for v in y], [r["legal_answer_quality"] for r in ranking], height=0.21, label="Legal quality", color="#2867A8")
-    ax.barh(y, [r["retrieval_relevance"] for r in ranking], height=0.21, label="Retrieval relevance", color="#198F8A")
-    ax.barh([v - 0.22 for v in y], [r["correctness"] for r in ranking], height=0.21, label="Correctness", color="#D79516")
+    ax.barh([v + 0.24 for v in y], [r["fact_coverage"] for r in ranking], height=0.22, label="Fact coverage", color="#D79516")
+    ax.barh(y, [r["retrieval_groundedness"] for r in ranking], height=0.22, label="Groundedness", color="#2867A8")
+    ax.barh([v - 0.24 for v in y], [r["retrieval_relevance"] for r in ranking], height=0.22, label="Retrieval relevance", color="#198F8A")
     ax.set_yticks(y, labels)
     ax.invert_yaxis()
     ax.set_xlim(0, 1.05)
     ax.set_xlabel("Mean judge score")
     ax.grid(axis="x", alpha=0.2)
     ax.legend(loc="lower right", ncol=3, frameon=False)
-    ax.set_title("Managed MLflow GenAI comparison (3 held-out queries per profile)", loc="left", fontweight="bold")
+    ax.set_title("Core-v2 MLflow GenAI comparison (3 held-out queries per profile)", loc="left", fontweight="bold")
     fig.tight_layout()
     fig.savefig(ASSETS / "genai_profile_chart.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
@@ -397,7 +400,7 @@ def page_decor(canvas, doc):
         canvas.setFillColor(MUTED)
         canvas.drawRightString(A4[0] - 20 * mm, A4[1] - 11 * mm, "Model, API, MLflow, and GenAI Evaluation")
         canvas.line(20 * mm, 14 * mm, A4[0] - 20 * mm, 14 * mm)
-        canvas.drawString(20 * mm, 10 * mm, "Branch: 8-m1-submission | Evidence baseline: a12cd29")
+        canvas.drawString(20 * mm, 10 * mm, "Branch: 9-post-m1-fixes | Evidence baseline: d1c9228")
         canvas.drawRightString(A4[0] - 20 * mm, 10 * mm, f"Page {page}")
     canvas.restoreState()
 
@@ -411,7 +414,7 @@ def build_story():
             HRFlowable(width="35%", color=GOLD, thickness=4, hAlign="CENTER"),
             Spacer(1, 8 * mm),
             p("Legal-Aid RAG MLOps Pipeline", "ReportTitle"),
-            p("Milestone 1: Model, API, MLflow Tracking, and GenAI Evaluation", "ReportSubtitle"),
+            p("Milestone 1 with Post-M1 Latency and Evaluation Corrections", "ReportSubtitle"),
             Spacer(1, 16 * mm),
             callout(
                 "A reproducible legal-inheritance retrieval-augmented generation system with validated corpus preparation, eight retrieval profiles, MLflow GenAI datasets and judges, controlled inference ablations, FastAPI serving, and a local Gradio interface.",
@@ -428,7 +431,7 @@ def build_story():
                 [45 * mm, 25 * mm, 100 * mm],
             ),
             Spacer(1, 14 * mm),
-            p("Submission branch: <b>8-m1-submission</b><br/>Report date: 5 November 2026<br/>Repository: github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline", "ReportSubtitle"),
+            p("Post-M1 branch: <b>9-post-m1-fixes</b><br/>Report date: 13 November 2026<br/>Repository: github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline", "ReportSubtitle"),
             PageBreak(),
         ]
     )
@@ -442,7 +445,7 @@ def build_story():
             "The traditional supervised-training requirement is explicitly treated as exempt because the project uses pretrained embedding, reranking, and generation models. In its place, the system performs inference evaluation across retrieval parameters, prompts, models, and temperatures, matching the instructor's RAG-specific guidance."
         ),
         callout(
-            "Final status: all eight retrieval configurations and all four controlled inference-ablation configurations completed successfully. The managed six-judge comparison selected fixed-hybrid-top5, while the generation ablation selected structured_legal_v2 with Qwen at temperature 0.1.",
+            "Final status: all eight corrected core-v2 retrieval evaluations and all four controlled inference-ablation configurations completed successfully. Fractional fact coverage selects fixed-hybrid-top5 for quality, while a 75-request benchmark identifies fixed-semantic-top3 as the low-latency challenger.",
             PALE_BLUE,
         ),
     ]
@@ -614,41 +617,54 @@ def build_story():
     )
     story.append(PageBreak())
 
-    story += section("5. Managed six-judge GenAI comparison")
+    story += section("5. Corrected core-v2 GenAI comparison")
     story += [
         p(
-            "The second evaluation suite reuses the same eight profiles but applies the MLflow-managed dataset, reviewed expectations, and all six pinned judges. Ranking prioritizes correctness, retrieval sufficiency, legal-answer quality, grounding, relevance, and latency under strict completeness rules."
+            "The post-M1 evaluation reuses the same eight profiles, MLflow-managed dataset, and reviewed expectations. One schema-controlled judge request per query emits fact coverage, groundedness, retrieval relevance, and query relevance. Fractional fact coverage replaces strict all-or-nothing correctness as the primary selection signal, so a useful answer no longer falls to zero because it omits one expected fact."
         ),
-        figure(ASSETS / "genai_profile_chart.png", "Figure 4. Quality metrics across all eight complete managed GenAI profiles.", 92 * mm),
+        figure(ASSETS / "genai_profile_chart.png", "Figure 4. Corrected quality metrics across all eight complete core-v2 profiles.", 92 * mm),
     ]
-    genai_rows = [["Profile", "Correct", "Sufficient", "Legal quality", "Grounded", "Relevant", "Run ID"]]
-    for item in genai["ranking"]:
+    genai_rows = [["Profile", "Fact coverage", "Grounded", "Retrieval rel.", "Query rel.", "RAG ms", "Run ID"]]
+    for item in core_v2["ranking"]:
         genai_rows.append(
             [
                 item["label"],
-                f'{item["correctness"]:.3f}',
-                f'{item["retrieval_sufficiency"]:.3f}',
-                f'{item["legal_answer_quality"]:.3f}',
+                f'{item["fact_coverage"]:.3f}',
                 f'{item["retrieval_groundedness"]:.3f}',
                 f'{item["retrieval_relevance"]:.3f}',
+                f'{item["relevance_to_query"]:.3f}',
+                f'{item["avg_total_ms"]:,.0f}',
                 item["run_id"],
             ]
         )
-    story.append(table(genai_rows, [36 * mm, 17 * mm, 19 * mm, 19 * mm, 18 * mm, 17 * mm, 44 * mm], font_size=6.3))
+    story.append(table(genai_rows, [35 * mm, 19 * mm, 17 * mm, 19 * mm, 17 * mm, 17 * mm, 46 * mm], font_size=6.2))
     story.append(Spacer(1, 4 * mm))
     story.append(
         callout(
-            "Managed GenAI winner: fixed-hybrid-top5 (run e6034e3cda2f4582ab5fac02132b4687). It was the only profile to reach correctness 0.333 while also achieving legal-answer quality 1.000 and query relevance 1.000.",
+            "Quality champion: fixed-hybrid-top5 (run 96c173dc72b8408c8541e49ddff7ae7f). It leads fact coverage at 0.7222. Fixed-semantic-top3 is the practical speed challenger with 0.5833 fact coverage, 0.8833 groundedness, and 0.8667 retrieval relevance.",
             PALE_BLUE,
         )
     )
-    story += subsection("Why the two retrieval winners differ")
+    story += subsection("Champion-challenger latency validation")
+    champion_summary = champion_latency["summary"]["stages"]["retrieval_total_ms"]
+    challenger_summary = challenger_latency["summary"]["stages"]["retrieval_total_ms"]
     story.append(
-        p(
-            "The legacy suite selects fixed-hybrid-top3 using faithfulness, relevancy, and latency. The managed GenAI suite selects fixed-hybrid-top5 using a broader rubric that includes reviewed expected facts, legal framing, sufficiency, and correctness. The results are therefore complementary rather than contradictory. The latter profile is frozen for the controlled generation ablation because it won the richer six-judge comparison."
+        table(
+            [
+                ["Profile", "Warm requests", "Mean", "Median", "P95", "MLflow run"],
+                ["fixed-hybrid-top5", "75", f'{champion_summary["mean"]:,.0f} ms', f'{champion_summary["median"]:,.0f} ms', f'{champion_summary["p95"]:,.0f} ms', champion_latency["run_id"]],
+                ["fixed-semantic-top3", "75", f'{challenger_summary["mean"]:,.0f} ms', f'{challenger_summary["median"]:,.0f} ms', f'{challenger_summary["p95"]:,.0f} ms', challenger_latency["run_id"]],
+            ],
+            [38 * mm, 21 * mm, 20 * mm, 20 * mm, 20 * mm, 51 * mm],
+            font_size=6.8,
         )
     )
-    story += subsection("Pinned judge rubric")
+    story.append(
+        p(
+            "Across matching 75-request warm benchmarks, semantic top-3 reduced mean retrieval latency by 92.4% and median latency by 94.2%. Hybrid top-5 keeps a 0.1389 absolute fact-coverage advantage. The deployment choice is explicit: use hybrid top-5 when answer completeness matters most, or semantic top-3 for interactive response time. Hybrid reranking remains the largest measured cost at 5,304 ms mean."
+        )
+    )
+    story += subsection("Core-v2 judge rubric")
     story.append(
         table(
             [
@@ -656,9 +672,7 @@ def build_story():
                 ["relevance_to_query", "Does the answer address the question?", "No"],
                 ["retrieval_relevance", "Are retrieved chunks relevant to the query?", "No"],
                 ["retrieval_groundedness", "Is the answer supported by retrieved evidence?", "No"],
-                ["legal_answer_quality", "Does the answer communicate conditions, uncertainty, and responsible framing?", "No"],
-                ["correctness", "Does the answer cover the approved expected facts?", "Yes"],
-                ["retrieval_sufficiency", "Can retrieval support the approved expected facts?", "Yes"],
+                ["fact_coverage", "What fraction of approved facts does the answer support?", "Yes"],
             ],
             [48 * mm, 95 * mm, 27 * mm],
         )
@@ -792,7 +806,7 @@ def build_story():
     story += section("8. Local Gradio interface")
     story += [
         p(
-            "Miras provides a local interface similar to the earlier Hugging Face application while using the same traced RAG boundary. Users can select recursive or fixed chunks, semantic or hybrid retrieval, top-K from 3 to 10, generation temperature from 0 to 1, and whether to display retrieved context."
+            "Miras provides a local interface similar to the earlier hosted application while using the same traced RAG boundary. Users can select recursive or fixed chunks, semantic or hybrid retrieval, top-K from 3 to 10, generation temperature from 0 to 1, and whether to display retrieved context."
         ),
         figure(ASSETS / "gradio_ui.png", "Figure 7. Miras interface showing chunking, retrieval, top-K, temperature, and context controls.", 126 * mm),
         p(
@@ -804,7 +818,7 @@ def build_story():
     story += section("9. Testing, validation, and operational quality")
     story += [
         callout(
-            "Verification status: the full repository regression completed with 91 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning. The final focused evaluation regression completed with 14 passing tests after the high-temperature run.",
+            "Verification status: the post-M1 full repository regression completed with 108 passing tests and one pre-existing MLflow SQLAlchemy deprecation warning. Live Gradio verification also completed through Pinecone and Groq in 10,699 ms total with zero generation retries.",
             PALE_GOLD,
         ),
         Spacer(1, 3 * mm),
@@ -861,7 +875,9 @@ def build_story():
             "python -m src.genai_expectations --reviewer \"Karam Hussain\"\n"
             "python -m src.genai_judges\n"
             "python -m src.genai_comparison\n"
-            "python -m src.inference_ablation"
+            "python -m src.inference_ablation\n"
+            "python -m src.latency_benchmark --strategy fixed --mode hybrid --top-k 5 --repeats 5\n"
+            "python -m src.latency_benchmark --strategy fixed --mode semantic --top-k 3 --repeats 5"
         )
     )
     story += subsection("Required environment variables")
@@ -945,6 +961,9 @@ def build_story():
                 ["Evidence", "Selected configuration", "MLflow run ID"],
                 ["Legacy retrieval evaluator", "fixed-hybrid-top3", "ba6464e78f014a6db1d21af5c39d508f"],
                 ["Managed six-judge comparison", "fixed-hybrid-top5", "e6034e3cda2f4582ab5fac02132b4687"],
+                ["Corrected core-v2 champion", "fixed-hybrid-top5", "96c173dc72b8408c8541e49ddff7ae7f"],
+                ["Champion latency benchmark", "fixed-hybrid-top5", "ae428d443faa4487a2c01659b2923281"],
+                ["Challenger latency benchmark", "fixed-semantic-top3", "c672c620f2b242a9a7a3baf6d4614b1a"],
                 ["Ablation baseline", "strict prompt, Qwen, temp 0.1", "f8eb6177b0a44c2e91cbd27926ca3efd"],
                 ["Selected structured prompt", "structured prompt, Qwen, temp 0.1", "1528a96621d54a93819f01eab6b600a0"],
                 ["Model comparison", "strict prompt, GPT-OSS-120B, temp 0.1", "6db207d1847d4d96af0f42905fcf1bf1"],
@@ -957,6 +976,9 @@ def build_story():
     for text in [
         "artifacts/rag_evaluation_summary.json - complete legacy eight-profile comparison.",
         "artifacts/genai_evaluation_comparison.json - complete managed six-judge ranking.",
+        "artifacts/genai_evaluation_comparison_core_v2.json - corrected fractional fact-coverage ranking.",
+        "artifacts/latency_benchmark_fixed-hybrid-top5.json - 75-request champion retrieval benchmark.",
+        "artifacts/latency_benchmark_fixed-semantic-top3.json - 75-request challenger retrieval benchmark.",
         "artifacts/inference_ablation/comparison.json - complete prompt/model/temperature comparison.",
         "README.md - setup, architecture, dataset access, commands, evaluation results, and training exemption.",
         "MLOPS_LOG.md - chronological implementation and manual-verification record.",
@@ -975,7 +997,7 @@ def build_story():
     story.append(
         p(
             'Repository: <link href="https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline" color="#2867A8">MLOps-for-Legal-Aid-RAG-pipeline</link><br/>'
-            'Submission branch: <b>8-m1-submission</b><br/>'
+            'Post-M1 branch: <b>9-post-m1-fixes</b><br/>'
             'Public corpus: <link href="https://drive.google.com/drive/folders/103phLHYLT7Pv464nQ47e-lUl_J3DKquT?usp=drive_link" color="#2867A8">Google Drive corpus folder</link>',
             "SmallReport",
         )
