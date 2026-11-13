@@ -1,0 +1,437 @@
+{
+  "status": "completed",
+  "timestamp_utc": "2026-11-13T17:36:35.919960+00:00",
+  "run_id": "0c4c66a00d1c41b2add2d4ba6791d7b9",
+  "retrieval_profile": "fixed-hybrid-top5",
+  "repeats": 2,
+  "query_count": 3,
+  "judge_enabled": false,
+  "shared_retrieval_context": true,
+  "unmeasured_generation_cooldown_seconds": 20.0,
+  "configs": {
+    "baseline-low-temp": {
+      "prompt_variant": "strict_grounded_v1",
+      "model": "qwen/qwen3.8-27b",
+      "temperature": 0.1,
+      "summary": {
+        "sample_count": 6,
+        "successful_count": 6,
+        "failure_count": 0,
+        "retried_call_count": 0,
+        "retrieval_ms": {
+          "mean": 4601.088,
+          "median": 4426.901,
+          "p95": 5635.379,
+          "min": 3812.396,
+          "max": 5905.584
+        },
+        "generation_ms": {
+          "mean": 1169.667,
+          "median": 758.5,
+          "p95": 2266.5,
+          "min": 635.0,
+          "max": 2456.0
+        },
+        "total_ms": {
+          "mean": 5770.754,
+          "median": 5329.578,
+          "p95": 7426.541,
+          "min": 4524.396,
+          "max": 7603.584
+        }
+      },
+      "records": [
+        {
+          "repeat": 1,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 4439.411,
+          "generation_ms": 2456.0,
+          "total_ms": 6895.411,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 1,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4414.391,
+          "generation_ms": 785.0,
+          "total_ms": 5199.391,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 1,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 3812.396,
+          "generation_ms": 712.0,
+          "total_ms": 4524.396000000001,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 5905.584,
+          "generation_ms": 1698.0,
+          "total_ms": 7603.584,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4209.978,
+          "generation_ms": 732.0,
+          "total_ms": 4941.978,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 4824.765,
+          "generation_ms": 635.0,
+          "total_ms": 5459.765,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        }
+      ]
+    },
+    "prompt-structured": {
+      "prompt_variant": "structured_legal_v2",
+      "model": "qwen/qwen3.8-27b",
+      "temperature": 0.1,
+      "summary": {
+        "sample_count": 6,
+        "successful_count": 6,
+        "failure_count": 0,
+        "retried_call_count": 0,
+        "retrieval_ms": {
+          "mean": 4601.088,
+          "median": 4426.901,
+          "p95": 5635.379,
+          "min": 3812.396,
+          "max": 5905.584
+        },
+        "generation_ms": {
+          "mean": 1389.5,
+          "median": 1377.0,
+          "p95": 1548.25,
+          "min": 1276.0,
+          "max": 1593.0
+        },
+        "total_ms": {
+          "mean": 5990.588,
+          "median": 5746.401,
+          "p95": 7043.629,
+          "min": 5405.396,
+          "max": 7319.584
+        }
+      },
+      "records": [
+        {
+          "repeat": 1,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 4439.411,
+          "generation_ms": 1363.0,
+          "total_ms": 5802.411,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 1,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4414.391,
+          "generation_ms": 1276.0,
+          "total_ms": 5690.391,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 1,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 3812.396,
+          "generation_ms": 1593.0,
+          "total_ms": 5405.396000000001,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 5905.584,
+          "generation_ms": 1414.0,
+          "total_ms": 7319.584,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4209.978,
+          "generation_ms": 1300.0,
+          "total_ms": 5509.978,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 4824.765,
+          "generation_ms": 1391.0,
+          "total_ms": 6215.765,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        }
+      ]
+    },
+    "model-b": {
+      "prompt_variant": "strict_grounded_v1",
+      "model": "openai/gpt-oss-120b",
+      "temperature": 0.1,
+      "summary": {
+        "sample_count": 6,
+        "successful_count": 6,
+        "failure_count": 0,
+        "retried_call_count": 0,
+        "retrieval_ms": {
+          "mean": 4601.088,
+          "median": 4426.901,
+          "p95": 5635.379,
+          "min": 3812.396,
+          "max": 5905.584
+        },
+        "generation_ms": {
+          "mean": 1585.0,
+          "median": 1589.5,
+          "p95": 1844.25,
+          "min": 1322.0,
+          "max": 1861.0
+        },
+        "total_ms": {
+          "mean": 6186.088,
+          "median": 6090.578,
+          "p95": 7349.791,
+          "min": 5371.396,
+          "max": 7699.584
+        }
+      },
+      "records": [
+        {
+          "repeat": 1,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 4439.411,
+          "generation_ms": 1861.0,
+          "total_ms": 6300.411,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b"
+        },
+        {
+          "repeat": 1,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4414.391,
+          "generation_ms": 1620.0,
+          "total_ms": 6034.391,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b"
+        },
+        {
+          "repeat": 1,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 3812.396,
+          "generation_ms": 1559.0,
+          "total_ms": 5371.396000000001,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b"
+        },
+        {
+          "repeat": 2,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 5905.584,
+          "generation_ms": 1794.0,
+          "total_ms": 7699.584,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b"
+        },
+        {
+          "repeat": 2,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4209.978,
+          "generation_ms": 1354.0,
+          "total_ms": 5563.978,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b"
+        },
+        {
+          "repeat": 2,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 4824.765,
+          "generation_ms": 1322.0,
+          "total_ms": 6146.765,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b"
+        }
+      ]
+    },
+    "temperature-high": {
+      "prompt_variant": "strict_grounded_v1",
+      "model": "qwen/qwen3.8-27b",
+      "temperature": 0.7,
+      "summary": {
+        "sample_count": 6,
+        "successful_count": 6,
+        "failure_count": 0,
+        "retried_call_count": 0,
+        "retrieval_ms": {
+          "mean": 4601.088,
+          "median": 4426.901,
+          "p95": 5635.379,
+          "min": 3812.396,
+          "max": 5905.584
+        },
+        "generation_ms": {
+          "mean": 1036.0,
+          "median": 937.0,
+          "p95": 1480.5,
+          "min": 697.0,
+          "max": 1522.0
+        },
+        "total_ms": {
+          "mean": 5637.088,
+          "median": 5370.372,
+          "p95": 6936.541,
+          "min": 4677.396,
+          "max": 7261.584
+        }
+      },
+      "records": [
+        {
+          "repeat": 1,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 4439.411,
+          "generation_ms": 1522.0,
+          "total_ms": 5961.411,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 1,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4414.391,
+          "generation_ms": 767.0,
+          "total_ms": 5181.391,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 1,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 3812.396,
+          "generation_ms": 865.0,
+          "total_ms": 4677.396000000001,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "Who inherits property when a person dies without a will?",
+          "retrieval_ms": 5905.584,
+          "generation_ms": 1356.0,
+          "total_ms": 7261.584,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "What is the share of a daughter in Islamic inheritance?",
+          "retrieval_ms": 4209.978,
+          "generation_ms": 1009.0,
+          "total_ms": 5218.978,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        },
+        {
+          "repeat": 2,
+          "query": "Can a non-Muslim inherit from a Muslim's estate?",
+          "retrieval_ms": 4824.765,
+          "generation_ms": 697.0,
+          "total_ms": 5521.765,
+          "request_attempts": 1,
+          "success": true,
+          "error": null,
+          "provider": "groq",
+          "model": "qwen/qwen3.8-27b"
+        }
+      ]
+    }
+  }
+}

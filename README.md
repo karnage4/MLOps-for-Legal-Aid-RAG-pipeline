@@ -357,6 +357,34 @@ delays and one generation retry varied between runs; use the separate
 75-request warm benchmark for retrieval-speed decisions. With three reviewed
 examples, these deltas demonstrate behavior rather than generalizability.
 
+To test whether those large ablation times were intrinsic or transient, a
+controlled warm rerun was completed on 2026-11-13. It used the same three
+questions, two repeats, one shared retrieval result per question/repeat,
+rotated configuration order, and a 20-second unmeasured cooldown between Groq
+requests. Judges were disabled so their latency could not contaminate the
+measurement. All 24 generation requests succeeded with zero retries:
+
+| Configuration | Generation median | Generation p95 | Total median | Total p95 | Retries/failures |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Baseline | 759 ms | 2,267 ms | 5,330 ms | 7,427 ms | 0 / 0 |
+| Structured prompt | 1,377 ms | 1,548 ms | 5,746 ms | 7,044 ms | 0 / 0 |
+| GPT-OSS-120B | 1,590 ms | 1,844 ms | 6,091 ms | 7,350 ms | 0 / 0 |
+| High temperature | 937 ms | 1,481 ms | 5,370 ms | 6,937 ms | 0 / 0 |
+
+The shared retrieval median was 4,427 ms. The clean rerun therefore does not
+reproduce the earlier 52.7-106.6 second averages: prompt/model/temperature
+generation itself took about 0.76-1.59 seconds at the median. The earlier
+outliers were dominated by transient Pinecone/Groq network and retry delays,
+not a stable cost of the non-baseline configurations. Reproduce the check with:
+
+```bash
+python -m src.inference_latency_benchmark --repeats 2 --cooldown-seconds 20
+```
+
+The full result is stored in
+`artifacts/inference_latency_benchmark_core_v2.json` and MLflow run
+`0c4c66a00d1c41b2add2d4ba6791d7b9`.
+
 ### Fixed-profile retrieval smoke test
 
 Run all four fixed retrieval combinations without calling a generation model

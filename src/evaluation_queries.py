@@ -20,3 +20,8 @@ TEST_QUERIES = [
     "Can a gift given during lifetime affect inheritance share?",
     "What is the waiting period before inheritance can be claimed?",
 ]
+
+# Canonical held-out inference set used by the managed MLflow dataset and the
+# prompt/model/temperature ablation. Keep latency reruns on this same scope so
+# their results are directly comparable with the original experiment.
+MANAGED_EVALUATION_QUERIES = tuple(TEST_QUERIES[:3])

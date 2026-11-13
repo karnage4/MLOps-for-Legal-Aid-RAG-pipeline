@@ -831,6 +831,17 @@ all-or-nothing correctness results while preserving the RAG architecture.
   while giving up 0.1389 absolute fact coverage. The deployment choice is
   therefore explicit: hybrid top-5 for maximum coverage, semantic top-3 for
   interactive latency.
+- Rechecked all four inference-ablation settings with two repeats across the
+  same three held-out questions. Retrieval context was shared within each
+  question/repeat, call order was rotated, judges were disabled, and the
+  20-second quota cooldown was excluded from timing. All 24 generation calls
+  succeeded with zero retries or failures in MLflow run
+  `0c4c66a00d1c41b2add2d4ba6791d7b9`.
+- Generation medians were 759 ms (baseline), 1,377 ms (structured prompt),
+  1,590 ms (GPT-OSS-120B), and 937 ms (temperature 0.7); total medians were
+  5,330, 5,746, 6,091, and 5,370 ms respectively. The earlier 52.7-106.6
+  second averages were not reproduced and are attributed to transient
+  Pinecone/Groq stalls and retries rather than stable configuration cost.
 
 ## Change history
 
@@ -886,3 +897,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-13 | `9-post-m1-fixes` | SDK readback verified both latency runs as `FINISHED` with the expected 15-query, five-repeat parameters and matching stored metrics. Generated and visually verified a revised 18-page PDF report and seven-slide editable PPTX covering core-v2 fact coverage, the 150-request latency comparison, 108 passing tests, and the champion-challenger deployment recommendation. |
 | 2026-11-13 | `9-post-m1-fixes` | Re-ran all four prompt/model/temperature configurations with the corrected core-v2 lineage and preserved the original six-judge artifacts. The quality-first rule selects temperature 0.7 at 0.8333 fact coverage, while groundedness falls to 0.6667; the structured prompt is the balanced challenger at 0.8667 groundedness/retrieval relevance and 0.9333 query relevance. Two model-run attempts remain partial evidence because transient Pinecone DNS/read failures produced only 1/3 predictions. Added bounded Pinecone transport retries and passed the complete 109-test regression. |
 | 2026-11-13 | `9-post-m1-fixes` | Updated the README, concise brief, 18-page report, and seven-slide core-v2 deck with the corrected inference ablation. The PDF passed full 18-page render inspection. The new PPTX passed package and layout validation with seven slides, two editable charts, and zero findings; native PowerPoint screenshot capture was unavailable in this session, so that limitation remains explicit. |
+| 2026-11-13 | `9-post-m1-fixes` | Completed a controlled 24-call inference-latency rerun across the four prompt/model/temperature configurations. Shared warm retrieval, rotated order, disabled judges, and unmeasured quota cooldown removed major confounders. All calls passed without retries; generation medians were 0.759-1.590 seconds and total medians 5.330-6.091 seconds, confirming the original 52.7-106.6 second outliers were transient network/retry effects. |
