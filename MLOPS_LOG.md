@@ -106,6 +106,10 @@ and guarantee that every push to `main` builds the production image.
 - GitHub Actions run `43652143632` (`a683f28`) completed successfully:
   `Ruff lint`, `Pytest`, and `Docker build` all passed. The Docker job built and
   inspected the production image on Ubuntu without credentials.
+- Created the previously missing remote `main` branch from verified commit
+  `3a3c422` without overwriting any history. Its automatically triggered run
+  `43652828766` also passed `Ruff lint`, `Pytest`, and `Docker build`, directly
+  demonstrating the rubric-required build on a push to `main`.
 
 ## Phase 1 — MLflow integration
 
