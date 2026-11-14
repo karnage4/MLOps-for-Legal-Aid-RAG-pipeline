@@ -27,6 +27,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
 | 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
+| 11 | M2 Render deployment | `12-m2-render-deployment` | In progress | Blueprint prepared; live service and endpoint checks pending | Pending |
 
 ## Phase 9 — M2 containerization
 

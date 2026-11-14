@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: legal-aid-rag-api
+    runtime: docker
+    repo: https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
+    branch: main
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      # Render prompts for these secrets during initial Blueprint creation.
+      # Never replace sync: false with committed credential values.
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+      # Non-secret production settings are explicit and reproducible.
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
+      - key: GROQ_MAX_ATTEMPTS
+        value: "3"
+      - key: BM25_CANDIDATE_K
+        value: "10"
+      - key: SEMANTIC_CANDIDATE_K
+        value: "10"
+      - key: RERANK_CANDIDATE_K
+        value: "12"
+      - key: PINECONE_QUERY_MAX_ATTEMPTS
+        value: "3"
+      - key: PINECONE_RETRY_BASE_SECONDS
+        value: "1.5"
+      - key: MLFLOW_EXPERIMENT_NAME
+        value: legal-aid-rag-render

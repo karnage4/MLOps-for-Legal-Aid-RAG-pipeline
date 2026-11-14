@@ -764,6 +764,47 @@ ruff check src tests gradio_app.py
 python -m pytest -q
 ```
 
+### Render deployment
+
+[`render.yaml`](render.yaml) defines the API as a Docker web service in
+Render's Virginia region, where it is close to the Pinecone index in
+`us-east-1`. It deploys from `main` only after the GitHub CI checks pass and
+uses `/health` as Render's application-level readiness check.
+
+Create the service from the Render Dashboard with **New > Blueprint**, select
+this repository, and confirm the `render.yaml` path. Render will prompt for
+the two protected values below during the initial Blueprint creation:
+
+- `PINECONE_API_KEY`
+- `GROQ_API_KEY`
+
+Do not paste either value into `render.yaml`, a Docker build argument, a GitHub
+workflow, or a screenshot. All remaining runtime settings are non-secret and
+versioned in the Blueprint. The Docker command binds uvicorn to `0.0.0.0` and
+Render's `PORT`; a single worker prevents duplicate transformer models in
+memory.
+
+The first deployment intentionally uses Render's `free` plan so its actual
+resource behavior can be measured without cost. That plan provides 512 MB RAM,
+spins down after 15 minutes without traffic, and can take about a minute to
+wake. PyTorch plus the embedding and reranking models may exceed that memory.
+If the Render Events or Logs page reports an out-of-memory restart, change
+`plan: free` to `plan: 1c-2g`, sync the Blueprint, and redeploy; do not remove
+the models or alter retrieval merely to hide the resource limit.
+
+After Render reports **Live**, replace `<render-service-url>` and run:
+
+```bash
+curl <render-service-url>/health
+curl <render-service-url>/docs
+curl -X POST <render-service-url>/predict \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"fixed","retrieval_mode":"hybrid","top_k":5,"temperature":0.1}'
+```
+
+The live URL and deploy evidence will be recorded here after the first
+successful Render deployment.
+
 ## MLflow Integration — Phase 1
 
 This working copy preserves the original retrieval architecture while using Groq as the sole generation provider. The retired Hugging Face model and its guaranteed-failure request were removed from the runtime path. `GROQ_API_KEY` is loaded from `.env`; the optional `GROQ_MODEL` selects the generation model and currently defaults to `qwen/qwen3.8-27b`. Transient Groq failures are retried up to `GROQ_MAX_ATTEMPTS` times (default: 3). If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.
