@@ -1,0 +1,11 @@
+# Production dependencies for the containerized FastAPI RAG service.
+fastapi==0.161.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+sentence-transformers==6.2.0
+pinecone==10.1.0
+rank-bm25==0.2.2
+nltk==3.10.4
+requests==2.34.2
+python-dotenv==1.2.4
+mlflow==3.17.2

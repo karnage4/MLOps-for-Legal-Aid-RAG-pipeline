@@ -97,6 +97,8 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/genai_comparison.py`: Resumes and compares the complete eight-profile MLflow GenAI evaluation matrix.
 - `src/inference_ablation.py`: Runs the controlled prompt, generation-model, and temperature comparisons.
 - `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
+- `Dockerfile`, `.dockerignore`, and `requirements-api.txt`: Define the minimal, secret-safe FastAPI production image and its healthcheck.
+- `output/bm25_corpus.json`: Versioned recursive BM25 runtime artifact packaged in the API image; raw corpus PDFs remain outside Git.
 - `gradio_app.py`: Provides the local Miras interface while calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 - `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
@@ -694,7 +696,46 @@ This project does not perform task-specific supervised model training. It uses p
 
 ## Deployment Notes
 
-The repository retains its Docker configuration, but Hugging Face Space deployment is intentionally deferred until the milestone's local pipeline, API, and tests are complete.
+Milestone 2 packages the FastAPI service for Render. The production image runs
+one uvicorn worker, listens on Render's `PORT` (8000 locally), and reports
+healthy only after the recursive retriever has loaded successfully. This RAG
+project has no task-specific trained model file; its equivalent versioned
+runtime artifact is `output/bm25_corpus.json`, while dense vectors remain in
+Pinecone and pretrained embedding/reranking weights are resolved by
+Sentence Transformers.
+
+Build and run locally from this directory:
+
+```bash
+docker build --tag legal-aid-rag-api:m2-phase10 .
+docker run --detach --name legal-aid-rag-api \
+  --env-file .env --publish 8000:8000 \
+  legal-aid-rag-api:m2-phase10
+```
+
+The `.env` file is supplied only at runtime and is excluded from the Docker
+build context. Verify the container with:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/docs
+curl -X POST http://127.0.0.1:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Who inherits property when a person dies without a will?","retrieval_mode":"hybrid","top_k":5,"temperature":0.1}'
+docker inspect --format '{{json .State.Health}}' legal-aid-rag-api
+```
+
+Stop and remove only this named test container afterward:
+
+```bash
+docker stop legal-aid-rag-api
+docker rm legal-aid-rag-api
+```
+
+The deny-by-default `.dockerignore` permits only the Dockerfile, production
+requirements, `src/`, and the recursive BM25 artifact into the build context.
+It excludes credentials, local MLflow state, virtual environments, caches,
+tests, reports, generated presentations, and the raw legal corpus.
 
 ## MLflow Integration — Phase 1
 

@@ -7,7 +7,10 @@ This file is the running record for introducing MLOps features one at a time. Up
 - `Legal-Aid-RAG-main/` is the read-only baseline and must not be edited.
 - Preserve the original RAG stack and variable names unless a later phase explicitly changes them.
 - Add one MLOps capability per branch and manually verify it before starting the next capability.
-- Never commit `.env`, API tokens, `mlflow.db`, `mlruns/`, downloaded models, or generated corpus output.
+- Never commit `.env`, API tokens, `mlflow.db`, `mlruns/`, downloaded models,
+  raw corpus files, or general generated output. The reviewed recursive BM25
+  JSON is the sole exception because it is the required versioned serving
+  artifact for the Milestone-2 container.
 - Record real run IDs, trace IDs, results, and failures; do not substitute estimated metrics.
 
 ## Phase overview
@@ -22,6 +25,47 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
+| 9 | M2 containerization | `10-m2-containerization` | Implemented | Static/API tests passed; local image build blocked by broken Docker Desktop WSL registration | In progress |
+
+## Phase 9 — M2 containerization
+
+### Objective
+
+Replace the obsolete Streamlit container with a reproducible, secret-safe
+FastAPI image suitable for Render, including a real `/health` Docker
+healthcheck and the versioned RAG serving artifact.
+
+### Implemented
+
+- Replaced the port-7860 Streamlit command with one unprivileged uvicorn worker
+  serving `src.app:app` on `${PORT:-8000}`.
+- Added a 180-second cold-start grace period and a Docker healthcheck calling
+  `/health`.
+- Added pinned API-only dependencies and an allow-listed Docker context that
+  cannot copy `.env`, local MLflow data, virtual environments, tests, reports,
+  caches, or raw corpus files.
+- Added the validated 3,593-entry recursive BM25 JSON as the only versioned
+  runtime corpus artifact. Pinecone retains dense vectors and secrets remain
+  runtime environment variables.
+- Added static regression tests for the command, port, worker count,
+  healthcheck, build-context allow list, and runtime artifact presence.
+
+### Verification status
+
+- Focused API/container suite: 8 passed.
+- Complete repository regression: 115 passed with one pre-existing MLflow
+  SQLAlchemy deprecation warning.
+- Local environment dependency check: no broken requirements.
+- Runtime artifact: 3,593 IDs, 3,593 non-empty texts, SHA-256
+  `51C8B6CD081F954F3E5D94D4676E98FFCCB46556C6BC5FD88A736207447DCDC2`.
+- Docker build attempt did not reach Dockerfile execution. Docker Desktop 4.91
+  failed while registering its WSL distribution with
+  `Wsl/Service/RegisterDistro/CreateVm/HCS/ERROR_FILE_NOT_FOUND`. A safe WSL
+  shutdown/restart reproduced the host failure. No Docker data was reset or
+  deleted.
+- The image-build and live container smoke-test acceptance gate remains open.
+  The next CI phase will run the same Docker build on a clean GitHub Linux
+  runner; local verification can be repeated after Docker Desktop is repaired.
 
 ## Phase 1 — MLflow integration
 
