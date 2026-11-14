@@ -30,7 +30,7 @@ import time
 import re
 import numpy as np
 import requests
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Optional
 
 from sentence_transformers import SentenceTransformer
 

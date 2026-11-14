@@ -126,7 +126,7 @@ def init_pinecone_index(api_key: str, index_name: str) -> object:
             "Get it at: https://app.pinecone.io → API Keys"
         )
 
-    print(f"\nConnecting to Pinecone...")
+    print("\nConnecting to Pinecone...")
     pc = Pinecone(api_key=api_key)
 
     existing = [idx.name for idx in pc.list_indexes()]

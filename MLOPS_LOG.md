@@ -26,6 +26,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
 | 9 | M2 containerization | `10-m2-containerization` | Implemented | Static/API tests passed; local image build blocked by broken Docker Desktop WSL registration | In progress |
+| 10 | M2 continuous integration | `11-m2-ci` | Implemented | Local Ruff and focused regression passed; GitHub jobs pending | In progress |
 
 ## Phase 9 — M2 containerization
 
@@ -71,6 +72,36 @@ healthcheck and both versioned RAG serving artifacts.
 - The image-build and live container smoke-test acceptance gate remains open.
   The next CI phase will run the same Docker build on a clean GitHub Linux
   runner; local verification can be repeated after Docker Desktop is repaired.
+
+## Phase 10 — M2 continuous integration
+
+### Objective
+
+Provide visible, automated lint, test, and Docker-build checks for every change
+and guarantee that every push to `main` builds the production image.
+
+### Implemented
+
+- Added `.github/workflows/ci.yml` with independent `Ruff lint`, `Pytest`, and
+  `Docker build` jobs on pushes, pull requests, and manual dispatches.
+- Restricted the workflow token to read-only repository contents and enabled
+  branch-aware concurrency cancellation.
+- Pinned Ruff 0.17.5 in `requirements-dev.txt` and configured a stable
+  correctness baseline (`E4`, `E7`, `E9`, and `F`) for source, tests, and the
+  Gradio entry point.
+- Resolved seven real baseline findings: unused imports/variables, one
+  unnecessary f-string, and the obsolete NLTK production dependency. The two
+  Gradio post-environment imports are explicitly documented and ignored.
+- Used Python 3.12 and pip caches for CI parity with the Docker image. The
+  Docker job performs a real `docker build` and image inspection without
+  requiring repository secrets or pushing an image.
+
+### Verification status
+
+- Local Ruff: passed with zero findings.
+- Focused API, container, Gradio, and retrieval regression: 32 passed.
+- GitHub Actions verification is pending the first push containing the
+  workflow.
 
 ## Phase 1 — MLflow integration
 

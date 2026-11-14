@@ -320,7 +320,7 @@ def build_demo() -> gr.Blocks:
                     )
                     with gr.Row():
                         ask = gr.Button("Ask Miras →", variant="primary", elem_id="ask-button")
-                        clear = gr.ClearButton(value="Clear", components=[query])
+                        gr.ClearButton(value="Clear", components=[query])
                     gr.Examples(
                         examples=[[question] for question in EXAMPLE_QUESTIONS],
                         inputs=[query],

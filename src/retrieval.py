@@ -21,13 +21,11 @@ Import in your app:
 
 import os
 import json
-import math
 import re
 import time
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
-import nltk
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from pinecone import Pinecone, PineconeConnectionError, PineconeTimeoutError

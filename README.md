@@ -743,6 +743,27 @@ requirements, `src/`, and both BM25 artifacts into the build context.
 It excludes credentials, local MLflow state, virtual environments, caches,
 tests, reports, generated presentations, and the raw legal corpus.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push, pull request, and manual
+dispatch with three separately visible jobs:
+
+- **Ruff lint** checks `src/`, `tests/`, and `gradio_app.py` using the pinned
+  version in `requirements-dev.txt`;
+- **Pytest** installs the project environment and runs the complete test suite;
+- **Docker build** builds and inspects the production API image on a clean
+  Linux runner.
+
+Because pushes are not branch-restricted, every push to `main` automatically
+runs the required Docker build as well as lint and tests. Run the first two
+checks locally with:
+
+```bash
+python -m pip install -r requirements-dev.txt
+ruff check src tests gradio_app.py
+python -m pytest -q
+```
+
 ## MLflow Integration — Phase 1
 
 This working copy preserves the original retrieval architecture while using Groq as the sole generation provider. The retired Hugging Face model and its guaranteed-failure request were removed from the runtime path. `GROQ_API_KEY` is loaded from `.env`; the optional `GROQ_MODEL` selects the generation model and currently defaults to `qwen/qwen3.8-27b`. Transient Groq failures are retried up to `GROQ_MAX_ATTEMPTS` times (default: 3). If no MLflow environment variables are supplied, runs and traces are stored locally in `mlflow.db` under this project folder.

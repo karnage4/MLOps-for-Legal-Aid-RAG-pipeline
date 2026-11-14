@@ -1,0 +1,11 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+# Stable baseline: import/syntax errors, undefined names, and unused code.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Gradio sets MPLCONFIGDIR before importing packages that initialize Matplotlib.
+"gradio_app.py" = ["E402"]
