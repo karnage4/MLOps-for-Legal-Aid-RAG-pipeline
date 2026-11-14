@@ -20,7 +20,9 @@ RUN addgroup --system app \
 
 COPY --chown=app:app src ./src
 COPY --chown=app:app output/bm25_corpus.json ./output/bm25_corpus.json
-RUN test -s /app/output/bm25_corpus.json
+COPY --chown=app:app output/bm25_corpus_fixed.json ./output/bm25_corpus_fixed.json
+RUN test -s /app/output/bm25_corpus.json \
+    && test -s /app/output/bm25_corpus_fixed.json
 
 USER app
 

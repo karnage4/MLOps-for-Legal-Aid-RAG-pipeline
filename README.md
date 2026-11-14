@@ -98,7 +98,7 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/inference_ablation.py`: Runs the controlled prompt, generation-model, and temperature comparisons.
 - `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
 - `Dockerfile`, `.dockerignore`, and `requirements-api.txt`: Define the minimal, secret-safe FastAPI production image and its healthcheck.
-- `output/bm25_corpus.json`: Versioned recursive BM25 runtime artifact packaged in the API image; raw corpus PDFs remain outside Git.
+- `output/bm25_corpus.json` and `output/bm25_corpus_fixed.json`: Versioned recursive and fixed BM25 runtime artifacts packaged in the API image; raw corpus PDFs remain outside Git.
 - `gradio_app.py`: Provides the local Miras interface while calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 - `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
@@ -698,11 +698,13 @@ This project does not perform task-specific supervised model training. It uses p
 
 Milestone 2 packages the FastAPI service for Render. The production image runs
 one uvicorn worker, listens on Render's `PORT` (8000 locally), and reports
-healthy only after the recursive retriever has loaded successfully. This RAG
-project has no task-specific trained model file; its equivalent versioned
-runtime artifact is `output/bm25_corpus.json`, while dense vectors remain in
-Pinecone and pretrained embedding/reranking weights are resolved by
-Sentence Transformers.
+healthy only after both retrievers have loaded successfully. This RAG project
+has no task-specific trained model file; its equivalent versioned runtime
+artifacts are `output/bm25_corpus.json` (recursive, 3,593 chunks) and
+`output/bm25_corpus_fixed.json` (fixed, 883 chunks). Dense vectors remain in
+the matching Pinecone default and `fixed` namespaces, while pretrained
+embedding/reranking weights are resolved by Sentence Transformers. Both
+retrievers share the same dense models and Pinecone client.
 
 Build and run locally from this directory:
 
@@ -721,9 +723,13 @@ curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/docs
 curl -X POST http://127.0.0.1:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"query":"Who inherits property when a person dies without a will?","retrieval_mode":"hybrid","top_k":5,"temperature":0.1}'
+  -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"recursive","retrieval_mode":"hybrid","top_k":5,"temperature":0.1}'
 docker inspect --format '{{json .State.Health}}' legal-aid-rag-api
 ```
+
+Set `"chunking_strategy":"fixed"` in the same request to use the 883-chunk
+fixed artifact and Pinecone's `fixed` namespace. Omitting the field preserves
+the recursive default.
 
 Stop and remove only this named test container afterward:
 
@@ -733,7 +739,7 @@ docker rm legal-aid-rag-api
 ```
 
 The deny-by-default `.dockerignore` permits only the Dockerfile, production
-requirements, `src/`, and the recursive BM25 artifact into the build context.
+requirements, `src/`, and both BM25 artifacts into the build context.
 It excludes credentials, local MLflow state, virtual environments, caches,
 tests, reports, generated presentations, and the raw legal corpus.
 

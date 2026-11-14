@@ -8,9 +8,9 @@ This file is the running record for introducing MLOps features one at a time. Up
 - Preserve the original RAG stack and variable names unless a later phase explicitly changes them.
 - Add one MLOps capability per branch and manually verify it before starting the next capability.
 - Never commit `.env`, API tokens, `mlflow.db`, `mlruns/`, downloaded models,
-  raw corpus files, or general generated output. The reviewed recursive BM25
-  JSON is the sole exception because it is the required versioned serving
-  artifact for the Milestone-2 container.
+  raw corpus files, or general generated output. The reviewed recursive and
+  fixed BM25 JSON files are the sole exceptions because they are the required
+  versioned serving artifacts for the Milestone-2 container.
 - Record real run IDs, trace IDs, results, and failures; do not substitute estimated metrics.
 
 ## Phase overview
@@ -33,7 +33,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 
 Replace the obsolete Streamlit container with a reproducible, secret-safe
 FastAPI image suitable for Render, including a real `/health` Docker
-healthcheck and the versioned RAG serving artifact.
+healthcheck and both versioned RAG serving artifacts.
 
 ### Implemented
 
@@ -44,20 +44,25 @@ healthcheck and the versioned RAG serving artifact.
 - Added pinned API-only dependencies and an allow-listed Docker context that
   cannot copy `.env`, local MLflow data, virtual environments, tests, reports,
   caches, or raw corpus files.
-- Added the validated 3,593-entry recursive BM25 JSON as the only versioned
-  runtime corpus artifact. Pinecone retains dense vectors and secrets remain
-  runtime environment variables.
+- Added the validated 3,593-entry recursive and 883-entry fixed BM25 JSON files
+  as versioned runtime corpus artifacts. `/predict` validates a
+  `chunking_strategy` choice and routes to the matching BM25 artifact and
+  Pinecone namespace. Both retrievers share one embedding model, reranker, and
+  Pinecone client. Secrets remain runtime environment variables.
 - Added static regression tests for the command, port, worker count,
   healthcheck, build-context allow list, and runtime artifact presence.
 
 ### Verification status
 
-- Focused API/container suite: 8 passed.
-- Complete repository regression: 115 passed with one pre-existing MLflow
+- Focused API/container suite: 10 passed; the broader API/container/retrieval
+  profile suite passed all 26 tests.
+- Complete repository regression: 117 passed with one pre-existing MLflow
   SQLAlchemy deprecation warning.
 - Local environment dependency check: no broken requirements.
-- Runtime artifact: 3,593 IDs, 3,593 non-empty texts, SHA-256
+- Recursive runtime artifact: 3,593 IDs, 3,593 non-empty texts, SHA-256
   `51C8B6CD081F954F3E5D94D4676E98FFCCB46556C6BC5FD88A736207447DCDC2`.
+- Fixed runtime artifact: 883 IDs, 883 non-empty texts, SHA-256
+  `E878377705440DC9E599ECD3E3C2B55CD69299A072D23B7F1D806FD9736A7F15`.
 - Docker build attempt did not reach Dockerfile execution. Docker Desktop 4.91
   failed while registering its WSL distribution with
   `Wsl/Service/RegisterDistro/CreateVm/HCS/ERROR_FILE_NOT_FOUND`. A safe WSL

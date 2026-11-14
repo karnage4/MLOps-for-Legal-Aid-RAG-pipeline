@@ -15,6 +15,8 @@ DEFAULT_CHUNKING_STRATEGY = "recursive"
 DEFAULT_RETRIEVAL_MODE = "hybrid"
 DEFAULT_TOP_K = 5
 DEFAULT_TEMPERATURE = 0.2
+SUPPORTED_CHUNKING_STRATEGIES = ("recursive", "fixed")
+ChunkingStrategy = Literal["recursive", "fixed"]
 
 
 def build_retriever(chunking_strategy: str) -> dict[str, Any]:
@@ -22,6 +24,15 @@ def build_retriever(chunking_strategy: str) -> dict[str, Any]:
     from src.retrieval import build_retriever as implementation
 
     return implementation(chunking_strategy)
+
+
+def build_retrievers(
+    chunking_strategies: tuple[str, ...],
+) -> dict[str, dict[str, Any]]:
+    """Build multiple retrievers while sharing dense models and Pinecone."""
+    from src.retrieval import build_retrievers as implementation
+
+    return implementation(chunking_strategies)
 
 
 def build_profile(
@@ -74,6 +85,44 @@ def load_retriever_components(
     return components
 
 
+@lru_cache(maxsize=1)
+def load_all_retriever_components() -> dict[str, dict[str, Any]]:
+    """Load both deployment strategies with shared dense resources."""
+    retrievers = build_retrievers(SUPPORTED_CHUNKING_STRATEGIES)
+    missing_strategies = sorted(
+        set(SUPPORTED_CHUNKING_STRATEGIES) - retrievers.keys()
+    )
+    if missing_strategies:
+        raise RuntimeError(
+            "Retriever initialization omitted strategies: "
+            + ", ".join(missing_strategies)
+        )
+
+    required = {
+        "bm25",
+        "bm25_ids",
+        "bm25_texts",
+        "pinecone_index",
+        "embedder",
+        "reranker",
+        "chunking_strategy",
+        "pinecone_namespace",
+    }
+    for strategy in SUPPORTED_CHUNKING_STRATEGIES:
+        components = retrievers[strategy]
+        missing = sorted(required.difference(components))
+        if missing:
+            raise RuntimeError(
+                f"Retriever {strategy!r} returned incomplete components: "
+                + ", ".join(missing)
+            )
+        if components["chunking_strategy"] != strategy:
+            raise RuntimeError(
+                f"Retriever key {strategy!r} does not match its component strategy"
+            )
+    return retrievers
+
+
 class PredictionRequest(BaseModel):
     """Validated public prediction input."""
 
@@ -86,6 +135,7 @@ class PredictionRequest(BaseModel):
         examples=["What share does a daughter receive in Islamic inheritance?"],
     )
     retrieval_mode: Literal["semantic", "hybrid"] = DEFAULT_RETRIEVAL_MODE
+    chunking_strategy: ChunkingStrategy = DEFAULT_CHUNKING_STRATEGY
     top_k: int = Field(default=DEFAULT_TOP_K, ge=3, le=10)
     temperature: float = Field(default=DEFAULT_TEMPERATURE, ge=0.0, le=1.0)
 
@@ -112,7 +162,7 @@ class PredictionResponse(BaseModel):
     fallback_used: bool
     retrieved_chunks: int = Field(ge=1)
     sources: list[str]
-    chunking_strategy: Literal["recursive"]
+    chunking_strategy: ChunkingStrategy
     retrieval_mode: Literal["semantic", "hybrid"]
     top_k: int
     timings: TimingResponse
@@ -121,34 +171,36 @@ class PredictionResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: Literal["ok"]
     retriever_loaded: bool
-    chunking_strategy: Literal["recursive"]
+    chunking_strategies: list[ChunkingStrategy]
 
 
 def _safe_provider_error(value: Any) -> str:
     return " ".join(str(value or "Unknown generation error").split())[:300]
 
 
-def get_retriever_components(request: Request) -> dict[str, Any]:
-    components = getattr(request.app.state, "retriever_components", None)
-    if components is None:
+def get_retrievers(request: Request) -> dict[str, dict[str, Any]]:
+    retrievers = getattr(request.app.state, "retrievers", None)
+    if retrievers is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="RAG retriever is not initialized",
+            detail="RAG retrievers are not initialized",
         )
-    return components
+    return retrievers
 
 
 def create_app(
     *,
-    retriever_loader: Callable[[], dict[str, Any]] = load_retriever_components,
+    retriever_loader: Callable[
+        [], dict[str, dict[str, Any]]
+    ] = load_all_retriever_components,
 ) -> FastAPI:
     """Create an independently testable API with one startup model load."""
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        application.state.retriever_components = retriever_loader()
+        application.state.retrievers = retriever_loader()
         yield
-        application.state.retriever_components = None
+        application.state.retrievers = None
 
     application = FastAPI(
         title="Legal-Aid RAG API",
@@ -162,12 +214,17 @@ def create_app(
 
     @application.get("/health", response_model=HealthResponse, tags=["operations"])
     def health(
-        components: dict[str, Any] = Depends(get_retriever_components),
+        retrievers: dict[str, dict[str, Any]] = Depends(get_retrievers),
     ) -> HealthResponse:
+        loaded = [
+            strategy
+            for strategy in SUPPORTED_CHUNKING_STRATEGIES
+            if strategy in retrievers
+        ]
         return HealthResponse(
             status="ok",
-            retriever_loaded=bool(components),
-            chunking_strategy=DEFAULT_CHUNKING_STRATEGY,
+            retriever_loaded=len(loaded) == len(SUPPORTED_CHUNKING_STRATEGIES),
+            chunking_strategies=loaded,
         )
 
     @application.post(
@@ -178,11 +235,20 @@ def create_app(
     )
     def predict(
         payload: PredictionRequest,
-        components: dict[str, Any] = Depends(get_retriever_components),
+        retrievers: dict[str, dict[str, Any]] = Depends(get_retrievers),
     ) -> PredictionResponse:
+        components = retrievers.get(payload.chunking_strategy)
+        if components is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    f"Retriever {payload.chunking_strategy!r} is not initialized"
+                ),
+            )
         profile = build_profile(
             retrieval_mode=payload.retrieval_mode,
             top_k=payload.top_k,
+            chunking_strategy=payload.chunking_strategy,
         )
         try:
             result = run_rag_query(
@@ -231,7 +297,7 @@ def create_app(
             fallback_used=bool(generation.get("fallback_used")),
             retrieved_chunks=len(chunks),
             sources=sources,
-            chunking_strategy=DEFAULT_CHUNKING_STRATEGY,
+            chunking_strategy=payload.chunking_strategy,
             retrieval_mode=payload.retrieval_mode,
             top_k=payload.top_k,
             timings=TimingResponse(**timings),

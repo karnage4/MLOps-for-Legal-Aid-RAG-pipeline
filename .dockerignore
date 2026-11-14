@@ -9,3 +9,4 @@ src/**/__pycache__/
 *.py[cod]
 !output/
 !output/bm25_corpus.json
+!output/bm25_corpus_fixed.json

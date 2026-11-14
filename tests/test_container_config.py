@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -24,12 +25,21 @@ def test_docker_context_is_allow_listed_and_excludes_secrets():
     assert "*" in lines
     assert "!src/**" in lines
     assert "!output/bm25_corpus.json" in lines
+    assert "!output/bm25_corpus_fixed.json" in lines
     assert "!.env" not in lines
     assert "!.env.txt" not in lines
 
 
-def test_container_runtime_artifact_exists_and_is_nonempty():
-    corpus = PROJECT_ROOT / "output" / "bm25_corpus.json"
-
-    assert corpus.is_file()
-    assert corpus.stat().st_size > 0
+def test_container_runtime_artifacts_are_complete():
+    expected_counts = {
+        "bm25_corpus.json": 3593,
+        "bm25_corpus_fixed.json": 883,
+    }
+    for filename, expected_count in expected_counts.items():
+        corpus = PROJECT_ROOT / "output" / filename
+        assert corpus.is_file()
+        payload = json.loads(corpus.read_text(encoding="utf-8"))
+        assert len(payload["ids"]) == expected_count
+        assert len(payload["texts"]) == expected_count
+        assert all(payload["ids"])
+        assert all(payload["texts"])

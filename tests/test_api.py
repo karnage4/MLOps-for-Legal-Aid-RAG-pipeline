@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from src import app as api
 
 
-def _components():
+def _components(strategy="recursive"):
     return {
         "bm25": object(),
         "bm25_ids": ["chunk-1"],
@@ -15,9 +15,13 @@ def _components():
         "pinecone_index": object(),
         "embedder": object(),
         "reranker": object(),
-        "chunking_strategy": "recursive",
-        "pinecone_namespace": None,
+        "chunking_strategy": strategy,
+        "pinecone_namespace": "fixed" if strategy == "fixed" else None,
     }
+
+
+def _retrievers():
+    return {strategy: _components(strategy) for strategy in ("recursive", "fixed")}
 
 
 def _successful_result():
@@ -78,11 +82,30 @@ def test_load_retriever_components_rejects_incomplete_loader(monkeypatch):
         api.load_retriever_components.cache_clear()
 
 
+def test_load_all_retrievers_shares_builder_and_validates_both(monkeypatch):
+    api.load_all_retriever_components.cache_clear()
+    calls = []
+
+    def fake_build(strategies):
+        calls.append(strategies)
+        return _retrievers()
+
+    monkeypatch.setattr(api, "build_retrievers", fake_build)
+    try:
+        first = api.load_all_retriever_components()
+        second = api.load_all_retriever_components()
+    finally:
+        api.load_all_retriever_components.cache_clear()
+
+    assert first is second
+    assert calls == [("recursive", "fixed")]
+
+
 def test_predict_returns_validated_compact_response(monkeypatch):
     observed = {}
 
     def fake_profile(**kwargs):
-        return SimpleNamespace(chunking_strategy="recursive", **kwargs)
+        return SimpleNamespace(**kwargs)
 
     def fake_run(query, components, *, temperature, profile):
         observed.update(
@@ -95,7 +118,7 @@ def test_predict_returns_validated_compact_response(monkeypatch):
 
     monkeypatch.setattr(api, "build_profile", fake_profile)
     monkeypatch.setattr(api, "run_rag_query", fake_run)
-    application = api.create_app(retriever_loader=_components)
+    application = api.create_app(retriever_loader=_retrievers)
 
     with TestClient(application) as client:
         response = client.post(
@@ -130,12 +153,40 @@ def test_predict_returns_validated_compact_response(monkeypatch):
     assert observed["profile"].top_k == 3
     assert docs_response.status_code == 200
     assert health_response.json()["retriever_loaded"] is True
+    assert health_response.json()["chunking_strategies"] == ["recursive", "fixed"]
+
+
+def test_predict_selects_fixed_retriever(monkeypatch):
+    observed = {}
+
+    def fake_profile(**kwargs):
+        return SimpleNamespace(**kwargs)
+
+    def fake_run(query, components, *, temperature, profile):
+        observed.update(components=components, profile=profile)
+        return _successful_result()
+
+    monkeypatch.setattr(api, "build_profile", fake_profile)
+    monkeypatch.setattr(api, "run_rag_query", fake_run)
+    application = api.create_app(retriever_loader=_retrievers)
+
+    with TestClient(application) as client:
+        response = client.post(
+            "/predict",
+            json={"query": "Valid question", "chunking_strategy": "fixed"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["chunking_strategy"] == "fixed"
+    assert observed["components"]["chunking_strategy"] == "fixed"
+    assert observed["components"]["pinecone_namespace"] == "fixed"
+    assert observed["profile"].chunking_strategy == "fixed"
 
 
 def test_predict_rejects_invalid_requests_before_pipeline(monkeypatch):
     calls = []
     monkeypatch.setattr(api, "run_rag_query", lambda *args, **kwargs: calls.append(1))
-    application = api.create_app(retriever_loader=_components)
+    application = api.create_app(retriever_loader=_retrievers)
 
     with TestClient(application) as client:
         blank = client.post("/predict", json={"query": "   "})
@@ -145,10 +196,15 @@ def test_predict_rejects_invalid_requests_before_pipeline(monkeypatch):
         extra_field = client.post(
             "/predict", json={"query": "Valid question", "secret": "not allowed"}
         )
+        invalid_strategy = client.post(
+            "/predict",
+            json={"query": "Valid question", "chunking_strategy": "sliding"},
+        )
 
     assert blank.status_code == 422
     assert invalid_top_k.status_code == 422
     assert extra_field.status_code == 422
+    assert invalid_strategy.status_code == 422
     assert calls == []
 
 
@@ -164,10 +220,10 @@ def test_predict_maps_generation_failure_to_bad_gateway(monkeypatch):
     monkeypatch.setattr(
         api,
         "build_profile",
-        lambda **kwargs: SimpleNamespace(chunking_strategy="recursive", **kwargs),
+        lambda **kwargs: SimpleNamespace(**kwargs),
     )
     monkeypatch.setattr(api, "run_rag_query", lambda *args, **kwargs: result)
-    application = api.create_app(retriever_loader=_components)
+    application = api.create_app(retriever_loader=_retrievers)
 
     with TestClient(application) as client:
         response = client.post("/predict", json={"query": "Valid question"})
