@@ -25,8 +25,8 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
-| 9 | M2 containerization | `10-m2-containerization` | Implemented | Static/API tests passed; local image build blocked by broken Docker Desktop WSL registration | In progress |
-| 10 | M2 continuous integration | `11-m2-ci` | Implemented | Local Ruff and focused regression passed; GitHub jobs pending | In progress |
+| 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
+| 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 
 ## Phase 9 — M2 containerization
 
@@ -69,9 +69,10 @@ healthcheck and both versioned RAG serving artifacts.
   `Wsl/Service/RegisterDistro/CreateVm/HCS/ERROR_FILE_NOT_FOUND`. A safe WSL
   shutdown/restart reproduced the host failure. No Docker data was reset or
   deleted.
-- The image-build and live container smoke-test acceptance gate remains open.
-  The next CI phase will run the same Docker build on a clean GitHub Linux
-  runner; local verification can be repeated after Docker Desktop is repaired.
+- GitHub Actions run `43652143632` built and inspected the same image
+  successfully on a clean Linux runner. This closes the clean-build gate; the
+  live `/health` and `/predict` container checks will be completed on Render,
+  while local verification can be repeated after Docker Desktop is repaired.
 
 ## Phase 10 — M2 continuous integration
 
@@ -100,8 +101,11 @@ and guarantee that every push to `main` builds the production image.
 
 - Local Ruff: passed with zero findings.
 - Focused API, container, Gradio, and retrieval regression: 32 passed.
-- GitHub Actions verification is pending the first push containing the
-  workflow.
+- Complete local regression: 117 passed with one pre-existing MLflow
+  SQLAlchemy deprecation warning.
+- GitHub Actions run `43652143632` (`a683f28`) completed successfully:
+  `Ruff lint`, `Pytest`, and `Docker build` all passed. The Docker job built and
+  inspected the production image on Ubuntu without credentials.
 
 ## Phase 1 — MLflow integration
 
