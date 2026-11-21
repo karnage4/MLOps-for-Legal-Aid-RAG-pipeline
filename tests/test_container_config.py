@@ -1,8 +1,25 @@
+import ast
 import json
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _module_string_constants(path: Path) -> dict[str, str]:
+    """Read top-level string constants without importing heavy NLP modules."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    constants = {}
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    constants[target.id] = node.value.value
+    return constants
 
 
 def test_dockerfile_serves_fastapi_and_checks_health():
@@ -16,6 +33,23 @@ def test_dockerfile_serves_fastapi_and_checks_health():
     assert "chown app:app /app" in dockerfile
     assert "USER app" in dockerfile
     assert "streamlit" not in dockerfile.lower()
+
+
+def test_dockerfile_installs_cpu_only_torch():
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "download.pytorch.org/whl/cpu" in dockerfile
+    assert '"torch==$TORCH_VERSION"' in dockerfile
+    assert "torch.version.cuda" in dockerfile
+
+
+def test_dockerfile_preloads_the_models_the_retriever_loads():
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    retrieval = _module_string_constants(PROJECT_ROOT / "src" / "retrieval.py")
+
+    assert f"SentenceTransformer('{retrieval['EMBEDDING_MODEL']}')" in dockerfile
+    assert f"CrossEncoder('{retrieval['RERANKER_MODEL']}'" in dockerfile
+    assert "HF_HUB_OFFLINE" in dockerfile
 
 
 def test_docker_context_is_allow_listed_and_excludes_secrets():
