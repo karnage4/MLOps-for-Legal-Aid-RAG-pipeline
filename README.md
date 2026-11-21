@@ -702,21 +702,38 @@ healthy only after both retrievers have loaded successfully. This RAG project
 has no task-specific trained model file; its equivalent versioned runtime
 artifacts are `output/bm25_corpus.json` (recursive, 3,593 chunks) and
 `output/bm25_corpus_fixed.json` (fixed, 883 chunks). Dense vectors remain in
-the matching Pinecone default and `fixed` namespaces, while pretrained
-embedding/reranking weights are resolved by Sentence Transformers. Both
-retrievers share the same dense models and Pinecone client.
+the matching Pinecone default and `fixed` namespaces, while the pretrained
+embedding/reranking weights are downloaded once at image build time and baked
+into the image (`HF_HUB_OFFLINE=1` at runtime). Both retrievers share the same
+dense models and Pinecone client. The image installs CPU-only PyTorch, so it
+builds the same way on Windows/WSL 2, Intel and Apple Silicon Macs, Linux, and
+the GitHub runner.
 
-Build and run locally from this directory:
+Build and run locally from this directory. Docker needs at least 2 GB of
+memory: on Windows (WSL 2) the default of half the machine's RAM is enough on
+an 8 GB laptop and is changed with `memory=` in `%UserProfile%\.wslconfig`; on
+macOS use Docker Desktop > Settings > Resources.
 
 ```bash
-docker build --tag legal-aid-rag-api:m2-phase10 .
+docker compose up --build --detach
+docker compose ps
+```
+
+`docker compose ps` shows `healthy` once both retrievers have loaded. The
+equivalent plain Docker commands are:
+
+```bash
+docker build --tag legal-aid-rag-api:local .
 docker run --detach --name legal-aid-rag-api \
   --env-file .env --publish 8000:8000 \
-  legal-aid-rag-api:m2-phase10
+  legal-aid-rag-api:local
 ```
 
 The `.env` file is supplied only at runtime and is excluded from the Docker
-build context. Verify the container with:
+build context. Write it as plain `NAME=value` lines without quotes:
+`docker run --env-file` keeps quotes as part of the value, and Windows
+PowerShell 5.1 `echo ... > .env` writes UTF-16, which Docker cannot parse.
+Verify the container with:
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -727,6 +744,15 @@ curl -X POST http://127.0.0.1:8000/predict \
 docker inspect --format '{{json .State.Health}}' legal-aid-rag-api
 ```
 
+The request field is `query`; any other field name (for example `question`)
+is rejected with HTTP 422. In Windows PowerShell, `curl` is an alias and
+single-quoted JSON loses its inner quotes, so use:
+
+```powershell
+$body = @{ query = "Who inherits property when a person dies without a will?"; chunking_strategy = "fixed" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/predict -ContentType "application/json" -Body $body
+```
+
 Set `"chunking_strategy":"fixed"` in the same request to use the 883-chunk
 fixed artifact and Pinecone's `fixed` namespace. Omitting the field preserves
 the recursive default.
@@ -734,9 +760,19 @@ the recursive default.
 Stop and remove only this named test container afterward:
 
 ```bash
+docker compose down
+```
+
+or, if it was started with `docker run`:
+
+```bash
 docker stop legal-aid-rag-api
 docker rm legal-aid-rag-api
 ```
+
+To build an image for Render or Cloud Run on an Apple Silicon Mac, add
+`--platform linux/amd64` to `docker build`; an arm64 image fails there with
+`exec format error`.
 
 The deny-by-default `.dockerignore` permits only the Dockerfile, production
 requirements, `src/`, and both BM25 artifacts into the build context.
