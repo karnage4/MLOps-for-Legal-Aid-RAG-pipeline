@@ -44,9 +44,9 @@ Building the branch-10 Dockerfile unchanged showed:
 | Ruff | local | passed |
 | `tests/test_container_config.py` | local | 5 passed |
 | `docker build --check` | local | no warnings |
-| Full pytest, Docker build with CPU torch and model preload | GitHub Actions on push | see the run for this branch |
-| `/health`, `/docs`, `/predict` for both strategies | Windows laptop with real keys | to do, steps below |
-| Container memory with both retrievers loaded | `docker stats` on the laptop | to do, record the number |
+| Ruff, full pytest, Docker build with CPU torch and model preload | GitHub Actions on the fork | passed: run `44912728419` at `2cb2c26` (Ruff, 119 tests, Docker build) |
+| `/health`, `/docs`, `/predict` for both strategies | Windows laptop with real keys, `2cb2c26` | passed: `/health` ok, `/docs` 200, `recursive` 200 (total 3,480 ms, 2 sources), `fixed` 200 (total 3,715 ms, 3 sources) |
+| Container memory with both retrievers loaded | `docker stats` and cgroup `memory.peak` on the laptop | 699 MiB current, 931.7 MiB peak, 0 OOM events under the 2 GiB limit; see `MLOPS_LOG.md` Phase 11a |
 
 ## Run it on Windows (PowerShell)
 

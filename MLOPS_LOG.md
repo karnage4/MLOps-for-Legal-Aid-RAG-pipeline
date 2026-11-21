@@ -28,6 +28,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 Render deployment | `12-m2-render-deployment` | In progress | Blueprint prepared; live service and endpoint checks pending | Pending |
+| 11a | M2 CPU-only Docker image | `12a-m2-docker-cpu-image` | Complete | Local Docker `/health`, `/docs`, and both `/predict` strategies passed; 931.7 MiB peak memory; fork CI passed | Verified; awaiting merge |
 
 ## Phase 9 — M2 containerization
 
@@ -111,6 +112,73 @@ and guarantee that every push to `main` builds the production image.
   `3a3c422` without overwriting any history. Its automatically triggered run
   `43652828766` also passed `Ruff lint`, `Pytest`, and `Docker build`, directly
   demonstrating the rubric-required build on a push to `main`.
+
+## Phase 11a — M2 CPU-only Docker image
+
+### Objective
+
+Make the API image small enough to build and run anywhere by removing the
+unusable CUDA PyTorch build, stop runtime model downloads, and measure locally
+whether the container fits a given host's memory after the 512 MiB Render free
+plan ran out of memory at startup.
+
+### Implemented
+
+- `Dockerfile` installs `torch==2.15.0` from the PyTorch CPU wheel index before
+  `requirements-api.txt` and fails the build if a CUDA torch is present.
+- Both Hugging Face models (`all-MiniLM-L6-v2` and
+  `cross-encoder/ms-marco-MiniLM-L-6-v2`) are downloaded at build time into
+  `HF_HOME=/opt/hf-cache` in a layer before `COPY src`, and `HF_HUB_OFFLINE=1`
+  stops the running container from calling huggingface.co.
+  `--build-arg PRELOAD_MODELS=0` restores download-on-start.
+- Added `compose.yaml` (service `api`, container `legal-aid-rag-api`, image
+  `legal-aid-rag-api:local`, port 8000, `env_file: .env`, `mem_limit: 2g`).
+- Added two tests to `tests/test_container_config.py` for the CPU wheel index,
+  CUDA guard, and preloaded model names matching `src/retrieval.py`; added
+  README notes for Windows and macOS and the branch handoff
+  `handoffs/12a-m2-docker-cpu-image.md`.
+- No API, retrieval, or generation code changed. Port, healthcheck, single
+  worker, non-root user, and both BM25 artifacts are unchanged.
+
+### Verification status
+
+- Tested commit `2cb2c26` on a Windows 11 laptop (Docker Desktop 4.60.1,
+  Engine 29.2.0, containerd image store, 8 CPUs, 3.65 GiB VM memory) with real
+  Pinecone and Groq keys from the git-ignored `.env`.
+- Image `legal-aid-rag-api:local` (`44b139e1558c`): 780 MB content size
+  (compressed) and 3.16 GB disk usage (unpacked), versus 10.3 GB for the
+  branch-10 CUDA image.
+- Cold `docker compose up --build --detach` with no cached layers: 440.5 s,
+  exit code 0 (pip install 247.9 s, model preload 74.3 s, image export and
+  unpack 98.7 s).
+- Startup: container `StartedAt` 15:09:31.205Z to `Application startup
+  complete` 15:09:54.845Z = 23.6 s with both retrievers loaded from the baked
+  models. `docker compose ps` first showed `(healthy)` at 15:09:55.990Z
+  (24.8 s after start, 5-second polling), because Docker probes every 5 s
+  during the 180 s start period.
+- `GET /health`: `status: ok`, `retriever_loaded: true`, strategies
+  `recursive` and `fixed`. `GET /docs`: HTTP 200.
+- `POST /predict` with the `query` field ("Who inherits property when a person
+  dies without a will?"), hybrid retrieval, top-5, Groq `qwen/qwen3.8-27b`,
+  no fallback:
+  - `recursive`: HTTP 200, 5 chunks, 2 sources; retrieval 2,969 ms,
+    generation 511 ms, total 3,480 ms (first request; client round trip
+    9,708 ms). The 722-character answer said the retrieved context was
+    insufficient.
+  - `fixed`: HTTP 200, 5 chunks, 3 sources; retrieval 2,372 ms, generation
+    1,343 ms, total 3,715 ms (client round trip 3,874 ms); 2,072-character
+    answer.
+- Memory after both requests: `docker stats` 699 MiB of the 2 GiB limit
+  (34.13%); cgroup `memory.peak` since start 976,957,440 bytes = 931.7 MiB;
+  `memory.events` recorded 0 OOM events.
+- Hosting: the 931.7 MiB peak is 1.82 times a 512 MiB Render free instance,
+  and even the 699 MiB steady state exceeds it, so the free plan cannot run
+  this image. On a 2 GiB host (Cloud Run with 2 GiB or a paid Render instance)
+  headroom is 2,048 - 931.7 = 1,116.3 MiB.
+- GitHub Actions on the fork: run `44912728419` (`2cb2c26`, manual dispatch)
+  passed `Ruff lint`, `Pytest` (119 tests), and `Docker build`.
+- Container logs showed no errors and every request returned 200;
+  `docker compose down` removed the container and network.
 
 ## Phase 1 — MLflow integration
 
@@ -987,3 +1055,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-13 | `9-post-m1-fixes` | Re-ran all four prompt/model/temperature configurations with the corrected core-v2 lineage and preserved the original six-judge artifacts. The quality-first rule selects temperature 0.7 at 0.8333 fact coverage, while groundedness falls to 0.6667; the structured prompt is the balanced challenger at 0.8667 groundedness/retrieval relevance and 0.9333 query relevance. Two model-run attempts remain partial evidence because transient Pinecone DNS/read failures produced only 1/3 predictions. Added bounded Pinecone transport retries and passed the complete 109-test regression. |
 | 2026-11-13 | `9-post-m1-fixes` | Updated the README, concise brief, 18-page report, and seven-slide core-v2 deck with the corrected inference ablation. The PDF passed full 18-page render inspection. The new PPTX passed package and layout validation with seven slides, two editable charts, and zero findings; native PowerPoint screenshot capture was unavailable in this session, so that limitation remains explicit. |
 | 2026-11-13 | `9-post-m1-fixes` | Completed a controlled 24-call inference-latency rerun across the four prompt/model/temperature configurations. Shared warm retrieval, rotated order, disabled judges, and unmeasured quota cooldown removed major confounders. All calls passed without retries; generation medians were 0.759-1.590 seconds and total medians 5.330-6.091 seconds, confirming the original 52.7-106.6 second outliers were transient network/retry effects. |
+| 2026-11-21 | `12a-m2-docker-cpu-image` | Verified the CPU-only image locally on Windows at `2cb2c26`: 780 MB content / 3.16 GB unpacked (versus 10.3 GB), 440.5 s cold build, 23.6 s startup, `/health` ok and `/docs` 200, `/predict` HTTP 200 for `recursive` (3,480 ms, 2 sources) and `fixed` (3,715 ms, 3 sources), 699 MiB current and 931.7 MiB peak memory under a 2 GiB limit with 0 OOM events. Fork CI run `44912728419` passed Ruff, 119 tests, and Docker build. |
