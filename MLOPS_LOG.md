@@ -26,7 +26,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
 | 9 | M2 containerization | `10-m2-containerization` | Implemented | Static/API tests passed; local image build blocked by broken Docker Desktop WSL registration | In progress |
-| 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; awaiting merge into `10-m2-containerization` |
+| 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 
 ## Phase 9 — M2 containerization
 
