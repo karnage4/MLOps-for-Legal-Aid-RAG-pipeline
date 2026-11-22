@@ -29,7 +29,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
-| 13 | M2 submission | `14-m2-submission` | In progress | Rubric table, Render wording cleanup, and live and CI screenshots done; fresh-clone check pending; the M2 contribution table awaits the team | Pending |
+| 13 | M2 submission | `14-m2-submission` | Complete except `CONTRIBUTION.md` | Rubric table, Render cleanup, and screenshots done; fresh-clone lint, tests, image build, and container smoke test passed; public smoke test and CI passed | Awaiting the team's M2 contribution table |
 | 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
@@ -321,7 +321,34 @@ fresh clone reproduces the verified state.
 - Cold start on Azure: after the app had scaled to zero, the first `/health`
   request returned 200 after 15.1 s (`started_at` 18:05:40 UTC). An interface
   question then took 4,078.5 ms (first prediction on the new replica).
-- Fresh-clone check and final CI: pending.
+- Fresh clone of `14-m2-submission` at `a48712c` from GitHub into an empty
+  folder: clean status, no `.env` (only `.env.example`), both BM25 artifacts
+  present. Ruff passed on `src`, `tests`, and `gradio_app.py`; the 58 API,
+  interface, monitoring, container-config, and deploy-key tests passed with
+  the modules loaded from the fresh clone (the laptop has no full ML
+  environment; the complete suite runs in CI). `git diff --check` against
+  branch 13 was clean.
+- Docker image built from the fresh clone (`legal-aid-rag-api:m2-final`, 11 s
+  with this laptop's layer cache) and run with the `.env` keys: healthy in
+  about 18 s and Docker health status `healthy`; `GET /` 307 to `/ui/`; `/ui/`
+  and `/docs` 200; `/predict` 200 for `recursive` (server 2,659 ms, 2
+  sources) and `fixed` (3,675 ms, 3 sources) via Groq without fallback; a
+  too-short query 422; an interface question completed; `/metrics` counted 9
+  requests (8 successes, 1 failure); 9 JSON log lines, no question text, no
+  errors; 671.8 MiB memory.
+- Public smoke test at 23:09:55 PKT on the live replica: `/health` 200 in
+  0.5 s; `GET /` 307 to the `https://` `/ui/` address; `/ui/` and `/docs` 200;
+  `/predict` 200 for `recursive` (2,126 ms) and `fixed` (4,316 ms) via Groq
+  without fallback; a too-short query 422; `/metrics` 17 requests (11
+  successes, 6 failures, including 4 `unmatched`), `POST /predict` mean
+  2,321.9 ms.
+- GitHub Actions on `a48712c`
+  ([run 45053312903](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/45053312903)):
+  Ruff lint, Pytest (the complete suite on a clean Ubuntu runner), and Docker
+  build all passed.
+- Outstanding: the Milestone 2 `CONTRIBUTION.md` table (team), Azure Portal
+  screenshots (account holder), and the after-grading decision to keep the
+  service scaling to zero or stop it.
 
 ## Phase 12 — M2 monitoring and runbook
 
@@ -1315,3 +1342,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `13-m2-monitoring-runbook` | Added in-memory request metrics, one safe JSON access-log line per counted request with `X-Request-ID`, the `GET /metrics` endpoint, `--no-access-log` in the image, and `RUNBOOK.md`. Eighteen new monitoring tests and the existing API, container, and deploy-key tests passed locally (42), and Ruff passed. Redeployment evidence pending. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `996bf7f` and verified live metrics (0 to 4 requests, 3/1 success/failure) with `X-Request-ID` on every response; recorded a scale-to-zero 502 seen after an idle period. At the team's request, mounted the branch-8/9 Miras Gradio interface at `/ui` with `/` redirecting to it (`src/web.py`), sharing the API's loaded retrievers and counting interface questions as `POST /ui/predict`; 58 local tests and Ruff passed. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `3062327`: the public URL now opens the Miras interface over HTTPS, a browser question was answered, `/docs` and `/predict` still work, `/metrics` counted interface questions (3: 2 answered, 1 empty question rejected), and the Azure log stream showed the JSON access lines without question text. Recorded `3062327` as a known-good release. Phase 12 is complete pending team acceptance. |
+| 2026-11-22 | `14-m2-submission` | Added the Milestone 2 requirement/evidence table to the README, labelled Render as the failed capacity experiment across the docs, and added six live and CI screenshots in `report/m2-evidence/`. A fresh clone passed Ruff and 58 focused tests, built an image that ran healthy and answered through the API and the interface, the public service passed its smoke test, and CI passed on `a48712c`. Measured a 15.1 s cold start. The Milestone 2 `CONTRIBUTION.md` table awaits the team. |
