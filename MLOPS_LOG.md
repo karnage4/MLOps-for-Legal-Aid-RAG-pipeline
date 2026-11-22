@@ -28,7 +28,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
-| 11 | M2 Render deployment | `12-m2-render-deployment` | In progress | Blueprint prepared; live service and endpoint checks pending | Pending |
+| 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | In progress | Render free plan ran out of memory at startup; Azure Container Apps deploy script prepared; live endpoint checks pending | Pending |
 
 ## Phase 9 — M2 containerization
 
@@ -199,6 +199,46 @@ and guarantee that every push to `main` builds the production image.
   `3a3c422` without overwriting any history. Its automatically triggered run
   `43652828766` also passed `Ruff lint`, `Pytest`, and `Docker build`, directly
   demonstrating the rubric-required build on a push to `main`.
+
+## Phase 11 — M2 deployment
+
+### Objective
+
+Serve the containerized API at a public URL on a host whose memory fits the
+measured container, with secrets held by the platform and a repeatable
+redeploy and rollback path.
+
+### Implemented
+
+- `render.yaml` describes a Render Docker web service on the free plan that
+  deploys `main` after CI passes. The team reported that this deployment ran
+  out of memory at startup on the 512 MB free plan; no deploy identifier was
+  recorded in this log.
+- Phase 9a measured the container at 756.1-931.7 MiB peak, so the API moved to
+  Azure Container Apps on the team's Azure for Students subscription:
+  1 vCPU, 2 GiB, minimum 0 and maximum 1 replica.
+- `deploy/azure/deploy-containerapp.sh` (run in Azure Cloud Shell) creates
+  `legal-aid-rag-rg`, `legal-aid-rag-env`, and `legal-aid-rag-api`, prompts
+  for the two API keys with hidden input and stores them as Container Apps
+  secrets, optionally takes a read-only Docker Hub token for authenticated
+  pulls, applies the same non-secret settings as `render.yaml`, waits for
+  `/health`, and prints the URL. Re-running it with another image tag rolls
+  forward or back.
+- Student subscriptions cannot run Azure Container Registry build tasks
+  (`TasksOperationsNotAllowed`), so the image is built locally and pushed to
+  Docker Hub with a Git-SHA tag.
+- `init_pinecone` now retries transient Pinecone connection and timeout errors
+  (`PINECONE_INIT_MAX_ATTEMPTS`, default 5, linear backoff from
+  `PINECONE_RETRY_BASE_SECONDS`). Phase 9a saw one local start fail on a
+  single DNS error, and a scale-to-zero host cold-starts often. Two unit tests
+  cover a retried success and the final failure.
+
+### Verification status
+
+- `bash -n deploy/azure/deploy-containerapp.sh`: no syntax errors; running it
+  without `IMAGE` exits with a usage message.
+- Live Azure deployment, public `/health`, `/docs`, and `/predict` checks:
+  pending.
 
 ## Phase 1 — MLflow integration
 
@@ -1076,3 +1116,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-13 | `9-post-m1-fixes` | Updated the README, concise brief, 18-page report, and seven-slide core-v2 deck with the corrected inference ablation. The PDF passed full 18-page render inspection. The new PPTX passed package and layout validation with seven slides, two editable charts, and zero findings; native PowerPoint screenshot capture was unavailable in this session, so that limitation remains explicit. |
 | 2026-11-13 | `9-post-m1-fixes` | Completed a controlled 24-call inference-latency rerun across the four prompt/model/temperature configurations. Shared warm retrieval, rotated order, disabled judges, and unmeasured quota cooldown removed major confounders. All calls passed without retries; generation medians were 0.759-1.590 seconds and total medians 5.330-6.091 seconds, confirming the original 52.7-106.6 second outliers were transient network/retry effects. |
 | 2026-11-22 | `10a-m2-docker-cpu-image` | Moved the CPU-only image fix onto branch 10 and verified it locally at `8a531de`: 784 MB content / 3.18 GB unpacked (versus 10.3 GB), 512.6 s build, first start stopped by a transient Pinecone DNS error, recreated container ready in 16.4 s, `/health` ok and `/docs` 200, `/predict` HTTP 200 for `recursive` (3,618 ms, 2 sources) and `fixed` (3,684 ms, 3 sources), 600.2 MiB current and 756.1 MiB peak memory under a 2 GiB limit with 0 OOM events, no `.env` in the image. Fixed the `HANDOUT.md` request examples to use `query`. |
+| 2026-11-22 | `12-m2-render-deployment` | Recorded the Render free-plan out-of-memory failure, added the Azure Container Apps deploy script (1 vCPU, 2 GiB, scale to zero, secrets prompted in Cloud Shell), documented the local build and Docker Hub push, and added a bounded Pinecone startup retry with two unit tests. Live Azure checks pending. |

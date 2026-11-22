@@ -63,6 +63,11 @@ PINECONE_QUERY_MAX_ATTEMPTS = max(
 PINECONE_RETRY_BASE_SECONDS = max(
     0.0, float(os.getenv("PINECONE_RETRY_BASE_SECONDS", "1.5"))
 )
+# Startup resolves the index host over the network; a failure there stops the
+# whole container, so it gets more attempts than a single query.
+PINECONE_INIT_MAX_ATTEMPTS = max(
+    1, int(os.getenv("PINECONE_INIT_MAX_ATTEMPTS", "5"))
+)
 
 CHUNKING_STRATEGIES = {
     "recursive": {
@@ -165,9 +170,23 @@ def build_bm25_index(corpus_file: str) -> Tuple[BM25Okapi, List[str], List[str]]
 # ─────────────────────────────────────────────
 
 def init_pinecone(api_key: str, index_name: str):
+    """Connect to the index, retrying transient DNS/connection failures."""
     pc = Pinecone(api_key=api_key)
-    index = pc.Index(index_name)
-    return index
+    for attempt in range(1, PINECONE_INIT_MAX_ATTEMPTS + 1):
+        try:
+            return pc.Index(index_name)
+        except (PineconeConnectionError, PineconeTimeoutError):
+            if attempt == PINECONE_INIT_MAX_ATTEMPTS:
+                raise
+            delay = PINECONE_RETRY_BASE_SECONDS * attempt
+            print(
+                "Transient Pinecone connection failure at startup; retrying "
+                f"in {delay:.1f}s ({attempt}/{PINECONE_INIT_MAX_ATTEMPTS})...",
+                flush=True,
+            )
+            time.sleep(delay)
+
+    raise RuntimeError("unreachable Pinecone retry state")
 
 
 def init_models(embedding_model: str, reranker_model: str):

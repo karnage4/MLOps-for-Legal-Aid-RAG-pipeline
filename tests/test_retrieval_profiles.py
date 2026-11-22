@@ -111,6 +111,42 @@ def test_semantic_search_retries_transient_pinecone_connection_failure():
     sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
 
 
+def test_init_pinecone_retries_transient_startup_failure():
+    client = Mock()
+    index = Mock()
+    client.Index.side_effect = [
+        retrieval.PineconeConnectionError("temporary DNS failure"),
+        index,
+    ]
+
+    with (
+        patch.object(retrieval, "Pinecone", return_value=client) as pinecone,
+        patch.object(retrieval.time, "sleep") as sleep,
+    ):
+        result = retrieval.init_pinecone("key", "legal-index")
+
+    assert result is index
+    pinecone.assert_called_once_with(api_key="key")
+    assert client.Index.call_args_list == [call("legal-index"), call("legal-index")]
+    sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
+
+
+def test_init_pinecone_raises_after_last_attempt():
+    client = Mock()
+    client.Index.side_effect = retrieval.PineconeConnectionError("DNS down")
+
+    with (
+        patch.object(retrieval, "Pinecone", return_value=client),
+        patch.object(retrieval, "PINECONE_INIT_MAX_ATTEMPTS", 3),
+        patch.object(retrieval.time, "sleep") as sleep,
+        pytest.raises(retrieval.PineconeConnectionError),
+    ):
+        retrieval.init_pinecone("key", "legal-index")
+
+    assert client.Index.call_count == 3
+    assert sleep.call_count == 2
+
+
 def test_semantic_mode_skips_sparse_search_and_cross_encoder():
     semantic_results = _semantic_results()
 

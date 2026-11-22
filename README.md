@@ -838,8 +838,75 @@ curl -X POST <render-service-url>/predict \
   -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"fixed","retrieval_mode":"hybrid","top_k":5,"temperature":0.1}'
 ```
 
-The live URL and deploy evidence will be recorded here after the first
-successful Render deployment.
+The first Render deployment on the free plan ran out of memory at startup.
+Local measurements later put the container's peak at 756-932 MiB
+(`MLOPS_LOG.md`, Phase 9a), so no 512 MB plan can run it. The service is
+therefore deployed to Azure Container Apps instead (next section); this
+Blueprint is kept as the record of the Render attempt.
+
+### Azure Container Apps deployment
+
+The API runs on Azure Container Apps with 1 vCPU and 2 GiB, scaling to zero
+replicas when idle (at most one replica, so the models load once). It uses an
+Azure for Students subscription, whose monthly Container Apps free grant
+(180,000 vCPU-seconds, 360,000 GiB-seconds, and two million requests) covers
+about 50 active hours of this size per month.
+
+Azure for Students subscriptions cannot run Azure Container Registry build
+tasks (`TasksOperationsNotAllowed`), so the image is built locally and pushed
+to Docker Hub with an immutable Git-SHA tag. The allow-listed build context
+keeps `.env` and every other secret out of the image.
+
+```powershell
+$tag = git rev-parse --short HEAD
+docker build --tag docker.io/<dockerhub-user>/legal-aid-rag-api:$tag .
+docker push docker.io/<dockerhub-user>/legal-aid-rag-api:$tag
+```
+
+Deploy from the Azure Portal's Cloud Shell (Bash), so nothing needs to be
+installed locally. The first command lists the regions the student
+subscription may use; the second deploys to one of them:
+
+```bash
+git clone --branch 12-m2-render-deployment https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
+cd MLOps-for-Legal-Aid-RAG-pipeline
+IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> bash deploy/azure/deploy-containerapp.sh
+IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> LOCATION=<region> bash deploy/azure/deploy-containerapp.sh
+```
+
+[`deploy/azure/deploy-containerapp.sh`](deploy/azure/deploy-containerapp.sh)
+registers the resource providers and creates the resource group
+`legal-aid-rag-rg`, the environment `legal-aid-rag-env`, and the app
+`legal-aid-rag-api`. On the first run it asks for `PINECONE_API_KEY` and
+`GROQ_API_KEY` with hidden input and stores them as Container Apps secrets,
+and it optionally takes a read-only Docker Hub access token, because anonymous
+Docker Hub pulls are rate-limited per IP address and Azure egress addresses
+are shared. Non-secret settings match the Render Blueprint. The script waits
+for `/health` and prints the public URL.
+
+Re-running the script with a different `IMAGE` tag rolls the app to that
+image as a new revision; re-running with an older tag is the rollback. Logs:
+
+```bash
+az containerapp logs show --name legal-aid-rag-api --resource-group legal-aid-rag-rg --tail 100
+```
+
+Because the app scales to zero, the first request after an idle period waits
+for a cold start (image pull plus about 20 seconds of model loading). Startup
+retries transient Pinecone connection failures (`PINECONE_INIT_MAX_ATTEMPTS`,
+default 5) so one DNS error does not stop the container.
+
+Smoke test from PowerShell after the script prints the URL:
+
+```powershell
+$url = "https://<app-fqdn>"
+Invoke-RestMethod "$url/health"
+$body = @{ query = "Who inherits property when a person dies without a will?"; chunking_strategy = "fixed" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri "$url/predict" -ContentType "application/json" -Body $body
+```
+
+The live URL and deployment evidence are recorded in `MLOPS_LOG.md`
+(Phase 11) after the first successful Azure deployment.
 
 ## MLflow Integration — Phase 1
 
