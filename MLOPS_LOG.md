@@ -26,6 +26,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
 | 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
+| 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 Render deployment | `12-m2-render-deployment` | In progress | Blueprint prepared; live service and endpoint checks pending | Pending |
 
@@ -74,6 +75,93 @@ healthcheck and both versioned RAG serving artifacts.
   successfully on a clean Linux runner. This closes the clean-build gate; the
   live `/health` and `/predict` container checks will be completed on Render,
   while local verification can be repeated after Docker Desktop is repaired.
+
+## Phase 9a — M2 CPU-only Docker image
+
+### Objective
+
+Fix the branch-10 image inside the containerization phase: remove the unusable
+CUDA PyTorch build, stop runtime model downloads, and close the Phase 9 live
+container smoke-test gate with a real local run, including the memory figure
+that decides which hosts can run the API.
+
+### Implemented
+
+- `Dockerfile` installs `torch==2.15.0` from the PyTorch CPU wheel index before
+  `requirements-api.txt` and fails the build if a CUDA torch is present.
+- Both Hugging Face models (`all-MiniLM-L6-v2` and
+  `cross-encoder/ms-marco-MiniLM-L-6-v2`) are downloaded at build time into
+  `HF_HOME=/opt/hf-cache` in a layer before `COPY src`, and `HF_HUB_OFFLINE=1`
+  stops the running container from calling huggingface.co.
+  `--build-arg PRELOAD_MODELS=0` restores download-on-start.
+- Added `compose.yaml` (service `api`, container `legal-aid-rag-api`, image
+  `legal-aid-rag-api:local`, port 8000, `env_file: .env`, `mem_limit: 2g`).
+- Added two tests to `tests/test_container_config.py` for the CPU wheel index,
+  CUDA guard, and preloaded model names matching `src/retrieval.py`; added
+  README notes for Windows and macOS and `handoffs/10a-m2-docker-cpu-image.md`.
+- Fixed `HANDOUT.md`: requests use `query` (the API rejects `question` with
+  HTTP 422) and `/predict` smoke tests use `Invoke-RestMethod`, because Windows
+  PowerShell 5.1 strips the inner quotes of a `curl.exe -d '{...}'` body.
+- No API, retrieval, or generation code changed. The same Dockerfile change
+  was first tested as `12a-m2-docker-cpu-image` on top of branch 12; this
+  branch moves it onto branch 10's own code, which still installs `nltk`.
+
+### Verification status
+
+- Tested commit `8a531de` on a Windows 11 laptop (Docker Desktop 4.60.1,
+  Engine 29.2.0, containerd image store, 8 CPUs, 3.65 GiB VM memory) with real
+  Pinecone and Groq keys from the git-ignored `.env`.
+- `tests/test_container_config.py`: 5 passed (pytest 9.2.0, Python 3.12.10).
+  `docker build --check`: no warnings. Branch 10 has no CI workflow, so Ruff
+  and the full suite were not run on this branch; a local Ruff install failed
+  because the laptop disk was full. The identical Dockerfile and test file
+  passed GitHub Actions on `12a-m2-docker-cpu-image` (run `44912728419` at
+  `2cb2c26` and run `44921194963` at `bc34379`: Ruff, 119 tests, Docker build).
+- Image `legal-aid-rag-api:local` (`1e9c7787797f`): 784 MB content size
+  (compressed) and 3.18 GB disk usage (unpacked), versus 10.3 GB for the
+  original branch-10 CUDA image.
+- `docker compose up --build --detach`: 512.6 s, exit code 0, with the base
+  image and two early layers cached from an earlier build (pip install
+  291.5 s, model preload 97.8 s, image export and unpack 115.2 s).
+- First start failed after 24 s: the startup Pinecone index lookup hit a
+  transient DNS error (`[Errno -5] No address associated with hostname;
+  request to https://api.pinecone.io`), so the container exited with code 3
+  (`OOMKilled` false). The laptop and a fresh container resolved the name
+  immediately afterwards. Startup has no retry around Pinecone
+  initialization, so one DNS failure stops the container; hosted restarts
+  can hit the same failure.
+- Recreated container: `StartedAt` 10:59:49.488Z to `Application startup
+  complete` 11:00:05.891Z = 16.4 s with both retrievers loaded from the baked
+  models. `docker compose ps` first showed `(healthy)` at 11:00:11.933Z
+  (22.4 s after start, 5-second polling).
+- `GET /health`: `status: ok`, `retriever_loaded: true`, strategies
+  `recursive` and `fixed`. `GET /docs`: HTTP 200.
+- `POST /predict` with the `query` field ("Who inherits property when a person
+  dies without a will?"), hybrid retrieval, top-5, Groq `qwen/qwen3.8-27b`,
+  no fallback:
+  - `recursive`: HTTP 200, 5 chunks, 2 sources; retrieval 3,039 ms,
+    generation 579 ms, total 3,618 ms (first request; client round trip
+    11,656 ms). The 903-character answer said the context did not list the
+    intestate succession rules explicitly.
+  - `fixed`: HTTP 200, 5 chunks, 3 sources; retrieval 2,255 ms, generation
+    1,429 ms, total 3,684 ms; 2,077-character answer.
+- Memory after both requests: `docker stats` 600.2 MiB of the 2 GiB limit
+  (29.31%); cgroup `memory.peak` since start 792,850,432 bytes = 756.1 MiB;
+  `memory.events` recorded 0 OOM events. The `12a` run on branch-12 code
+  peaked at 931.7 MiB with 289 MB of block reads versus 61.6 MB here, which
+  is consistent with the model files already being in the Docker VM page
+  cache, which `memory.peak` partly counts. Use 931.7 MiB as the conservative
+  sizing figure.
+- Hosting: the 756.1 MiB peak is 1.48 times a 512 MiB Render free instance,
+  and even the 600.2 MiB steady state exceeds it, so the free plan cannot run
+  this image. On a 2 GiB host headroom is 2,048 - 756.1 = 1,291.9 MiB
+  (1,116.3 MiB using the conservative 931.7 MiB peak).
+- Secrets: `find / -xdev -name '.env*'` inside the running container found
+  nothing; `/app` holds only `src`, `output`, `requirements-api.txt`, and the
+  runtime-created `mlflow.db` and `.config`.
+- Container logs on the second start had no errors and every request returned
+  200; `docker compose down` removed the container and network. This closes
+  the Phase 9 image-build and live container smoke-test gate locally.
 
 ## Phase 10 — M2 continuous integration
 
@@ -987,3 +1075,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-13 | `9-post-m1-fixes` | Re-ran all four prompt/model/temperature configurations with the corrected core-v2 lineage and preserved the original six-judge artifacts. The quality-first rule selects temperature 0.7 at 0.8333 fact coverage, while groundedness falls to 0.6667; the structured prompt is the balanced challenger at 0.8667 groundedness/retrieval relevance and 0.9333 query relevance. Two model-run attempts remain partial evidence because transient Pinecone DNS/read failures produced only 1/3 predictions. Added bounded Pinecone transport retries and passed the complete 109-test regression. |
 | 2026-11-13 | `9-post-m1-fixes` | Updated the README, concise brief, 18-page report, and seven-slide core-v2 deck with the corrected inference ablation. The PDF passed full 18-page render inspection. The new PPTX passed package and layout validation with seven slides, two editable charts, and zero findings; native PowerPoint screenshot capture was unavailable in this session, so that limitation remains explicit. |
 | 2026-11-13 | `9-post-m1-fixes` | Completed a controlled 24-call inference-latency rerun across the four prompt/model/temperature configurations. Shared warm retrieval, rotated order, disabled judges, and unmeasured quota cooldown removed major confounders. All calls passed without retries; generation medians were 0.759-1.590 seconds and total medians 5.330-6.091 seconds, confirming the original 52.7-106.6 second outliers were transient network/retry effects. |
+| 2026-11-22 | `10a-m2-docker-cpu-image` | Moved the CPU-only image fix onto branch 10 and verified it locally at `8a531de`: 784 MB content / 3.18 GB unpacked (versus 10.3 GB), 512.6 s build, first start stopped by a transient Pinecone DNS error, recreated container ready in 16.4 s, `/health` ok and `/docs` 200, `/predict` HTTP 200 for `recursive` (3,618 ms, 2 sources) and `fixed` (3,684 ms, 3 sources), 600.2 MiB current and 756.1 MiB peak memory under a 2 GiB limit with 0 OOM events, no `.env` in the image. Fixed the `HANDOUT.md` request examples to use `query`. |
