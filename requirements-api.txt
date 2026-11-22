@@ -8,3 +8,5 @@ rank-bm25==0.2.2
 requests==2.34.2
 python-dotenv==1.2.4
 mlflow==3.17.2
+# Miras web interface, mounted at /ui by src/web.py.
+gradio==6.32.0

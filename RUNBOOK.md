@@ -19,8 +19,9 @@ client ──HTTPS──> Azure Container Apps: legal-aid-rag-api (1 vCPU, 2 GiB
 
 | Item | Value |
 | --- | --- |
-| Public URL | <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io> |
-| Interactive docs | `/docs` on the URL above |
+| Public URL | <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io> (redirects to the Miras interface at `/ui/`) |
+| JSON API | `/health`, `/predict`, `/metrics`; interactive docs at `/docs` |
+| Entry point | `uvicorn src.web:app`: the API from `src/app.py` with `gradio_app.py` mounted at `/ui`, sharing one set of loaded retrievers |
 | Azure subscription | Azure for Students |
 | Region | `swedencentral` (allowed by the student policy; nearest to Pinecone `us-east-1`) |
 | Resource group / environment / app | `legal-aid-rag-rg` / `legal-aid-rag-env` (Express) / `legal-aid-rag-api` |
@@ -43,7 +44,8 @@ Roll back only to an image listed here.
 
 | Image tag | Image digest (manifest list) | Deployed | Verified |
 | --- | --- | --- | --- |
-| `75571d7` | `sha256:40d92abae90670d2c624b6a87a11bd5c6bbc9a49082e0ec3a2ce7ba2ba5367bc` | 2026-11-22 | `/health`, `/docs`, `/predict` (both strategies); no `/metrics` |
+| `75571d7` | `sha256:40d92abae90670d2c624b6a87a11bd5c6bbc9a49082e0ec3a2ce7ba2ba5367bc` | 2026-11-22 | `/health`, `/docs`, `/predict` (both strategies); no `/metrics`, no interface |
+| `996bf7f` | `sha256:471c12f8bf1b5b64e9b25ad6816a55ea60c080cd951c28593ccc6b3095f54421` | 2026-11-22 | Adds `/metrics` and JSON access logs: `/health`, `/predict` (both strategies), 422 rejection, and changing counters verified live; no interface |
 
 ## 2. Configuration
 
@@ -92,7 +94,11 @@ and both strategies; `/predict` returns HTTP 200 with `provider: groq` and
 `average_latency_ms`, and the same counts per route (for example
 `POST /predict`). Rules (see `src/monitoring.py`):
 
-- every request is counted except `GET /metrics` itself;
+- every request to an API route is counted except `GET /metrics` itself;
+- the interface's page, assets, and event stream under `/ui` are not counted;
+  each question asked in the interface is counted as `POST /ui/predict`
+  (status 200, 422 for invalid input, 502 for a retrieval or generation
+  failure, 500 otherwise);
 - status 400 or higher, or an unhandled exception, is a failure;
 - unknown paths are grouped under the route `unmatched`;
 - counters are in memory and reset on every restart, redeploy, or scale to
@@ -126,6 +132,8 @@ Portal and use **Monitoring > Log stream** instead.
 | Symptom | Likely cause | Check | Fix |
 | --- | --- | --- | --- |
 | HTTP 503 for under a minute after a pause | Cold start after scale to zero | Wait 60 s and retry `/health` | None needed |
+| HTTP 502 with no `X-Request-ID` header, about five minutes after the last request | The replica was being scaled to zero as the request arrived (seen once on 2026-11-22: `/metrics` then showed a new `started_at` about 20 s later) | Retry after 20-30 s; `/metrics` shows a fresh `started_at` | None needed; repeated 502s while requests keep flowing are not this case |
+| Interface says the legal search index is still loading | A question arrived before startup finished loading the retrievers | `/health` | Wait until `/health` returns 200, then ask again |
 | HTTP 503 for several minutes | Container crash-loops at startup | Logs end with `Application startup failed` | Read the traceback above it; see the rows below |
 | `pinecone ... 401 UNAUTHENTICATED Invalid API key` | Wrong or mistyped Pinecone secret (the 2026-11-22 first-deployment incident) | Logs | Replace the keys (section 6) |
 | Pinecone DNS or timeout errors at startup | Transient network fault | Logs show retries up to `PINECONE_INIT_MAX_ATTEMPTS` | Usually recovers on its own; if it persists, check Pinecone's status page and console |
@@ -194,6 +202,8 @@ support `az containerapp revision restart`, and the Cloud Shell CLI has no
    ```
 
 4. Verify after any redeploy or rollback:
+   - the public URL opens the Miras interface and one question gets an answer
+     (only on images that include the interface);
    - `/health` returns HTTP 200 with `retriever_loaded: true`;
    - `/docs` returns HTTP 200;
    - `/predict` returns HTTP 200 for `chunking_strategy` `recursive` and `fixed`;

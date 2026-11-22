@@ -312,6 +312,20 @@ roll back the Azure deployment.
   routine checks, metrics and logs, a diagnosis table, redeployment,
   key replacement, rollback to a known-good image tag or digest, post-change
   verification, shutdown and restoration, and ownership.
+- Public interface: the team asked for the branch-8/9 Miras Gradio interface
+  instead of the FastAPI docs page at the public address. `src/web.py` (the
+  image's new entry point, `uvicorn src.web:app`) mounts `gradio_app.py` at
+  `/ui` with its theme and CSS and redirects `/` there; `/docs`, `/health`,
+  `/predict`, and `/metrics` are unchanged. The interface now accepts the
+  retrievers the API loaded at startup (`get_components`) instead of loading
+  a second copy, and reports each question to the monitor as
+  `POST /ui/predict` (200, 422 invalid input, 502 retrieval or generation
+  failure, 500 otherwise). Requests served by the mounted interface (page,
+  assets, event stream) are not counted. `python gradio_app.py` still runs it
+  standalone. `gradio==6.32.0` is pinned in `requirements-api.txt` (it
+  resolves with FastAPI 0.161.0, Starlette 1.10.0, and Pydantic 2.14.1). The
+  image sets `GRADIO_ANALYTICS_ENABLED=False` and `FORWARDED_ALLOW_IPS=*` so
+  the interface builds `https://` URLs behind the Azure proxy.
 
 ### Verification status
 
@@ -323,7 +337,35 @@ roll back the Azure deployment.
   re-raised, and the OpenAPI entry) plus the existing API, container-config,
   and deploy-key tests: 42 passed. Ruff passed on `src`, `tests`, and
   `gradio_app.py`.
-- Full CI, container build, redeployment, and public metrics and log evidence:
+- Commit `996bf7f` (monitoring without the interface): GitHub Actions passed
+  Ruff, the full Pytest suite, and the Docker build. Its image
+  (`sha256:471c12f8bf1b5b64e9b25ad6816a55ea60c080cd951c28593ccc6b3095f54421`)
+  ran locally with the `.env` keys: healthy in about 15 s; `/metrics` moved
+  from 2 to 6 requests (4 successes, 2 failures, `POST /predict` mean
+  2,864.9 ms); exactly one JSON line per request, each `request_id` equal to
+  the `X-Request-ID` header; no question text and no uvicorn access lines in
+  the container log; 637 MiB memory.
+- Live on Azure from 2026-11-22 19:11 PKT. A first evidence run at 19:17
+  arrived after more than five idle minutes: two `/predict` calls returned 200,
+  then the next requests got HTTP 502 without `X-Request-ID` (from the
+  ingress, not the app) until a new replica reported `started_at`
+  14:17:46 UTC about 20 s later. This matches the replica being scaled to
+  zero as the requests arrived; the runbook lists it. The repeated run at
+  19:18 PKT on the warm replica: `/metrics` went from 0 to 4 requests
+  (3 successes, 1 failure; `POST /predict` 3 requests, mean 3,083.6 ms;
+  `GET /health` 1.7 ms); `/predict` returned 200 for `recursive` (server
+  2,343 ms) and `fixed` (3,216 ms) and 422 for a too-short query; every
+  response carried an `X-Request-ID`.
+- Interface (local, Gradio 6.32.0): `tests/test_web.py` (5 tests: `/`
+  redirects to `/ui/`; the page and its config are served with the Miras
+  title and are not counted; API routes and the OpenAPI schema are
+  unchanged; a question sent through Gradio's call API uses the API's
+  already-loaded `fixed` retriever, is counted once as `POST /ui/predict`, and
+  logs neither question nor answer; a too-short question is counted as a 422
+  failure) and 5 new `tests/test_gradio_app.py` cases (supplied retrievers and
+  the 200/422/502/500 outcome mapping). With the monitoring, API,
+  container-config, and deploy-key tests: 58 passed; Ruff passed.
+- Interface container build, redeployment, and public interface evidence:
   pending.
 
 ## Phase 1 — MLflow integration
@@ -1206,3 +1248,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `12-m2-render-deployment` | Deployed image `75571d7` from Docker Hub (`rayyankhan007/legal-aid-rag-api`) to Azure Container Apps in `swedencentral`. The first revision crash-looped on a Pinecone 401 from a mistyped secret; after re-entering both keys and rolling a new revision, public `/health`, `/docs`, and `/predict` for `recursive` (1,573 ms server total) and `fixed` (3,402 ms) passed through Groq without fallback, and invalid input returned 422. Documented the live URL and the key-replacement procedure. |
 | 2026-11-22 | `12-m2-render-deployment` | Hardened key entry in the Azure deploy script: `deploy/azure/read-key.sh` cleans quotes, `NAME=` prefixes, spaces, and line endings, checks the `pcsk_`/`gsk_` prefixes, and re-prompts; `UPDATE_KEYS=1` replaces both keys on the live app and rolls a new revision. Twelve new tests passed locally with Git Bash, and a stubbed dry run confirmed the Azure calls for four scenarios. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Added in-memory request metrics, one safe JSON access-log line per counted request with `X-Request-ID`, the `GET /metrics` endpoint, `--no-access-log` in the image, and `RUNBOOK.md`. Eighteen new monitoring tests and the existing API, container, and deploy-key tests passed locally (42), and Ruff passed. Redeployment evidence pending. |
+| 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `996bf7f` and verified live metrics (0 to 4 requests, 3/1 success/failure) with `X-Request-ID` on every response; recorded a scale-to-zero 502 seen after an idle period. At the team's request, mounted the branch-8/9 Miras Gradio interface at `/ui` with `/` redirecting to it (`src/web.py`), sharing the API's loaded retrievers and counting interface questions as `POST /ui/predict`; 58 local tests and Ruff passed. |

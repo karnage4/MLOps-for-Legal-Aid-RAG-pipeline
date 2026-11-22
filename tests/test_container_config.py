@@ -25,7 +25,9 @@ def _module_string_constants(path: Path) -> dict[str, str]:
 def test_dockerfile_serves_fastapi_and_checks_health():
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "uvicorn src.app:app" in dockerfile
+    assert "uvicorn src.web:app" in dockerfile
+    assert "COPY --chown=app:app gradio_app.py" in dockerfile
+    assert "GRADIO_ANALYTICS_ENABLED=False" in dockerfile
     assert "EXPOSE 8000" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert "/health" in dockerfile
@@ -59,6 +61,7 @@ def test_docker_context_is_allow_listed_and_excludes_secrets():
 
     assert "*" in lines
     assert "!src/**" in lines
+    assert "!gradio_app.py" in lines
     assert "!output/bm25_corpus.json" in lines
     assert "!output/bm25_corpus_fixed.json" in lines
     assert "!.env" not in lines

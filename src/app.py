@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from src.monitoring import (
     METRICS_PATH,
     RequestMetrics,
+    RequestMonitor,
     RequestMonitoringMiddleware,
     default_access_log,
 )
@@ -245,14 +246,13 @@ def create_app(
         lifespan=lifespan,
     )
     metrics = RequestMetrics()
+    monitor = RequestMonitor(metrics, access_log or default_access_log())
     application.state.metrics = metrics
+    application.state.monitor = monitor
     application.add_middleware(
         RequestMonitoringMiddleware,
-        metrics=metrics,
-        route_paths=lambda: [
-            route.path for route in application.routes if hasattr(route, "path")
-        ],
-        log=access_log or default_access_log(),
+        monitor=monitor,
+        routes=lambda: application.routes,
     )
 
     @application.get(

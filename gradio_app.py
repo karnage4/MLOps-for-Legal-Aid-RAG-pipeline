@@ -1,8 +1,15 @@
-"""Local Gradio interface for the MLflow-traced Legal-Aid RAG pipeline."""
+"""Gradio interface for the MLflow-traced Legal-Aid RAG pipeline.
+
+Run it on its own with ``python gradio_app.py``; it then loads its own
+retrievers. The deployed service mounts the same interface inside the API
+(``src/web.py``), passing the retrievers the API already loaded.
+"""
 
 from __future__ import annotations
 
 import os
+import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +30,11 @@ from src.app import (
 )
 
 
+ComponentLoader = Callable[[str], dict[str, Any]]
+PredictionRecorder = Callable[[int, float], None]
+
 APP_TITLE = "Miras — Inheritance Law Assistant"
+THEME = gr.themes.Base(primary_hue="amber", neutral_hue="stone")
 DEFAULT_QUESTION = "What share does a daughter receive in Islamic inheritance?"
 EXAMPLE_QUESTIONS = (
     "Who inherits when there is no will?",
@@ -169,8 +180,14 @@ def run_prediction(
     top_k: int,
     temperature: float,
     show_context: bool,
+    *,
+    get_components: ComponentLoader | None = None,
 ) -> tuple[str, str, str, dict[str, Any]]:
-    """Run the unchanged RAG boundary and adapt its result for the UI."""
+    """Run the unchanged RAG boundary and adapt its result for the UI.
+
+    ``get_components`` returns the retriever for a chunking strategy; it
+    defaults to loading one locally.
+    """
     question = " ".join(str(query or "").split())
     if len(question) < 3:
         raise ValueError("Enter a legal question containing at least 3 characters.")
@@ -186,9 +203,10 @@ def run_prediction(
         retrieval_mode=retrieval_mode,
         top_k=int(top_k),
     )
+    load_components = get_components or load_retriever_components
     result = run_rag_query(
         question,
-        load_retriever_components(chunking_strategy),
+        load_components(chunking_strategy),
         temperature=float(temperature),
         profile=profile,
     )
@@ -250,18 +268,46 @@ def run_prediction(
     )
 
 
-def submit_prediction(*args: Any) -> tuple[str, str, str, dict[str, Any]]:
-    """Translate safe application errors into a Gradio user notification."""
+def submit_prediction(
+    *args: Any,
+    get_components: ComponentLoader | None = None,
+    record: PredictionRecorder | None = None,
+) -> tuple[str, str, str, dict[str, Any]]:
+    """Translate safe application errors into a Gradio user notification.
+
+    ``record`` receives an HTTP-style status (200, 422 for invalid input, 502
+    for a retrieval or generation failure, 500 otherwise) and the elapsed
+    milliseconds, so the deployed service can count interface questions.
+    """
+    started = time.perf_counter()
+    status_code = 500
     try:
-        return run_prediction(*args)
-    except (ValueError, RuntimeError) as exc:
+        outputs = run_prediction(*args, get_components=get_components)
+        status_code = 200
+        return outputs
+    except ValueError as exc:
+        status_code = 422
+        raise gr.Error(str(exc)) from exc
+    except RuntimeError as exc:
+        status_code = 502
         raise gr.Error(str(exc)) from exc
     except Exception as exc:
         raise gr.Error("The RAG service could not complete this request.") from exc
+    finally:
+        if record is not None:
+            record(status_code, (time.perf_counter() - started) * 1000)
 
 
-def build_demo() -> gr.Blocks:
-    """Build the local Gradio Blocks application."""
+def build_demo(
+    *,
+    get_components: ComponentLoader | None = None,
+    record: PredictionRecorder | None = None,
+) -> gr.Blocks:
+    """Build the Gradio Blocks application."""
+
+    def on_submit(*args: Any) -> tuple[str, str, str, dict[str, Any]]:
+        return submit_prediction(*args, get_components=get_components, record=record)
+
     with gr.Blocks(title=APP_TITLE) as demo:
         gr.HTML(
             """
@@ -345,8 +391,8 @@ def build_demo() -> gr.Blocks:
             show_context,
         ]
         outputs = [answer, status, context, metadata]
-        ask.click(submit_prediction, inputs=inputs, outputs=outputs, api_name="predict")
-        query.submit(submit_prediction, inputs=inputs, outputs=outputs)
+        ask.click(on_submit, inputs=inputs, outputs=outputs, api_name="predict")
+        query.submit(on_submit, inputs=inputs, outputs=outputs)
 
     return demo.queue(default_concurrency_limit=1)
 
@@ -359,6 +405,6 @@ if __name__ == "__main__":
         server_name=os.getenv("GRADIO_SERVER_NAME", "127.0.0.1"),
         server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
         show_error=False,
-        theme=gr.themes.Base(primary_hue="amber", neutral_hue="stone"),
+        theme=THEME,
         css=CUSTOM_CSS,
     )

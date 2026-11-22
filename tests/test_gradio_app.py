@@ -110,6 +110,67 @@ def test_run_prediction_fails_closed_on_missing_context(monkeypatch):
         )
 
 
+def test_run_prediction_uses_supplied_retrievers(monkeypatch):
+    supplied = {"retriever": "already loaded"}
+
+    def fail_local_load(strategy):
+        raise AssertionError("must not load retrievers locally")
+
+    monkeypatch.setattr(gradio_app, "load_retriever_components", fail_local_load)
+    monkeypatch.setattr(gradio_app, "build_profile", lambda **_: object())
+    seen = {}
+
+    def fake_run(query, loaded, **kwargs):
+        seen["loaded"] = loaded
+        return _result()
+
+    monkeypatch.setattr(gradio_app, "run_rag_query", fake_run)
+
+    gradio_app.run_prediction(
+        "valid question",
+        "recursive",
+        "hybrid",
+        5,
+        0.2,
+        True,
+        get_components=lambda strategy: supplied,
+    )
+
+    assert seen["loaded"] is supplied
+
+
+@pytest.mark.parametrize(
+    ("failure", "status_code"),
+    [
+        (None, 200),
+        (ValueError("bad input"), 422),
+        (RuntimeError("generation failed"), 502),
+        (KeyError("unexpected"), 500),
+    ],
+)
+def test_submit_prediction_records_outcome(monkeypatch, failure, status_code):
+    def fake_run_prediction(*args, get_components=None):
+        if failure is not None:
+            raise failure
+        return ("answer", "status", "context", {})
+
+    monkeypatch.setattr(gradio_app, "run_prediction", fake_run_prediction)
+    recorded = []
+
+    def record(code, elapsed_ms):
+        recorded.append((code, elapsed_ms))
+
+    if failure is None:
+        gradio_app.submit_prediction("q", record=record)
+    else:
+        with pytest.raises(gradio_app.gr.Error):
+            gradio_app.submit_prediction("q", record=record)
+
+    assert len(recorded) == 1
+    assert recorded[0][0] == status_code
+    assert recorded[0][1] >= 0
+
+
 def test_run_prediction_fails_closed_on_generation_error(monkeypatch):
     monkeypatch.setattr(gradio_app, "load_retriever_components", lambda _: {})
     monkeypatch.setattr(gradio_app, "build_profile", lambda **_: object())

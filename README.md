@@ -53,7 +53,10 @@ python gradio_app.py
 
 Open `http://127.0.0.1:7860`. The FastAPI service remains available with
 `uvicorn src.app:app --host 127.0.0.1 --port 8000`, with interactive API docs
-at `http://127.0.0.1:8000/docs`. A live prediction requires the prepared BM25 artifact and the existing
+at `http://127.0.0.1:8000/docs`. To run both together as they are deployed,
+use `uvicorn src.web:app --host 127.0.0.1 --port 8000`: `/` opens the Miras
+interface at `/ui/`, and the API routes stay where they are. A live
+prediction requires the prepared BM25 artifact and the existing
 `legal-inheritance-rag` Pinecone index described below.
 
 ## Dataset and task
@@ -922,18 +925,25 @@ $body = @{ query = "Who inherits property when a person dies without a will?"; c
 Invoke-RestMethod -Method Post -Uri "$url/predict" -ContentType "application/json" -Body $body
 ```
 
-Live API (deployed 2026-11-22 from image `75571d7` in `swedencentral`):
-<https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io>,
-with interactive docs at
+Live service (region `swedencentral`; the running image tag is recorded in
+`RUNBOOK.md`):
+<https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io>.
+The address opens the Miras Gradio interface (`/ui/`); the image's entry
+point, `src/web.py`, mounts `gradio_app.py` inside the API and passes it the
+retrievers the API already loaded, so the models load once. The JSON API and
+its interactive docs stay at
 <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io/docs>.
-The deployment evidence is recorded in `MLOPS_LOG.md` (Phase 11).
+The deployment evidence is recorded in `MLOPS_LOG.md` (Phases 11 and 12).
 [`RUNBOOK.md`](RUNBOOK.md) covers routine checks, diagnosis, redeployment,
 rollback to a known-good image tag, key replacement, and shutting down.
 
 ### Monitoring
 
-Every request except `GET /metrics` itself is counted and written to stdout as
-one JSON line. The line holds the time, a request ID, the method, the route,
+Every request to an API route except `GET /metrics` itself is counted and
+written to stdout as one JSON line. The interface's own page, assets, and
+event stream under `/ui` are not counted, because one page load makes dozens
+of asset requests and the event stream stays open for minutes; each question
+asked in the interface is counted instead as `POST /ui/predict`. The line holds the time, a request ID, the method, the route,
 the status, and the duration; questions, answers, headers, and keys are never
 logged. The same request ID comes back in the `X-Request-ID` response header.
 

@@ -13,11 +13,17 @@ ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
 # the models are then downloaded on first start instead.
 ARG PRELOAD_MODELS=1
 
+# GRADIO_ANALYTICS_ENABLED=False stops the interface from sending usage data
+# or checking for updates. FORWARDED_ALLOW_IPS lets uvicorn trust the hosting
+# platform's HTTPS proxy headers, so the interface builds https:// URLs; the
+# container is reachable only through that proxy.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PORT=8000 \
-    HF_HOME=/opt/hf-cache
+    HF_HOME=/opt/hf-cache \
+    GRADIO_ANALYTICS_ENABLED=False \
+    FORWARDED_ALLOW_IPS=*
 
 WORKDIR /app
 
@@ -48,6 +54,7 @@ RUN if [ "$PRELOAD_MODELS" = "1" ]; then \
 ENV HF_HUB_OFFLINE=${PRELOAD_MODELS}
 
 COPY --chown=app:app src ./src
+COPY --chown=app:app gradio_app.py ./gradio_app.py
 COPY --chown=app:app output/bm25_corpus.json ./output/bm25_corpus.json
 COPY --chown=app:app output/bm25_corpus_fixed.json ./output/bm25_corpus_fixed.json
 RUN test -s /app/output/bm25_corpus.json \
@@ -60,6 +67,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/health', timeout=4).read()"
 
-# The app writes one structured JSON access-log line per request
+# src.web serves the API plus the Miras Gradio interface at /ui (/ redirects
+# there). The app writes one structured JSON access-log line per request
 # (src/monitoring.py), so uvicorn's own access log is turned off.
-CMD ["sh", "-c", "exec uvicorn src.app:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --no-access-log"]
+CMD ["sh", "-c", "exec uvicorn src.web:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --no-access-log"]

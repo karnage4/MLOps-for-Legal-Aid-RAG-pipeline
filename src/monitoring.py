@@ -6,8 +6,13 @@ app to zero replicas after an idle period. With at most one replica, a
 snapshot covers all traffic the running replica has served since
 ``started_at``; it is not long-term or multi-instance telemetry.
 
-Counting rule: every HTTP request is counted and logged except reads of
-``GET /metrics`` itself, so checking the numbers does not change them. A
+Counting rule: every HTTP request to an API route is counted and logged
+except reads of ``GET /metrics`` itself, so checking the numbers does not
+change them. Requests served by a mounted sub-application (the Gradio
+interface's page, assets, and event stream under ``/ui``) are not counted,
+because one page load makes dozens of asset requests and its event stream
+stays open for minutes; each question asked in the interface is recorded
+instead as ``POST /ui/predict`` through ``RequestMonitor.observe``. A
 response with status 400 or higher, or an unhandled exception (recorded as
 500), counts as a failure. Paths that match no route are grouped as
 ``unmatched`` so arbitrary URLs cannot create new metric keys or log values.
@@ -24,6 +29,8 @@ import uuid
 from collections.abc import Callable, Iterable
 from datetime import datetime, timezone
 from typing import Any
+
+from starlette.routing import Mount
 
 ACCESS_LOGGER_NAME = "legal_aid_rag.access"
 METRICS_PATH = "/metrics"
@@ -98,29 +105,76 @@ def default_access_log() -> Callable[[str], None]:
     return logger.info
 
 
+class RequestMonitor:
+    """Records one counted request in the metrics and writes its log line."""
+
+    def __init__(self, metrics: RequestMetrics, log: Callable[[str], None]) -> None:
+        self.metrics = metrics
+        self._log = log
+
+    def observe(
+        self,
+        method: str,
+        route: str,
+        status_code: int,
+        elapsed_ms: float,
+        request_id: str | None = None,
+    ) -> None:
+        self.metrics.record(f"{method} {route}", status_code, elapsed_ms)
+        self._log(
+            json.dumps(
+                {
+                    "event": "http_request",
+                    "timestamp": datetime.now(timezone.utc).isoformat(
+                        timespec="milliseconds"
+                    ),
+                    "request_id": request_id or uuid.uuid4().hex,
+                    "method": method,
+                    "route": route,
+                    "status": status_code,
+                    "duration_ms": round(elapsed_ms, 1),
+                }
+            )
+        )
+
+
+def resolve_route(path: str, routes: Iterable[Any]) -> str | None:
+    """Name the route serving ``path``; None for a mounted sub-application."""
+    mounted = False
+    for route in routes:
+        route_path = getattr(route, "path", None)
+        if route_path is None:
+            continue
+        if isinstance(route, Mount):
+            prefix = route_path.rstrip("/")
+            if prefix and (path == prefix or path.startswith(prefix + "/")):
+                mounted = True
+        elif path == route_path:
+            return route_path
+    return None if mounted else UNMATCHED_ROUTE
+
+
 class RequestMonitoringMiddleware:
     """ASGI middleware that records and logs every counted request.
 
     It reads only the method, the path (to name the route), and the response
     status. It never reads request bodies, query strings, or headers, so
-    questions, answers, and credentials cannot reach the log. Each response
-    gets an ``X-Request-ID`` header matching its log line. Exceptions are
-    recorded as status 500 and re-raised unchanged.
+    questions, answers, and credentials cannot reach the log. Each counted
+    response gets an ``X-Request-ID`` header matching its log line.
+    Exceptions are recorded as status 500 and re-raised unchanged.
     """
 
     def __init__(
         self,
         app: Any,
         *,
-        metrics: RequestMetrics,
-        route_paths: Callable[[], Iterable[str]],
-        log: Callable[[str], None],
+        monitor: RequestMonitor,
+        routes: Callable[[], Iterable[Any]],
         timer: Callable[[], float] = time.perf_counter,
     ) -> None:
         self.app = app
-        self._metrics = metrics
-        self._route_paths = route_paths
-        self._log = log
+        self._monitor = monitor
+        self._routes = routes
         self._timer = timer
 
     async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
@@ -129,8 +183,11 @@ class RequestMonitoringMiddleware:
             return
 
         method = scope["method"]
-        path = scope["path"]
-        route = path if path in set(self._route_paths()) else UNMATCHED_ROUTE
+        route = resolve_route(scope["path"], self._routes())
+        if route is None or (method == "GET" and route == METRICS_PATH):
+            await self.app(scope, receive, send)
+            return
+
         request_id = uuid.uuid4().hex
         status_code = 500
         started = self._timer()
@@ -148,20 +205,4 @@ class RequestMonitoringMiddleware:
             await self.app(scope, receive, send_with_request_id)
         finally:
             elapsed_ms = (self._timer() - started) * 1000
-            if not (method == "GET" and route == METRICS_PATH):
-                self._metrics.record(f"{method} {route}", status_code, elapsed_ms)
-                self._log(
-                    json.dumps(
-                        {
-                            "event": "http_request",
-                            "timestamp": datetime.now(timezone.utc).isoformat(
-                                timespec="milliseconds"
-                            ),
-                            "request_id": request_id,
-                            "method": method,
-                            "route": route,
-                            "status": status_code,
-                            "duration_ms": round(elapsed_ms, 1),
-                        }
-                    )
-                )
+            self._monitor.observe(method, route, status_code, elapsed_ms, request_id)
