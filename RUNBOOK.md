@@ -46,6 +46,7 @@ Roll back only to an image listed here.
 | --- | --- | --- | --- |
 | `75571d7` | `sha256:40d92abae90670d2c624b6a87a11bd5c6bbc9a49082e0ec3a2ce7ba2ba5367bc` | 2026-11-22 | `/health`, `/docs`, `/predict` (both strategies); no `/metrics`, no interface |
 | `996bf7f` | `sha256:471c12f8bf1b5b64e9b25ad6816a55ea60c080cd951c28593ccc6b3095f54421` | 2026-11-22 | Adds `/metrics` and JSON access logs: `/health`, `/predict` (both strategies), 422 rejection, and changing counters verified live; no interface |
+| `3062327` | `sha256:e0969395e040a38a92369afa4990f72fc42e2ee34d2b8674cbbbdc238c12c125` | 2026-11-22 (running) | Adds the Miras interface at `/ui` (`/` redirects): interface question answered in a browser, `/docs` and `/predict` 200, `POST /ui/predict` counted, JSON log lines in Azure |
 
 ## 2. Configuration
 

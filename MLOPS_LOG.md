@@ -29,7 +29,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
-| 12 | M2 monitoring and runbook | `13-m2-monitoring-runbook` | In progress | Request metrics, JSON access logs, `/metrics`, and `RUNBOOK.md` added; 42 focused tests and Ruff passed locally; redeployment evidence pending | Pending |
+| 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
 
@@ -365,8 +365,35 @@ roll back the Azure deployment.
   failure) and 5 new `tests/test_gradio_app.py` cases (supplied retrievers and
   the 200/422/502/500 outcome mapping). With the monitoring, API,
   container-config, and deploy-key tests: 58 passed; Ruff passed.
-- Interface container build, redeployment, and public interface evidence:
-  pending.
+- Commit `3062327` (interface): GitHub Actions passed Ruff, the full Pytest
+  suite, and the Docker build. Local image build 574 s, 3.29 GB (Gradio adds
+  about 130 MB). Pushed as
+  `sha256:e0969395e040a38a92369afa4990f72fc42e2ee34d2b8674cbbbdc238c12c125`
+  (one push retry after a transient broken-pipe error). Local smoke test with
+  the `.env` keys: healthy in about 30 s; `GET /` returned 307 to `/ui/`;
+  `/ui/` 200 HTML; the interface config reported the Miras title, custom CSS,
+  and theme, and an `https://` root when sent `X-Forwarded-Proto: https`; a
+  question through Gradio's call API returned a grounded Groq answer and was
+  counted as `POST /ui/predict`; a question clicked through the page in a
+  browser was answered; API `/predict` and `/docs` 200; one JSON log line per
+  counted request, no question text, no uvicorn access lines; 789 MiB memory.
+- Live on Azure from 2026-11-22 20:05 PKT (`started_at` 15:05:58 UTC). At
+  20:06-20:08 PKT: `GET /` returned 307 to the `https://` `/ui/` address;
+  `/ui/` 200; the interface config reported the Miras title and an
+  `https://.../ui` root; `/docs` 200; API `/predict` (`fixed`) 200 with an
+  `X-Request-ID`. In the browser, "Can a non-Muslim inherit from a Muslim
+  estate?" received a grounded answer. A first automated attempt clicked
+  "Ask" before the example text reached the box; the interface rejected the
+  empty question ("at least 3 characters") and counted it as a failure, as
+  designed. `/metrics` at 20:08:24 PKT: 13 requests (8 successes, 5
+  failures); `POST /ui/predict` 3 requests (2 successes, 1 failure, mean
+  1,056.1 ms); `POST /predict` 1 request (6,508.7 ms, the first prediction on
+  the new replica); `GET unmatched` 4 failures (requests to paths outside the
+  app's routes, which the log does not name by design). Azure log stream (`az containerapp logs show ... | grep
+  http_request`) showed JSON lines such as
+  `{"event": "http_request", ..., "method": "POST", "route": "/ui/predict", "status": 200, "duration_ms": 1648.7}`
+  and `{"event": "http_request", ..., "method": "GET", "route": "/", "status": 307, "duration_ms": 3.4}`,
+  with no question or answer text.
 
 ## Phase 1 — MLflow integration
 
@@ -1249,3 +1276,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `12-m2-render-deployment` | Hardened key entry in the Azure deploy script: `deploy/azure/read-key.sh` cleans quotes, `NAME=` prefixes, spaces, and line endings, checks the `pcsk_`/`gsk_` prefixes, and re-prompts; `UPDATE_KEYS=1` replaces both keys on the live app and rolls a new revision. Twelve new tests passed locally with Git Bash, and a stubbed dry run confirmed the Azure calls for four scenarios. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Added in-memory request metrics, one safe JSON access-log line per counted request with `X-Request-ID`, the `GET /metrics` endpoint, `--no-access-log` in the image, and `RUNBOOK.md`. Eighteen new monitoring tests and the existing API, container, and deploy-key tests passed locally (42), and Ruff passed. Redeployment evidence pending. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `996bf7f` and verified live metrics (0 to 4 requests, 3/1 success/failure) with `X-Request-ID` on every response; recorded a scale-to-zero 502 seen after an idle period. At the team's request, mounted the branch-8/9 Miras Gradio interface at `/ui` with `/` redirecting to it (`src/web.py`), sharing the API's loaded retrievers and counting interface questions as `POST /ui/predict`; 58 local tests and Ruff passed. |
+| 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `3062327`: the public URL now opens the Miras interface over HTTPS, a browser question was answered, `/docs` and `/predict` still work, `/metrics` counted interface questions (3: 2 answered, 1 empty question rejected), and the Azure log stream showed the JSON access lines without question text. Recorded `3062327` as a known-good release. Phase 12 is complete pending team acceptance. |
