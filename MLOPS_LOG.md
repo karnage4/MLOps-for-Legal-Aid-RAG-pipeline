@@ -28,7 +28,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
-| 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | In progress | Render free plan ran out of memory at startup; Azure Container Apps deploy script prepared; live endpoint checks pending | Pending |
+| 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
 
@@ -237,8 +237,43 @@ redeploy and rollback path.
 
 - `bash -n deploy/azure/deploy-containerapp.sh`: no syntax errors; running it
   without `IMAGE` exits with a usage message.
-- Live Azure deployment, public `/health`, `/docs`, and `/predict` checks:
-  pending.
+- Image `docker.io/rayyankhan007/legal-aid-rag-api:75571d7` (manifest list
+  `sha256:40d92abae90670d2c624b6a87a11bd5c6bbc9a49082e0ec3a2ce7ba2ba5367bc`,
+  0.73 GB compressed) was built locally from `75571d7` and pushed to a public
+  Docker Hub repository. Before the push it passed a local smoke test with the
+  `.env` keys: `/health` ok about 15 s after start, a grounded Groq answer from
+  `/predict`, and 702 MiB memory after the request. The build context
+  allow-list kept `.env` out, and a scan of `src/` and both BM25 corpora found
+  no key-shaped strings.
+- Live deployment on 2026-11-22 in `swedencentral`, the closest of the five
+  regions the Azure for Students policy allows (`austriaeast`, `eastasia`,
+  `koreacentral`, `polandcentral`, `swedencentral`) to the AWS `us-east-1`
+  Pinecone index:
+  <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io>
+- Public checks at 18:42 PKT: `/health` HTTP 200 with both retrievers loaded;
+  `/docs` HTTP 200; `/predict` HTTP 200 for `recursive` (server total 1,573 ms
+  = 982 ms retrieval + 591 ms generation, 2 sources) and `fixed` (3,402 ms =
+  1,679 ms + 1,723 ms, 3 sources), both hybrid top-5 through Groq
+  `qwen/qwen3.8-27b` with `fallback_used = false`. A too-short query and an
+  unknown request field both returned HTTP 422.
+
+### First-deployment incident
+
+- The first revision never became ready. Every start ended with Pinecone
+  `401 UNAUTHENTICATED Invalid API key` and `Application startup failed`, so
+  the public URL returned HTTP 503 for more than eight minutes. The image was
+  not at fault: the same image answered locally with the `.env` keys. The key
+  stored as the Azure secret differed from the local one; the team's original
+  key file wraps each value in quotes, the most likely source.
+- Fix: both keys were re-entered in Cloud Shell with hidden input and a
+  length/prefix check (75 characters starting `pcsk_`, 56 starting `gsk_`),
+  then stored with `az containerapp secret set`.
+- The script created an Express Container Apps environment, which rejects
+  `az containerapp revision restart`, and the Cloud Shell CLI has no
+  `az containerapp stop`/`start`. Setting a timestamp variable
+  (`KEYS_ROTATED_AT`) with `az containerapp update` started a new revision that
+  read the new secrets, and `/health` passed on the first check afterwards.
+  The README documents this key-replacement procedure.
 
 ## Phase 1 — MLflow integration
 
@@ -1117,3 +1152,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-13 | `9-post-m1-fixes` | Completed a controlled 24-call inference-latency rerun across the four prompt/model/temperature configurations. Shared warm retrieval, rotated order, disabled judges, and unmeasured quota cooldown removed major confounders. All calls passed without retries; generation medians were 0.759-1.590 seconds and total medians 5.330-6.091 seconds, confirming the original 52.7-106.6 second outliers were transient network/retry effects. |
 | 2026-11-22 | `10a-m2-docker-cpu-image` | Moved the CPU-only image fix onto branch 10 and verified it locally at `8a531de`: 784 MB content / 3.18 GB unpacked (versus 10.3 GB), 512.6 s build, first start stopped by a transient Pinecone DNS error, recreated container ready in 16.4 s, `/health` ok and `/docs` 200, `/predict` HTTP 200 for `recursive` (3,618 ms, 2 sources) and `fixed` (3,684 ms, 3 sources), 600.2 MiB current and 756.1 MiB peak memory under a 2 GiB limit with 0 OOM events, no `.env` in the image. Fixed the `HANDOUT.md` request examples to use `query`. |
 | 2026-11-22 | `12-m2-render-deployment` | Recorded the Render free-plan out-of-memory failure, added the Azure Container Apps deploy script (1 vCPU, 2 GiB, scale to zero, secrets prompted in Cloud Shell), documented the local build and Docker Hub push, and added a bounded Pinecone startup retry with two unit tests. Live Azure checks pending. |
+| 2026-11-22 | `12-m2-render-deployment` | Deployed image `75571d7` from Docker Hub (`rayyankhan007/legal-aid-rag-api`) to Azure Container Apps in `swedencentral`. The first revision crash-looped on a Pinecone 401 from a mistyped secret; after re-entering both keys and rolling a new revision, public `/health`, `/docs`, and `/predict` for `recursive` (1,573 ms server total) and `fixed` (3,402 ms) passed through Groq without fallback, and invalid input returned 422. Documented the live URL and the key-replacement procedure. |
