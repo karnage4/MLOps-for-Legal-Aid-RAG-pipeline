@@ -50,12 +50,13 @@ Building the branch-10 Dockerfile unchanged showed:
 
 | Check | Where | Result |
 |---|---|---|
-| Ruff | local | passed |
-| `tests/test_container_config.py` | local | 5 passed |
-| `docker build --check` | local | no warnings |
-| Full pytest, Docker build with CPU torch and model preload | GitHub Actions on push | see the run for this branch |
-| `/health`, `/docs`, `/predict` for both strategies | Windows laptop with real keys | to do, steps below |
-| Container memory with both retrievers loaded | `docker stats` on the laptop | to do, record the number |
+| `tests/test_container_config.py` | Windows laptop, `8a531de` | 5 passed |
+| `docker build --check` | Windows laptop, `8a531de` | no warnings |
+| Ruff, full pytest | branch 10 has no CI workflow | not run on 10a; the identical Dockerfile and test file passed Ruff, 119 tests, and Docker build on `12a-m2-docker-cpu-image` (runs `44912728419`, `44921194963`) |
+| Docker build and healthy container | Windows laptop, `8a531de` | passed: 512.6 s build, 784 MB / 3.18 GB image; first start hit a transient Pinecone DNS error, recreated container ready in 16.4 s |
+| `/health`, `/docs`, `/predict` for both strategies | Windows laptop with real keys, `8a531de` | passed: `/health` ok, `/docs` 200, `recursive` 200 (total 3,618 ms, 2 sources), `fixed` 200 (total 3,684 ms, 3 sources) |
+| Container memory with both retrievers loaded | `docker stats` and cgroup `memory.peak` | 600.2 MiB current, 756.1 MiB peak, 0 OOM events under the 2 GiB limit (12a run on branch-12 code: 931.7 MiB peak); see `MLOPS_LOG.md` Phase 9a |
+| No secrets in the image | `find / -xdev -name '.env*'` in the container | none found |
 
 ## Run it on Windows (PowerShell)
 
