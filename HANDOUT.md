@@ -51,10 +51,12 @@ Do not regenerate or replace these silently. If the corpus or chunking rules cha
 
 ```json
 {
-  "question": "What remedies are available?",
+  "query": "What remedies are available?",
   "chunking_strategy": "recursive"
 }
 ```
+
+The request field is `query`. Unknown fields such as `question` return HTTP 422.
 
 - `chunking_strategy` is validated as `recursive` or `fixed`.
 - `recursive` remains the default for backward compatibility.
@@ -67,7 +69,9 @@ Do not regenerate or replace these silently. If the corpus or chunking rules cha
 
 ## Important Files
 
-- `Dockerfile`: production API image definition and healthcheck.
+- `Dockerfile`: production API image definition and healthcheck (CPU-only PyTorch and baked-in models since branch 10a).
+- `compose.yaml`: local build-and-run with `.env`, port 8000, and a 2 GB memory limit.
+- `handoffs/10a-m2-docker-cpu-image.md`: why the image was changed and its local verification.
 - `.dockerignore`: build-context security and size allowlist.
 - `requirements-api.txt`: pinned runtime dependencies only.
 - `src/app.py`: FastAPI lifespan, health, validation, and prediction routing.
@@ -126,13 +130,23 @@ docker run --detach --name legal-aid-rag-api --env-file .env --publish 8000:8000
 docker logs --follow legal-aid-rag-api
 ```
 
-In another terminal:
+Or build and start the same image with Compose, which reads `.env` and applies
+a 2 GB memory limit (`docker compose down` stops it):
+
+```powershell
+docker compose up --build --detach
+```
+
+In another terminal (Windows PowerShell 5.1 strips the inner quotes from a
+`curl.exe -d '{...}'` JSON body, so use `Invoke-RestMethod` for `/predict`):
 
 ```powershell
 curl.exe http://127.0.0.1:8000/health
 curl.exe http://127.0.0.1:8000/docs
-curl.exe -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d '{"question":"What is legal aid?","chunking_strategy":"recursive"}'
-curl.exe -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d '{"question":"What is legal aid?","chunking_strategy":"fixed"}'
+$body = @{ query = "What is legal aid?"; chunking_strategy = "recursive" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/predict -ContentType "application/json" -Body $body
+$body = @{ query = "What is legal aid?"; chunking_strategy = "fixed" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/predict -ContentType "application/json" -Body $body
 ```
 
 Inspect the image contract if needed:
