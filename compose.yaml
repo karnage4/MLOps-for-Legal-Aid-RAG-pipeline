@@ -1,0 +1,16 @@
+# Local run of the production API image:
+#   docker compose up --build        (first run builds the image)
+#   docker compose ps                (STATUS shows "healthy" once both retrievers load)
+#   docker compose down
+# Secrets come from .env at runtime and are never copied into the image.
+services:
+  api:
+    build: .
+    image: legal-aid-rag-api:local
+    container_name: legal-aid-rag-api
+    env_file: .env
+    ports:
+      - "8000:8000"
+    # Roughly what a 2 GiB Cloud Run / paid Render instance gives the process.
+    # Docker Desktop itself must be allowed at least this much memory.
+    mem_limit: 2g
