@@ -1,6 +1,6 @@
 # Legal Inheritance RAG Architecture
 
-An MLflow-traced legal-inheritance RAG service that validates a hybrid retrieval pipeline and serves grounded answers through FastAPI.
+An MLflow-traced legal-inheritance RAG service that validates a hybrid retrieval pipeline and serves grounded answers through FastAPI and the Miras Gradio interface, deployed as one Docker image on Azure Container Apps.
 
 ## Architecture
 
@@ -11,13 +11,43 @@ flowchart LR
     C --> D[BM25 and Pinecone indexes]
     D --> E[Semantic or hybrid RAG]
     E --> F[Held-out evaluation and MLflow]
-    E --> G[FastAPI /predict]
-    E --> H[Local Gradio Miras UI]
+    E --> G[FastAPI /predict, /health, /metrics]
+    E --> H[Miras Gradio UI at /ui]
+    G --> I[Docker image on Azure Container Apps]
+    H --> I
 ```
 
 This is a training-exempt RAG project: the reproducible modeling stage prepares
 and indexes the corpus, evaluates retrieval/generation configurations, and
 tracks them in MLflow instead of fitting an unrelated supervised model.
+
+## Milestone 2 at a glance
+
+- **Live service:** <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io>
+  opens the Miras interface; the JSON API is documented at
+  [`/docs`](https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io/docs),
+  and request metrics are at
+  [`/metrics`](https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io/metrics).
+  The app scales to zero when idle, so the first request after a pause can
+  take up to a minute.
+- **Final branch:** `14-m2-submission`. Each Milestone 2 phase has its own
+  cumulative branch: `10-m2-containerization`, `11-m2-ci`,
+  `12-m2-render-deployment`, and `13-m2-monitoring-runbook`.
+
+| Requirement | Implementation | Evidence |
+| --- | --- | --- |
+| Dockerfile | [`Dockerfile`](Dockerfile), [`.dockerignore`](.dockerignore), [`compose.yaml`](compose.yaml): CPU-only PyTorch, both models baked in, non-root user, one uvicorn worker, `/health` `HEALTHCHECK`, allow-listed build context without `.env` | Local builds, healthy containers, and predictions in `MLOPS_LOG.md` Phases 9a and 12; [`tests/test_container_config.py`](tests/test_container_config.py); CI Docker build job |
+| CI: lint | Ruff job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Green on every Milestone 2 branch, e.g. [run 45033847322](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/45033847322); [screenshot](report/m2-evidence/04-github-actions-run.png) |
+| CI: tests | Pytest job running the full suite | Same runs |
+| CI: Docker build on `main` | Docker build job on every push, including `main` | [Run 43652828766](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/43652828766) on `main` (`MLOPS_LOG.md` Phase 10) |
+| Deployment | Azure Container Apps (1 vCPU, 2 GiB, 0-1 replicas) via [`deploy/azure/deploy-containerapp.sh`](deploy/azure/deploy-containerapp.sh); image on Docker Hub tagged with its Git SHA; API keys stored as platform secrets | Live URL above; public `/health`, `/docs`, `/predict`, and interface checks in `MLOPS_LOG.md` Phases 11 and 12; [interface screenshot](report/m2-evidence/01-live-interface-answer.jpg) |
+| Monitoring | [`src/monitoring.py`](src/monitoring.py): one JSON access-log line per request and `GET /metrics` with request count, successes, failures, and average latency, in total and per route | Live counters changing after requests and Azure log-stream lines in `MLOPS_LOG.md` Phase 12; [metrics screenshot](report/m2-evidence/02-live-metrics.png); [`tests/test_monitoring.py`](tests/test_monitoring.py) |
+| Runbook | [`RUNBOOK.md`](RUNBOOK.md): checks, diagnosis, redeploy, key replacement, rollback to a known-good image tag or digest, shutdown and restore | Known-good release table with image digests. The first deployment and two image updates (`996bf7f`, `3062327`) ran through the same script command the rollback uses, and the keys were replaced once by hand with the steps the script now automates (`MLOPS_LOG.md` Phases 11 and 12). A rollback to an older tag has not been rehearsed on the live service. |
+| README | Deployment steps, live status, and `curl` examples (sections below) | This file |
+| Contribution | [`CONTRIBUTION.md`](CONTRIBUTION.md) | Milestone 2 member-to-task table to be finalised by the team |
+
+Screenshots of the live service and CI are in
+[`report/m2-evidence/`](report/m2-evidence/).
 
 ## Quick start
 
@@ -99,10 +129,18 @@ The codebase is logically split into modular stages corresponding to the data in
 - `src/genai_dataset.py`, `src/genai_judges.py`, and `src/genai_evaluation.py`: Manage the held-out MLflow dataset, versioned judges, and controlled six-judge evaluations.
 - `src/genai_comparison.py`: Resumes and compares the complete eight-profile MLflow GenAI evaluation matrix.
 - `src/inference_ablation.py`: Runs the controlled prompt, generation-model, and temperature comparisons.
-- `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint and generated `/docs`.
-- `Dockerfile`, `.dockerignore`, and `requirements-api.txt`: Define the minimal, secret-safe FastAPI production image and its healthcheck.
+- `src/app.py`: Serves the existing traced RAG pipeline through a validated FastAPI `/predict` endpoint, `/health`, `/metrics`, and generated `/docs`.
+- `src/monitoring.py`: Records request counts, failures, and latency for `/metrics` and writes one privacy-safe JSON access-log line per request.
+- `src/web.py`: The deployed entry point; mounts the Miras Gradio interface at `/ui` inside the API and redirects `/` to it.
+- `Dockerfile`, `.dockerignore`, `compose.yaml`, and `requirements-api.txt`: Define the minimal, secret-safe production image (API plus interface) and its healthcheck.
+- `.github/workflows/ci.yml`: Runs the Ruff, Pytest, and Docker build jobs on every push and pull request.
+- `deploy/azure/`: The Azure Container Apps deployment script and its API-key reader.
+- `RUNBOOK.md`: Operating guide for the live service: checks, diagnosis, redeploy, rollback, key replacement, and shutdown.
+- `MLOPS_LOG.md` and `MILESTONE2_PLAN.md`: Phase-by-phase implementation and verification log, and the Milestone 2 plan.
+- `report/m2-evidence/`: Milestone 2 screenshots of the live service, its monitoring, and CI.
+- `render.yaml`: Record of the failed Render free-plan deployment attempt (not the live host).
 - `output/bm25_corpus.json` and `output/bm25_corpus_fixed.json`: Versioned recursive and fixed BM25 runtime artifacts packaged in the API image; raw corpus PDFs remain outside Git.
-- `gradio_app.py`: Provides the local Miras interface while calling the same traced RAG boundary.
+- `gradio_app.py`: The Miras interface; runs on its own locally and is mounted at `/ui` in the deployed service, calling the same traced RAG boundary.
 - `app.py`: The interactive graphical user interface built entirely natively within Streamlit.
 - `artifacts/`: Stores compact, reviewable evaluation evidence while full responses and local runtime state remain ignored.
 - `report/generate_m1_report.py`: Reproducibly builds the illustrated Milestone 1 report from tracked artifacts and verified screenshots.
@@ -699,9 +737,10 @@ This project does not perform task-specific supervised model training. It uses p
 
 ## Deployment Notes
 
-Milestone 2 packages the FastAPI service for Render. The production image runs
-one uvicorn worker, listens on Render's `PORT` (8000 locally), and reports
-healthy only after both retrievers have loaded successfully. This RAG project
+Milestone 2 packages the FastAPI service and the Miras Gradio interface as one
+Docker image, deployed to Azure Container Apps. The image runs one uvicorn
+worker serving `src.web:app` on `PORT` (default 8000) and reports healthy only
+after both retrievers have loaded successfully. This RAG project
 has no task-specific trained model file; its equivalent versioned runtime
 artifacts are `output/bm25_corpus.json` (recursive, 3,593 chunks) and
 `output/bm25_corpus_fixed.json` (fixed, 883 chunks). Dense vectors remain in
@@ -773,12 +812,13 @@ docker stop legal-aid-rag-api
 docker rm legal-aid-rag-api
 ```
 
-To build an image for Render or Cloud Run on an Apple Silicon Mac, add
-`--platform linux/amd64` to `docker build`; an arm64 image fails there with
-`exec format error`.
+To build an image for Azure Container Apps (or any amd64 host) on an Apple
+Silicon Mac, add `--platform linux/amd64` to `docker build`; an arm64 image
+fails there with `exec format error`.
 
 The deny-by-default `.dockerignore` permits only the Dockerfile, production
-requirements, `src/`, and both BM25 artifacts into the build context.
+requirements, `src/`, `gradio_app.py`, and both BM25 artifacts into the build
+context.
 It excludes credentials, local MLflow state, virtual environments, caches,
 tests, reports, generated presentations, and the raw legal corpus.
 
@@ -803,49 +843,17 @@ ruff check src tests gradio_app.py
 python -m pytest -q
 ```
 
-### Render deployment
+### Render attempt (failed; superseded by Azure)
 
-[`render.yaml`](render.yaml) defines the API as a Docker web service in
-Render's Virginia region, where it is close to the Pinecone index in
-`us-east-1`. It deploys from `main` only after the GitHub CI checks pass and
-uses `/health` as Render's application-level readiness check.
-
-Create the service from the Render Dashboard with **New > Blueprint**, select
-this repository, and confirm the `render.yaml` path. Render will prompt for
-the two protected values below during the initial Blueprint creation:
-
-- `PINECONE_API_KEY`
-- `GROQ_API_KEY`
-
-Do not paste either value into `render.yaml`, a Docker build argument, a GitHub
-workflow, or a screenshot. All remaining runtime settings are non-secret and
-versioned in the Blueprint. The Docker command binds uvicorn to `0.0.0.0` and
-Render's `PORT`; a single worker prevents duplicate transformer models in
-memory.
-
-The first deployment intentionally uses Render's `free` plan so its actual
-resource behavior can be measured without cost. That plan provides 512 MB RAM,
-spins down after 15 minutes without traffic, and can take about a minute to
-wake. PyTorch plus the embedding and reranking models may exceed that memory.
-If the Render Events or Logs page reports an out-of-memory restart, change
-`plan: free` to `plan: 1c-2g`, sync the Blueprint, and redeploy; do not remove
-the models or alter retrieval merely to hide the resource limit.
-
-After Render reports **Live**, replace `<render-service-url>` and run:
-
-```bash
-curl <render-service-url>/health
-curl <render-service-url>/docs
-curl -X POST <render-service-url>/predict \
-  -H "Content-Type: application/json" \
-  -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"fixed","retrieval_mode":"hybrid","top_k":5,"temperature":0.1}'
-```
-
-The first Render deployment on the free plan ran out of memory at startup.
-Local measurements later put the container's peak at 756-932 MiB
-(`MLOPS_LOG.md`, Phase 9a), so no 512 MB plan can run it. The service is
-therefore deployed to Azure Container Apps instead (next section); this
-Blueprint is kept as the record of the Render attempt.
+The first deployment target was Render's free plan, described by
+[`render.yaml`](render.yaml) (a Docker web service in Virginia, deploying from
+`main` after CI, with `/health` as its readiness check and both API keys
+entered as protected values). That deployment ran out of memory at startup:
+the free plan has 512 MB, and local measurements put the container's peak at
+756-932 MiB (`MLOPS_LOG.md`, Phase 9a). Render is therefore not the live host.
+`render.yaml` and `handoffs/12-m2-render-deployment.md` are kept only as the
+record of this capacity experiment; the service runs on Azure Container Apps
+(next section).
 
 ### Azure Container Apps deployment
 
@@ -871,7 +879,7 @@ installed locally. The first command lists the regions the student
 subscription may use; the second deploys to one of them:
 
 ```bash
-git clone --branch 13-m2-monitoring-runbook https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
+git clone --branch 14-m2-submission https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
 cd MLOps-for-Legal-Aid-RAG-pipeline
 IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> bash deploy/azure/deploy-containerapp.sh
 IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> LOCATION=<region> bash deploy/azure/deploy-containerapp.sh
@@ -884,7 +892,7 @@ registers the resource providers and creates the resource group
 `GROQ_API_KEY` with hidden input and stores them as Container Apps secrets,
 and it optionally takes a read-only Docker Hub access token, because anonymous
 Docker Hub pulls are rate-limited per IP address and Azure egress addresses
-are shared. Non-secret settings match the Render Blueprint. The script waits
+are shared. Non-secret settings match the earlier Render Blueprint. The script waits
 for `/health` and prints the public URL.
 
 Re-running the script with a different `IMAGE` tag rolls the app to that

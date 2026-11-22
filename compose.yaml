@@ -11,6 +11,6 @@ services:
     env_file: .env
     ports:
       - "8000:8000"
-    # Roughly what a 2 GiB Cloud Run / paid Render instance gives the process.
+    # The same 2 GiB the Azure Container Apps deployment gives the process.
     # Docker Desktop itself must be allowed at least this much memory.
     mem_limit: 2g

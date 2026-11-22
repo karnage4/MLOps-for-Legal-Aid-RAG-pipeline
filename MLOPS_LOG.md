@@ -25,10 +25,11 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 6 | Local Gradio interface | `6-gradio-interface` | Complete | Unit, HTTP, live RAG, fallback, and MLflow trace passed | Awaiting visual acceptance |
 | 7 | Prompt/model/temperature inference ablation | `7-inference-ablation-evaluation` | Complete | 4/4 valid; structured prompt selected | Active |
 | 8 | Post-M1 correctness and latency fixes | `9-post-m1-fixes` | Complete | 8/8 core-v2 evaluations and 150-request latency comparison passed | Active |
-| 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live health check deferred to Render | Build accepted |
+| 9 | M2 containerization | `10-m2-containerization` | Complete | Clean GitHub Linux image build passed; live container checks were later completed locally (9a) and on Azure (11) | Build accepted |
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
+| 13 | M2 submission | `14-m2-submission` | In progress | Rubric table, Render wording cleanup, and live and CI screenshots done; fresh-clone check pending; the M2 contribution table awaits the team | Pending |
 | 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
@@ -284,6 +285,43 @@ redeploy and rollback path.
   run against stub `az`/`curl` commands confirmed the exact Azure calls for a
   key update, an image-only update, a first deployment with one bad paste, and
   three bad pastes (which stop before any secret or app change).
+
+## Phase 13 — M2 submission
+
+### Objective
+
+Map every Milestone 2 requirement to its implementation and evidence, remove
+stale claims, capture evidence of the live service and CI, and confirm that a
+fresh clone reproduces the verified state.
+
+### Implemented
+
+- README: a "Milestone 2 at a glance" section with the live links, the branch
+  chain, and a requirement / implementation / evidence table; the
+  architecture diagram and project-structure list now include the Azure
+  deployment, the Miras interface at `/ui`, `/metrics`, `RUNBOOK.md`, and the
+  evidence folder.
+- Render is labelled throughout as the failed free-plan capacity experiment:
+  the README's Render section is condensed to that record,
+  `MILESTONE2_PLAN.md` opens with an outcome note mapping its Render steps to
+  Azure, `handoffs/12-m2-render-deployment.md` is marked superseded, and the
+  Dockerfile and `compose.yaml` comments no longer name Render or Cloud Run as
+  hosts. The phase-9 table row no longer says the health check is deferred to
+  Render.
+- `report/m2-evidence/`: six screenshots (live interface, a live answer,
+  `/metrics`, `/docs`, the CI run for the deployed commit, and the CI run on
+  `main`) with an index listing the Azure Portal captures that need the
+  account holder.
+- `RUNBOOK.md` points at branch 14 and records the measured cold start.
+- `CONTRIBUTION.md` is unchanged; the team will supply the Milestone 2
+  member-to-task table.
+
+### Verification status
+
+- Cold start on Azure: after the app had scaled to zero, the first `/health`
+  request returned 200 after 15.1 s (`started_at` 18:05:40 UTC). An interface
+  question then took 4,078.5 ms (first prediction on the new replica).
+- Fresh-clone check and final CI: pending.
 
 ## Phase 12 — M2 monitoring and runbook
 

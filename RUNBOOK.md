@@ -28,12 +28,13 @@ client ──HTTPS──> Azure Container Apps: legal-aid-rag-api (1 vCPU, 2 GiB
 | Image registry | Docker Hub, public repository `rayyankhan007/legal-aid-rag-api` |
 | Image tags | Short Git SHA of the commit the image was built from (immutable by convention) |
 | Deploy script | [`deploy/azure/deploy-containerapp.sh`](deploy/azure/deploy-containerapp.sh) |
-| Source branch | `13-m2-monitoring-runbook` on `karnage4/MLOps-for-Legal-Aid-RAG-pipeline` |
+| Source branch | `14-m2-submission` (final Milestone 2 branch) on `karnage4/MLOps-for-Legal-Aid-RAG-pipeline` |
 
 The app scales to zero about five minutes after its last request and starts
 again on the next request. A cold start pulls the image and loads both
-retrievers (about 15 seconds locally once the image is present); callers may
-see HTTP 503 or a slow first response until it finishes.
+retrievers: on 2026-11-22 the first `/health` request after scale to zero
+returned 200 after 15.1 s. Callers may see HTTP 503 or a slow first response
+until it finishes.
 
 MLflow traces go to a SQLite file inside the container (`/app/mlflow.db`) and
 are lost when the replica stops; production tracing is not retained.
@@ -162,7 +163,7 @@ Portal and use **Monitoring > Log stream** instead.
 3. Roll the app to the new image (**Cloud Shell**, from a clone of the branch):
 
    ```bash
-   git clone --branch 13-m2-monitoring-runbook --depth 1 https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
+   git clone --branch 14-m2-submission --depth 1 https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
    cd MLOps-for-Legal-Aid-RAG-pipeline
    IMAGE=docker.io/rayyankhan007/legal-aid-rag-api:<tag> LOCATION=swedencentral bash deploy/azure/deploy-containerapp.sh
    ```

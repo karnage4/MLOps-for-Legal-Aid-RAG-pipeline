@@ -2,6 +2,10 @@
 
 ## Goal and Current State
 
+> **Superseded.** This handoff records the failed Render attempt. The service
+> was deployed to Azure Container Apps instead; see `README.md`,
+> `RUNBOOK.md`, and `MLOPS_LOG.md` (Phases 11 and 12).
+
 Branch `12-m2-render-deployment` was created from branch 11 to deploy the Dockerized API through a Render Blueprint. Source configuration, tests, and CI passed, but the live Render Free instance failed during application startup because the RAG process exceeds the 512 MiB memory limit.
 
 This is an infrastructure-capacity blocker, not a proven port/CMD defect. The process starts, enters FastAPI lifespan startup, loads heavyweight dependencies, exceeds memory, and never reaches the point where Uvicorn binds the public socket.

@@ -1,5 +1,16 @@
 # Milestone 2 Implementation Plan
 
+> **Outcome (2026-11-22).** This is the original plan; `MLOPS_LOG.md` records
+> what was built and verified. The main change: the Render free plan ran out
+> of memory at startup (512 MB versus a measured 756-932 MiB peak), so the
+> service is deployed to **Azure Container Apps** (1 vCPU, 2 GiB, scale to
+> zero) from a Docker Hub image, with `deploy/azure/deploy-containerapp.sh`.
+> Every "Render" step below was carried out on Azure instead: protected
+> secrets are Container Apps secrets, logs come from the Azure log stream,
+> and rollback redeploys a known-good image tag (`RUNBOOK.md`). Branch 13 also
+> mounts the Miras Gradio interface at the public URL. Phase numbers below are
+> the plan's; `MLOPS_LOG.md` numbers the same phases 9-13.
+
 ## Objective
 
 Package the Milestone-1 FastAPI RAG service as a reproducible Docker image,

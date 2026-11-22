@@ -62,7 +62,8 @@ RUN test -s /app/output/bm25_corpus.json \
 
 EXPOSE 8000
 
-# Render/Cloud Run supply PORT; local Docker uses the image default of 8000.
+# Hosts that set PORT override the image default of 8000; Azure Container
+# Apps (target port 8000) and local Docker use the default.
 # Startup loads both retrievers before uvicorn answers, hence the grace period.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/health', timeout=4).read()"
