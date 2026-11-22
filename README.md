@@ -891,17 +891,21 @@ image as a new revision; re-running with an older tag is the rollback. Logs:
 az containerapp logs show --name legal-aid-rag-api --resource-group legal-aid-rag-rg --tail 100
 ```
 
-Re-running the script does not change the stored API keys. To replace a key,
-enter it in Cloud Shell with hidden input, store it, and start a new revision
-so the app reads it. The script creates an Express environment, which does not
-support `az containerapp revision restart`. Paste only the key value, without
-quotes or the `NAME=` prefix; the printed length should match the local key.
+Every key the script reads goes through
+[`deploy/azure/read-key.sh`](deploy/azure/read-key.sh). It removes common paste
+mistakes (surrounding quotes or spaces, a copied `NAME=` prefix, a Windows line
+ending), requires the `pcsk_` and `gsk_` prefixes, asks again after a bad paste,
+and prints only the key's length. The first deployment crash-looped because a
+key was stored with quotes. Set `CHECK_KEY_PREFIXES=0` for an older key format.
+
+A plain re-run does not change the stored API keys. To replace them, add
+`UPDATE_KEYS=1` and pass the current image tag. The script stores the new
+secrets and starts a new revision so the app reads them. The Express
+environment the script creates does not support
+`az containerapp revision restart`.
 
 ```bash
-read -r -s -p "PINECONE_API_KEY (hidden): " PK; echo; echo "length ${#PK}, starts ${PK:0:5}"
-read -r -s -p "GROQ_API_KEY (hidden): " GK; echo; echo "length ${#GK}, starts ${GK:0:4}"
-az containerapp secret set -n legal-aid-rag-api -g legal-aid-rag-rg --secrets "pinecone-api-key=$PK" "groq-api-key=$GK" -o none && unset PK GK
-az containerapp update -n legal-aid-rag-api -g legal-aid-rag-rg --set-env-vars KEYS_ROTATED_AT="$(date -u +%Y%m%dT%H%M%SZ)" -o none
+UPDATE_KEYS=1 IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> LOCATION=<region> bash deploy/azure/deploy-containerapp.sh
 ```
 
 Because the app scales to zero, the first request after an idle period waits

@@ -10,7 +10,10 @@
 # and asks for the API keys (typed input is hidden and never echoed).
 # Later runs with a new IMAGE only roll the app to that image (new revision),
 # which is also how to roll back: re-run with an older image tag.
+# Add UPDATE_KEYS=1 to a later run to replace both API keys as well.
 set -euo pipefail
+
+source "$(dirname "${BASH_SOURCE[0]}")/read-key.sh"
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-legal-aid-rag-rg}"
 ENVIRONMENT="${ENVIRONMENT:-legal-aid-rag-env}"
@@ -50,16 +53,26 @@ fi
 
 if az containerapp show --name "$APP_NAME" \
     --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
+  update_args=(--image "$IMAGE")
+  if [[ "${UPDATE_KEYS:-0}" == 1 ]]; then
+    PINECONE_API_KEY="$(read_key PINECONE_API_KEY pcsk_)"
+    GROQ_API_KEY="$(read_key GROQ_API_KEY gsk_)"
+    echo "Storing the new keys as Container Apps secrets..."
+    az containerapp secret set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
+      --secrets "pinecone-api-key=$PINECONE_API_KEY" "groq-api-key=$GROQ_API_KEY" \
+      --output none
+    unset PINECONE_API_KEY GROQ_API_KEY
+    # Running replicas keep the old values. A changed variable starts a new
+    # revision that reads the new secrets; Express environments do not support
+    # "az containerapp revision restart".
+    update_args+=(--set-env-vars "KEYS_ROTATED_AT=$(date -u +%Y%m%dT%H%M%SZ)")
+  fi
   echo "Updating $APP_NAME to $IMAGE..."
   az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
-    --image "$IMAGE" --output none
+    "${update_args[@]}" --output none
 else
-  read -r -s -p "PINECONE_API_KEY (hidden): " PINECONE_API_KEY; echo
-  read -r -s -p "GROQ_API_KEY (hidden): " GROQ_API_KEY; echo
-  if [[ -z "$PINECONE_API_KEY" || -z "$GROQ_API_KEY" ]]; then
-    echo "Both API keys are required." >&2
-    exit 1
-  fi
+  PINECONE_API_KEY="$(read_key PINECONE_API_KEY pcsk_)"
+  GROQ_API_KEY="$(read_key GROQ_API_KEY gsk_)"
   # Optional: pull as a Docker Hub user instead of anonymously. Anonymous
   # pulls are limited per IP address, and Azure egress IPs are shared.
   read -r -p "Docker Hub username for pulls (Enter to pull anonymously): " DOCKERHUB_USER

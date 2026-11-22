@@ -273,7 +273,16 @@ redeploy and rollback path.
   `az containerapp stop`/`start`. Setting a timestamp variable
   (`KEYS_ROTATED_AT`) with `az containerapp update` started a new revision that
   read the new secrets, and `/health` passed on the first check afterwards.
-  The README documents this key-replacement procedure.
+- Prevention: the deploy script now reads every key through
+  `deploy/azure/read-key.sh`. It strips surrounding quotes and spaces, a
+  `NAME=` or `export NAME=` prefix, and Windows line endings, requires the
+  `pcsk_`/`gsk_` prefixes, asks again up to three times, and never echoes the
+  key. `UPDATE_KEYS=1` reuses it to replace both keys on an existing app and
+  rolls a new revision with `KEYS_ROTATED_AT`. Twelve tests in
+  `tests/test_deploy_read_key.py` cover the clean-up and rejection cases. A dry
+  run against stub `az`/`curl` commands confirmed the exact Azure calls for a
+  key update, an image-only update, a first deployment with one bad paste, and
+  three bad pastes (which stop before any secret or app change).
 
 ## Phase 1 — MLflow integration
 
@@ -1153,3 +1162,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `10a-m2-docker-cpu-image` | Moved the CPU-only image fix onto branch 10 and verified it locally at `8a531de`: 784 MB content / 3.18 GB unpacked (versus 10.3 GB), 512.6 s build, first start stopped by a transient Pinecone DNS error, recreated container ready in 16.4 s, `/health` ok and `/docs` 200, `/predict` HTTP 200 for `recursive` (3,618 ms, 2 sources) and `fixed` (3,684 ms, 3 sources), 600.2 MiB current and 756.1 MiB peak memory under a 2 GiB limit with 0 OOM events, no `.env` in the image. Fixed the `HANDOUT.md` request examples to use `query`. |
 | 2026-11-22 | `12-m2-render-deployment` | Recorded the Render free-plan out-of-memory failure, added the Azure Container Apps deploy script (1 vCPU, 2 GiB, scale to zero, secrets prompted in Cloud Shell), documented the local build and Docker Hub push, and added a bounded Pinecone startup retry with two unit tests. Live Azure checks pending. |
 | 2026-11-22 | `12-m2-render-deployment` | Deployed image `75571d7` from Docker Hub (`rayyankhan007/legal-aid-rag-api`) to Azure Container Apps in `swedencentral`. The first revision crash-looped on a Pinecone 401 from a mistyped secret; after re-entering both keys and rolling a new revision, public `/health`, `/docs`, and `/predict` for `recursive` (1,573 ms server total) and `fixed` (3,402 ms) passed through Groq without fallback, and invalid input returned 422. Documented the live URL and the key-replacement procedure. |
+| 2026-11-22 | `12-m2-render-deployment` | Hardened key entry in the Azure deploy script: `deploy/azure/read-key.sh` cleans quotes, `NAME=` prefixes, spaces, and line endings, checks the `pcsk_`/`gsk_` prefixes, and re-prompts; `UPDATE_KEYS=1` replaces both keys on the live app and rolls a new revision. Twelve new tests passed locally with Git Bash, and a stubbed dry run confirmed the Azure calls for four scenarios. |
