@@ -868,7 +868,7 @@ installed locally. The first command lists the regions the student
 subscription may use; the second deploys to one of them:
 
 ```bash
-git clone --branch 12-m2-render-deployment https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
+git clone --branch 13-m2-monitoring-runbook https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline.git
 cd MLOps-for-Legal-Aid-RAG-pipeline
 IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> bash deploy/azure/deploy-containerapp.sh
 IMAGE=docker.io/<dockerhub-user>/legal-aid-rag-api:<tag> LOCATION=<region> bash deploy/azure/deploy-containerapp.sh
@@ -927,6 +927,55 @@ Live API (deployed 2026-11-22 from image `75571d7` in `swedencentral`):
 with interactive docs at
 <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io/docs>.
 The deployment evidence is recorded in `MLOPS_LOG.md` (Phase 11).
+[`RUNBOOK.md`](RUNBOOK.md) covers routine checks, diagnosis, redeployment,
+rollback to a known-good image tag, key replacement, and shutting down.
+
+### Monitoring
+
+Every request except `GET /metrics` itself is counted and written to stdout as
+one JSON line. The line holds the time, a request ID, the method, the route,
+the status, and the duration; questions, answers, headers, and keys are never
+logged. The same request ID comes back in the `X-Request-ID` response header.
+
+```json
+{"event": "http_request", "timestamp": "2026-11-22T14:05:01.123+00:00", "request_id": "3f2c...", "method": "POST", "route": "/predict", "status": 200, "duration_ms": 1573.2}
+```
+
+`GET /metrics` returns the counts since the running replica started, in total
+and per route. A status of 400 or higher counts as a failure, and paths that
+match no route are grouped as `unmatched`. The counters live in memory, so
+they reset on every restart, redeploy, or scale to zero.
+
+```bash
+URL=https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io
+curl "$URL/health"
+curl -X POST "$URL/predict" -H "Content-Type: application/json" \
+  -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"fixed"}'
+curl "$URL/metrics"
+```
+
+Example `/metrics` response (illustrative values):
+
+```json
+{
+  "started_at": "2026-11-22T14:00:12+00:00",
+  "uptime_seconds": 289.5,
+  "request_count": 3,
+  "success_count": 2,
+  "failure_count": 1,
+  "average_latency_ms": 1210.4,
+  "routes": {
+    "GET /health": {"request_count": 1, "success_count": 1, "failure_count": 0, "average_latency_ms": 1.2},
+    "POST /predict": {"request_count": 2, "success_count": 1, "failure_count": 1, "average_latency_ms": 1815.0}
+  }
+}
+```
+
+Read the logs in Azure Cloud Shell:
+
+```bash
+az containerapp logs show -n legal-aid-rag-api -g legal-aid-rag-rg --tail 100 | grep http_request
+```
 
 ## MLflow Integration — Phase 1
 

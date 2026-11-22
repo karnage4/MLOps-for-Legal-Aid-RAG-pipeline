@@ -29,6 +29,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
+| 12 | M2 monitoring and runbook | `13-m2-monitoring-runbook` | In progress | Request metrics, JSON access logs, `/metrics`, and `RUNBOOK.md` added; 42 focused tests and Ruff passed locally; redeployment evidence pending | Pending |
 
 ## Phase 9 — M2 containerization
 
@@ -283,6 +284,47 @@ redeploy and rollback path.
   run against stub `az`/`curl` commands confirmed the exact Azure calls for a
   key update, an image-only update, a first deployment with one bad paste, and
   three bad pastes (which stop before any secret or app change).
+
+## Phase 12 — M2 monitoring and runbook
+
+### Objective
+
+Make request volume, failures, and latency observable on the live service
+without logging private content, and document how to operate, redeploy, and
+roll back the Azure deployment.
+
+### Implemented
+
+- `src/monitoring.py` adds pure ASGI middleware. For every request except
+  `GET /metrics` it records the route, status, and elapsed time, writes one
+  JSON line to stdout (`event`, `timestamp`, `request_id`, `method`, `route`,
+  `status`, `duration_ms`), and returns the request ID as `X-Request-ID`. It
+  never reads bodies, headers, or query strings. Unknown paths are grouped as
+  `unmatched`; status 400 and above, and unhandled exceptions (recorded as
+  500 and re-raised), count as failures.
+- `GET /metrics` returns `started_at`, `uptime_seconds`, `request_count`,
+  `success_count`, `failure_count`, and `average_latency_ms`, in total and per
+  route, from lock-protected in-memory counters. They reset on every restart,
+  redeploy, or scale to zero.
+- The Docker `CMD` adds `--no-access-log`, so each request produces exactly
+  one structured line instead of an extra uvicorn line.
+- `RUNBOOK.md` covers the system summary and identifiers, configuration names,
+  routine checks, metrics and logs, a diagnosis table, redeployment,
+  key replacement, rollback to a known-good image tag or digest, post-change
+  verification, shutdown and restoration, and ownership.
+
+### Verification status
+
+- Local (FastAPI 0.161.0, Starlette 1.10.0): `tests/test_monitoring.py` (18
+  tests: empty state, outcome counting, average latency, the 400 failure
+  boundary, uptime, 16,000 concurrent records, endpoint counting that
+  excludes `/metrics`, one safe log line per counted request with matching
+  `X-Request-ID`, unhandled-error counting with the original exception
+  re-raised, and the OpenAPI entry) plus the existing API, container-config,
+  and deploy-key tests: 42 passed. Ruff passed on `src`, `tests`, and
+  `gradio_app.py`.
+- Full CI, container build, redeployment, and public metrics and log evidence:
+  pending.
 
 ## Phase 1 — MLflow integration
 
@@ -1163,3 +1205,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `12-m2-render-deployment` | Recorded the Render free-plan out-of-memory failure, added the Azure Container Apps deploy script (1 vCPU, 2 GiB, scale to zero, secrets prompted in Cloud Shell), documented the local build and Docker Hub push, and added a bounded Pinecone startup retry with two unit tests. Live Azure checks pending. |
 | 2026-11-22 | `12-m2-render-deployment` | Deployed image `75571d7` from Docker Hub (`rayyankhan007/legal-aid-rag-api`) to Azure Container Apps in `swedencentral`. The first revision crash-looped on a Pinecone 401 from a mistyped secret; after re-entering both keys and rolling a new revision, public `/health`, `/docs`, and `/predict` for `recursive` (1,573 ms server total) and `fixed` (3,402 ms) passed through Groq without fallback, and invalid input returned 422. Documented the live URL and the key-replacement procedure. |
 | 2026-11-22 | `12-m2-render-deployment` | Hardened key entry in the Azure deploy script: `deploy/azure/read-key.sh` cleans quotes, `NAME=` prefixes, spaces, and line endings, checks the `pcsk_`/`gsk_` prefixes, and re-prompts; `UPDATE_KEYS=1` replaces both keys on the live app and rolls a new revision. Twelve new tests passed locally with Git Bash, and a stubbed dry run confirmed the Azure calls for four scenarios. |
+| 2026-11-22 | `13-m2-monitoring-runbook` | Added in-memory request metrics, one safe JSON access-log line per counted request with `X-Request-ID`, the `GET /metrics` endpoint, `--no-access-log` in the image, and `RUNBOOK.md`. Eighteen new monitoring tests and the existing API, container, and deploy-key tests passed locally (42), and Ruff passed. Redeployment evidence pending. |

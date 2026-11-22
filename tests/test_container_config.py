@@ -30,6 +30,7 @@ def test_dockerfile_serves_fastapi_and_checks_health():
     assert "HEALTHCHECK" in dockerfile
     assert "/health" in dockerfile
     assert "--workers 1" in dockerfile
+    assert "--no-access-log" in dockerfile
     assert "chown app:app /app" in dockerfile
     assert "USER app" in dockerfile
     assert "streamlit" not in dockerfile.lower()

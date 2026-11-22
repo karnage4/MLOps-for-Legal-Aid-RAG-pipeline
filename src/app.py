@@ -10,6 +10,13 @@ from typing import Any, Literal
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from src.monitoring import (
+    METRICS_PATH,
+    RequestMetrics,
+    RequestMonitoringMiddleware,
+    default_access_log,
+)
+
 
 DEFAULT_CHUNKING_STRATEGY = "recursive"
 DEFAULT_RETRIEVAL_MODE = "hybrid"
@@ -174,6 +181,27 @@ class HealthResponse(BaseModel):
     chunking_strategies: list[ChunkingStrategy]
 
 
+class RouteMetrics(BaseModel):
+    """Counts and mean latency for requests since this replica started."""
+
+    request_count: int = Field(ge=0)
+    success_count: int = Field(ge=0)
+    failure_count: int = Field(ge=0)
+    average_latency_ms: float = Field(ge=0)
+
+
+class MetricsResponse(BaseModel):
+    """In-memory request metrics; they reset when the replica restarts."""
+
+    started_at: str
+    uptime_seconds: float = Field(ge=0)
+    request_count: int = Field(ge=0)
+    success_count: int = Field(ge=0)
+    failure_count: int = Field(ge=0)
+    average_latency_ms: float = Field(ge=0)
+    routes: dict[str, RouteMetrics]
+
+
 def _safe_provider_error(value: Any) -> str:
     return " ".join(str(value or "Unknown generation error").split())[:300]
 
@@ -193,8 +221,13 @@ def create_app(
     retriever_loader: Callable[
         [], dict[str, dict[str, Any]]
     ] = load_all_retriever_components,
+    access_log: Callable[[str], None] | None = None,
 ) -> FastAPI:
-    """Create an independently testable API with one startup model load."""
+    """Create an independently testable API with one startup model load.
+
+    ``access_log`` receives one JSON line per counted request; by default the
+    lines go to stdout, where the hosting platform collects them.
+    """
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -211,6 +244,25 @@ def create_app(
         version="1.0.0",
         lifespan=lifespan,
     )
+    metrics = RequestMetrics()
+    application.state.metrics = metrics
+    application.add_middleware(
+        RequestMonitoringMiddleware,
+        metrics=metrics,
+        route_paths=lambda: [
+            route.path for route in application.routes if hasattr(route, "path")
+        ],
+        log=access_log or default_access_log(),
+    )
+
+    @application.get(
+        METRICS_PATH,
+        response_model=MetricsResponse,
+        tags=["operations"],
+        summary="Request counts and latency since this replica started",
+    )
+    def get_metrics() -> MetricsResponse:
+        return MetricsResponse(**metrics.snapshot())
 
     @application.get("/health", response_model=HealthResponse, tags=["operations"])
     def health(
