@@ -27,7 +27,7 @@ SAMPLE_QUESTIONS = (
     ("What share does a daughter receive in Islamic inheritance?", "fixed", "hybrid"),
     ("How are debts settled before distributing the estate?", "fixed", "semantic"),
 )
-INVALID_QUESTION = "hi"  # shorter than the 3-character minimum
+INVALID_QUESTION = "xi"  # shorter than the 3-character minimum
 
 
 def call(base: str, path: str, body: dict | None = None, timeout: float = 180) -> tuple[int, dict]:
