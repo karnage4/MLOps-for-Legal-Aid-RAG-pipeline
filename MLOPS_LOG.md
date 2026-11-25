@@ -29,7 +29,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
-| 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser | Live; awaiting team acceptance |
+| 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser; `/stats` added and verified in the local container (live redeploy pending) | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
 
@@ -394,6 +394,54 @@ roll back the Azure deployment.
   `{"event": "http_request", ..., "method": "POST", "route": "/ui/predict", "status": 200, "duration_ms": 1648.7}`
   and `{"event": "http_request", ..., "method": "GET", "route": "/", "status": 307, "duration_ms": 3.4}`,
   with no question or answer text.
+
+### `/stats` (added 2026-11-25)
+
+The revised instructor checklist names a `/stats` route. Implemented in
+commit `a5d818a`:
+
+- `GET /stats` returns the `/metrics` fields plus `queries`, aggregated over
+  `POST /predict` and `POST /ui/predict` by a lock-protected `QueryStats`
+  collector fed by the existing middleware (the RAG pipeline is unchanged):
+  `total`, `succeeded`, `failed`, `error_rate` (null with no questions),
+  `per_minute`, `by_status`, `by_endpoint`, and `latency_ms` (`mean`, `min`,
+  `max`, `p50`, `p90`, `p95`, `p99`, linear interpolation) over a 1,000-answer
+  window of successful answers. Reads of `/stats` and `/metrics` are not
+  counted.
+- Privacy: only the method, route name, status, and duration are recorded;
+  bodies, query strings, headers, questions, retrieved text, and answers are
+  never read.
+- Fail-safe: each monitoring step during a request (route lookup, response
+  header, timer, metrics, stats, log line) catches its own exceptions and
+  logs a warning without request data, so a collector bug cannot break a
+  question.
+- The Docker healthcheck reads `/health` and `/stats`; the deploy script
+  checks `/stats` after `/health`; `scripts/stats_demo.py` (standard library
+  only) prints `/stats`, sends three questions and one too-short question,
+  prints `/stats` again, and checks the change.
+
+Verification:
+
+- `tests/test_stats.py` (21 tests: fresh-app schema with zeros and nulls;
+  counts after 200, 422, and 502 questions; `/stats` and `/metrics` reads not
+  counted; no question text, retrieved text, answer, source, or name, email,
+  phone, or CNIC in `/stats`, `/metrics`, or the log; OpenAPI entry; a broken
+  collector, access log, or route lookup never breaks a question; exact
+  mean/min/max/p50/p90/p95/p99 for known latencies; failed questions excluded
+  from latency; rate per minute with a fake clock and null at zero uptime;
+  the bounded window; 8,000 concurrent records; percentile edge cases) and an
+  interface check in `tests/test_web.py`. With the existing monitoring,
+  interface, API, container, and deploy-key tests: 79 passed locally; Ruff
+  passed on `src`, `tests`, `gradio_app.py`, and `scripts`.
+- The deploy script's stubbed dry run passed all four scenarios and printed
+  the new `Stats:` line.
+- Image `a5d818a` (rebuilt in about 13 minutes because the local layer cache
+  had been cleared) run with the `.env` keys: `scripts/stats_demo.py` passed.
+  `/stats` moved from 0 to 4 questions (3 succeeded, 1 rejected with 422;
+  `error_rate` 0.25; p50 9,872.7 ms, p95 15,825.4 ms; the first answer
+  included model warm-up). Docker health status `healthy` with the `/stats`
+  healthcheck; 7 JSON log lines, no question text, no monitoring warnings, no
+  errors; 788.6 MiB memory.
 
 ## Phase 1 — MLflow integration
 
@@ -1277,3 +1325,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `13-m2-monitoring-runbook` | Added in-memory request metrics, one safe JSON access-log line per counted request with `X-Request-ID`, the `GET /metrics` endpoint, `--no-access-log` in the image, and `RUNBOOK.md`. Eighteen new monitoring tests and the existing API, container, and deploy-key tests passed locally (42), and Ruff passed. Redeployment evidence pending. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `996bf7f` and verified live metrics (0 to 4 requests, 3/1 success/failure) with `X-Request-ID` on every response; recorded a scale-to-zero 502 seen after an idle period. At the team's request, mounted the branch-8/9 Miras Gradio interface at `/ui` with `/` redirecting to it (`src/web.py`), sharing the API's loaded retrievers and counting interface questions as `POST /ui/predict`; 58 local tests and Ruff passed. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `3062327`: the public URL now opens the Miras interface over HTTPS, a browser question was answered, `/docs` and `/predict` still work, `/metrics` counted interface questions (3: 2 answered, 1 empty question rejected), and the Azure log stream showed the JSON access lines without question text. Recorded `3062327` as a known-good release. Phase 12 is complete pending team acceptance. |
+| 2026-11-25 | `13-m2-monitoring-runbook` | Added the required `GET /stats`: the `/metrics` fields plus fail-safe, privacy-safe question aggregates (error rate, rate per minute, status counts, latency p50/p90/p95/p99), a `/stats` healthcheck and deploy smoke check, and `scripts/stats_demo.py`. 21 new tests; 79 focused tests and Ruff passed; the demo passed against the rebuilt image with real keys. Live redeploy pending. |

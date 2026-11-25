@@ -939,46 +939,133 @@ rollback to a known-good image tag, key replacement, and shutting down.
 
 ### Monitoring
 
-Every request to an API route except `GET /metrics` itself is counted and
-written to stdout as one JSON line. The interface's own page, assets, and
-event stream under `/ui` are not counted, because one page load makes dozens
-of asset requests and the event stream stays open for minutes; each question
-asked in the interface is counted instead as `POST /ui/predict`. The line holds the time, a request ID, the method, the route,
-the status, and the duration; questions, answers, headers, and keys are never
-logged. The same request ID comes back in the `X-Request-ID` response header.
+The service monitors itself in three ways, all implemented in
+[`src/monitoring.py`](src/monitoring.py) as middleware around the API, so the
+RAG pipeline code is unchanged:
+
+1. **Structured access logs:** one JSON line per request on stdout (collected
+   by the Azure log stream).
+2. **`GET /metrics`:** request counts and average latency since the replica
+   started, in total and per route.
+3. **`GET /stats`:** the `/metrics` fields plus question statistics: error
+   rate, questions per minute, counts by status, and latency percentiles.
+
+**Privacy.** This is a legal-aid service, so monitoring records only the
+method, the matched route name, the status code, and the duration. It never
+reads request bodies, query strings, or headers, so questions, retrieved
+text, answers, and personal details cannot reach the logs, `/metrics`, or
+`/stats`. Paths that match no route are grouped as `unmatched`, and the same
+request ID returned in the `X-Request-ID` header identifies a request's log
+line.
 
 ```json
 {"event": "http_request", "timestamp": "2026-11-22T14:05:01.123+00:00", "request_id": "3f2c...", "method": "POST", "route": "/predict", "status": 200, "duration_ms": 1573.2}
 ```
 
-`GET /metrics` returns the counts since the running replica started, in total
-and per route. A status of 400 or higher counts as a failure, and paths that
-match no route are grouped as `unmatched`. The counters live in memory, so
-they reset on every restart, redeploy, or scale to zero.
+**What is counted.** Every request to an API route except reads of `/metrics`
+and `/stats` themselves. A status of 400 or higher, or an unhandled exception
+(recorded as 500), is a failure. The interface's own page, assets, and event
+stream under `/ui` are not counted, because one page load makes dozens of
+asset requests and the event stream stays open for minutes; each question
+asked in the interface is counted instead as `POST /ui/predict`.
 
-```bash
-URL=https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io
-curl "$URL/health"
-curl -X POST "$URL/predict" -H "Content-Type: application/json" \
-  -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"fixed"}'
-curl "$URL/metrics"
-```
+**What `/stats` returns.** The `/metrics` fields (`started_at`,
+`uptime_seconds`, `request_count`, `success_count`, `failure_count`,
+`average_latency_ms`, `routes`) plus `queries`, aggregated over questions
+only (`POST /predict` and `POST /ui/predict`):
 
-Example `/metrics` response (illustrative values):
+| Field | Meaning |
+| --- | --- |
+| `total`, `succeeded`, `failed` | Questions since the replica started |
+| `error_rate` | `failed / total`, rounded to 4 places; `null` with no questions |
+| `per_minute` | Questions per minute of uptime |
+| `by_status` | Question count per HTTP status, for example `{"200": 3, "422": 1}` |
+| `by_endpoint` | Question count for `POST /predict` and `POST /ui/predict` |
+| `latency_ms` | `mean`, `min`, `max`, `p50`, `p90`, `p95`, `p99` over the last 1,000 successful answers (`window`); `samples` is how many are held; values are `null` until the first answer |
+
+Percentiles use linear interpolation (NumPy's default). Failed questions
+count toward `error_rate` but not toward latency, because a rejected request
+returns in about a millisecond and would hide how long real answers take.
+
+**Limits and safety.** Counters live in memory in the single worker, so they
+reset on every restart, redeploy, or scale to zero (`started_at` shows when).
+Recording is O(1) under a lock; percentiles are computed only when `/stats`
+is read. Monitoring is fail-safe: if any collector raises, the question is
+still answered and a warning without request data is logged. The Docker
+healthcheck reads `/health` and `/stats`, and the deploy script checks
+`/stats` after `/health`.
+
+Example: `/stats` from the local container right after the demo below
+(2026-11-25; three answered questions and one rejected one; the first answer
+includes model warm-up):
 
 ```json
 {
-  "started_at": "2026-11-22T14:00:12+00:00",
-  "uptime_seconds": 289.5,
-  "request_count": 3,
-  "success_count": 2,
+  "started_at": "2026-11-25T12:40:26+00:00",
+  "uptime_seconds": 59.378,
+  "request_count": 6,
+  "success_count": 5,
   "failure_count": 1,
-  "average_latency_ms": 1210.4,
+  "average_latency_ms": 4911.6,
   "routes": {
-    "GET /health": {"request_count": 1, "success_count": 1, "failure_count": 0, "average_latency_ms": 1.2},
-    "POST /predict": {"request_count": 2, "success_count": 1, "failure_count": 1, "average_latency_ms": 1815.0}
+    "GET /health": {"request_count": 2, "success_count": 2, "failure_count": 0, "average_latency_ms": 21.3},
+    "POST /predict": {"request_count": 4, "success_count": 3, "failure_count": 1, "average_latency_ms": 7356.7}
+  },
+  "queries": {
+    "total": 4,
+    "succeeded": 3,
+    "failed": 1,
+    "error_rate": 0.25,
+    "per_minute": 4.042,
+    "by_status": {"200": 3, "422": 1},
+    "by_endpoint": {"POST /predict": 4},
+    "latency_ms": {
+      "window": 1000, "samples": 3,
+      "mean": 9805.0, "min": 3055.6, "max": 16486.8,
+      "p50": 9872.7, "p90": 15164.0, "p95": 15825.4, "p99": 16354.5
+    }
   }
 }
+```
+
+On a fresh replica every count is 0, `error_rate` is `null`, and the latency
+values are `null`.
+
+**Run the demo.** [`scripts/stats_demo.py`](scripts/stats_demo.py) needs
+only Python's standard library. It waits for `/health`, prints `/stats`,
+sends three questions plus one that is too short (HTTP 422), prints `/stats`
+again, and summarizes the change; it exits with status 1 if anything is
+unexpected.
+
+```bash
+# local container (docker compose up --build --detach)
+python scripts/stats_demo.py
+# live service (the first request may take up to a minute while it wakes)
+python scripts/stats_demo.py --url https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io
+```
+
+The same demo with `curl` (bash):
+
+```bash
+URL=http://127.0.0.1:8000   # or the live URL
+curl "$URL/stats"
+curl -X POST "$URL/predict" -H "Content-Type: application/json" \
+  -d '{"query":"Who inherits property when a person dies without a will?","chunking_strategy":"recursive"}'
+curl -X POST "$URL/predict" -H "Content-Type: application/json" \
+  -d '{"query":"What share does a daughter receive in Islamic inheritance?","chunking_strategy":"fixed"}'
+curl -X POST "$URL/predict" -H "Content-Type: application/json" -d '{"query":"hi"}'   # 422
+curl "$URL/stats"
+```
+
+and in Windows PowerShell:
+
+```powershell
+$url = "http://127.0.0.1:8000"   # or the live URL
+Invoke-RestMethod "$url/stats" | ConvertTo-Json -Depth 5
+$body = @{ query = "Who inherits property when a person dies without a will?"; chunking_strategy = "fixed" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri "$url/predict" -ContentType "application/json" -Body $body
+try { Invoke-RestMethod -Method Post -Uri "$url/predict" -ContentType "application/json" -Body '{"query":"hi"}' } catch { "Rejected as expected: HTTP " + [int]$_.Exception.Response.StatusCode }
+Invoke-RestMethod "$url/stats" | ConvertTo-Json -Depth 5
 ```
 
 Read the logs in Azure Cloud Shell:
