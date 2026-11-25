@@ -43,4 +43,4 @@ checks.append(request("/metrics"))
 report = {"checks": checks}
 (DEST / "container.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 print(json.dumps(report, indent=2, ensure_ascii=False))
-assert all(row["http_status"] == ({"/stats": 404, "/predict": 422}.get(row["route"], 200)) for row in checks)
+assert all(row["http_status"] == ({"/predict": 422}.get(row["route"], 200)) for row in checks)

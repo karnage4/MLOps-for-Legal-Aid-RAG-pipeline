@@ -207,7 +207,7 @@ def web():
             result["requests"].append(entry)
         result["final_metrics"] = client.get("/metrics").json()
     save("web", result)
-    assert all(row["http_status"] == (404 if row.get("route") == "/stats" else 200) for row in result["requests"]), "Application smoke check failed"
+    assert all(row["http_status"] == 200 for row in result["requests"]), "Application smoke check failed"
     expected_spans = {"legal_aid_rag_query", "hybrid_legal_retrieval", "legal_generation"}
     assert all(expected_spans.issubset(row["spans"]) for row in result["requests"] if "profile" in row), "Missing RAG trace spans"
 

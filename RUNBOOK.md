@@ -20,7 +20,7 @@ client ──HTTPS──> Azure Container Apps: legal-aid-rag-api (1 vCPU, 2 GiB
 | Item | Value |
 | --- | --- |
 | Public URL | <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io> (redirects to the Miras interface at `/ui/`) |
-| JSON API | `/health`, `/predict`, `/metrics`; interactive docs at `/docs` |
+| JSON API | `/health`, `/predict`, `/metrics`, `/stats`; interactive docs at `/docs` |
 | Entry point | `uvicorn src.web:app`: the API from `src/app.py` with `gradio_app.py` mounted at `/ui`, sharing one set of loaded retrievers |
 | Azure subscription | Azure for Students |
 | Region | `swedencentral` (allowed by the student policy; nearest to Pinecone `us-east-1`) |
@@ -80,23 +80,39 @@ az containerapp show -n legal-aid-rag-api -g legal-aid-rag-rg \
 ```powershell
 $url = "https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io"
 Invoke-RestMethod "$url/health"
-Invoke-RestMethod "$url/metrics"
+Invoke-RestMethod "$url/stats" | ConvertTo-Json -Depth 5
 $body = @{ query = "Who inherits property when a person dies without a will?"; chunking_strategy = "fixed" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri "$url/predict" -ContentType "application/json" -Body $body
 ```
 
 Healthy means: `/health` returns `status: ok` with `retriever_loaded: true`
 and both strategies; `/predict` returns HTTP 200 with `provider: groq` and
-`fallback_used: false`.
+`fallback_used: false`; `/stats` returns HTTP 200.
 
-### Metrics
+To demonstrate monitoring end to end, run
+`python scripts/stats_demo.py --url $url` (standard library only): it prints
+`/stats`, sends three questions and one rejected question, and prints
+`/stats` again with a before/after summary.
+
+### Metrics and stats
 
 `GET /metrics` reports, since the current replica started: `started_at`,
 `uptime_seconds`, `request_count`, `success_count`, `failure_count`,
 `average_latency_ms`, and the same counts per route (for example
-`POST /predict`). Rules (see `src/monitoring.py`):
+`POST /predict`).
 
-- every request to an API route is counted except `GET /metrics` itself;
+`GET /stats` returns the same fields plus `queries`, aggregated over
+questions only (`POST /predict` and `POST /ui/predict`): `total`,
+`succeeded`, `failed`, `error_rate` (null with no questions), `per_minute`,
+`by_status`, `by_endpoint`, and `latency_ms` with `mean`, `min`, `max`,
+`p50`, `p90`, `p95`, and `p99` over the last 1,000 successful answers (null
+until there is one). Watch `queries.error_rate` and `queries.by_status`: a
+rise in `502` points at Groq or retrieval failures, `422` at client input.
+
+Rules (see `src/monitoring.py`):
+
+- every request to an API route is counted except reads of `GET /metrics`
+  and `GET /stats`;
 - the interface's page, assets, and event stream under `/ui` are not counted;
   each question asked in the interface is counted as `POST /ui/predict`
   (status 200, 422 for invalid input, 502 for a retrieval or generation
@@ -104,7 +120,11 @@ and both strategies; `/predict` returns HTTP 200 with `provider: groq` and
 - status 400 or higher, or an unhandled exception, is a failure;
 - unknown paths are grouped under the route `unmatched`;
 - counters are in memory and reset on every restart, redeploy, or scale to
-  zero, so a small `uptime_seconds` after an idle period is normal.
+  zero, so a small `uptime_seconds` after an idle period is normal;
+- monitoring is fail-safe: if a collector fails, the request still completes
+  and a warning from the `src.monitoring` logger (without request data)
+  appears in the log stream. The Docker healthcheck reads `/stats`, so a
+  broken endpoint shows up as an unhealthy local container.
 
 ### Logs
 
@@ -211,6 +231,9 @@ support `az containerapp revision restart`, and the Cloud Shell CLI has no
    - `/predict` returns HTTP 200 for `chunking_strategy` `recursive` and `fixed`;
    - `/metrics` shows a fresh `started_at` and counts that rise with your
      requests (only on images that include monitoring);
+   - `/stats` returns HTTP 200 and its `queries.total` rises with your
+     questions (only on images that include `/stats`; the deploy script
+     checks the 200 itself);
    - the logs show one `http_request` line per request and no question text.
 
 Rolling back the image does not roll back secrets; if the keys changed, also

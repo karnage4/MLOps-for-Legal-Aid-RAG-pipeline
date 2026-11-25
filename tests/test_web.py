@@ -107,9 +107,13 @@ def test_interface_question_reuses_loaded_retrievers_and_is_counted(monkeypatch)
     with TestClient(_web_app(logs, retrievers)) as client:
         stream = _ask_interface(client, [QUESTION, "fixed", "hybrid", 5, 0.2, True])
         metrics = client.get("/metrics").json()
+        stats = client.get("/stats").json()
 
     assert "event: complete" in stream
     assert ANSWER in stream
+    assert stats["queries"]["by_endpoint"] == {"POST /ui/predict": 1}
+    assert stats["queries"]["succeeded"] == 1
+    assert QUESTION not in json.dumps(stats)
     assert observed["query"] == QUESTION
     assert observed["components"] is retrievers["fixed"]
     ui_metrics = metrics["routes"]["POST /ui/predict"]

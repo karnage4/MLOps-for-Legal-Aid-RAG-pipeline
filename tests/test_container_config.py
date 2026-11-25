@@ -31,6 +31,7 @@ def test_dockerfile_serves_fastapi_and_checks_health():
     assert "EXPOSE 8000" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert "/health" in dockerfile
+    assert "'/stats'" in dockerfile
     assert "--workers 1" in dockerfile
     assert "--no-access-log" in dockerfile
     assert "chown app:app /app" in dockerfile

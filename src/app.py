@@ -12,6 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.monitoring import (
     METRICS_PATH,
+    STATS_PATH,
+    QueryStats,
     RequestMetrics,
     RequestMonitor,
     RequestMonitoringMiddleware,
@@ -203,6 +205,40 @@ class MetricsResponse(BaseModel):
     routes: dict[str, RouteMetrics]
 
 
+class QueryLatency(BaseModel):
+    """Latency of recent successful answers; values are null with no samples."""
+
+    window: int = Field(ge=1, description="Most recent successful answers kept.")
+    samples: int = Field(ge=0)
+    mean: float | None = Field(default=None, ge=0)
+    min: float | None = Field(default=None, ge=0)
+    max: float | None = Field(default=None, ge=0)
+    p50: float | None = Field(default=None, ge=0)
+    p90: float | None = Field(default=None, ge=0)
+    p95: float | None = Field(default=None, ge=0)
+    p99: float | None = Field(default=None, ge=0)
+
+
+class QueryStatsResponse(BaseModel):
+    """Aggregates over questions (POST /predict and interface questions)."""
+
+    total: int = Field(ge=0)
+    succeeded: int = Field(ge=0)
+    failed: int = Field(ge=0)
+    error_rate: float | None = Field(default=None, ge=0, le=1)
+    per_minute: float | None = Field(default=None, ge=0)
+    by_status: dict[str, int]
+    by_endpoint: dict[str, int]
+    latency_ms: QueryLatency
+
+
+class StatsResponse(MetricsResponse):
+    """The /metrics fields plus question aggregates. Aggregates only: no
+    question text, retrieved text, answers, or client details."""
+
+    queries: QueryStatsResponse
+
+
 def _safe_provider_error(value: Any) -> str:
     return " ".join(str(value or "Unknown generation error").split())[:300]
 
@@ -246,8 +282,12 @@ def create_app(
         lifespan=lifespan,
     )
     metrics = RequestMetrics()
-    monitor = RequestMonitor(metrics, access_log or default_access_log())
+    query_stats = QueryStats()
+    monitor = RequestMonitor(
+        metrics, access_log or default_access_log(), query_stats=query_stats
+    )
     application.state.metrics = metrics
+    application.state.query_stats = query_stats
     application.state.monitor = monitor
     application.add_middleware(
         RequestMonitoringMiddleware,
@@ -263,6 +303,15 @@ def create_app(
     )
     def get_metrics() -> MetricsResponse:
         return MetricsResponse(**metrics.snapshot())
+
+    @application.get(
+        STATS_PATH,
+        response_model=StatsResponse,
+        tags=["operations"],
+        summary="Request and question statistics since this replica started",
+    )
+    def get_stats() -> StatsResponse:
+        return StatsResponse(**metrics.snapshot(), queries=query_stats.snapshot())
 
     @application.get("/health", response_model=HealthResponse, tags=["operations"])
     def health(

@@ -115,8 +115,16 @@ echo "Waiting for $URL/health (a cold start downloads the image and loads both r
 for _ in $(seq 1 30); do
   if curl --fail --silent --show-error --max-time 30 "$URL/health"; then
     echo
+    # Smoke-test the monitoring endpoint too (aggregates only, no user data).
+    if ! curl --fail --silent --show-error --max-time 30 "$URL/stats"; then
+      echo >&2
+      echo "The app is healthy but $URL/stats failed; check the logs." >&2
+      exit 1
+    fi
+    echo
     echo "Live API: $URL"
     echo "Docs:     $URL/docs"
+    echo "Stats:    $URL/stats"
     exit 0
   fi
   sleep 10
