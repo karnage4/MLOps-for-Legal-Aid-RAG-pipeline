@@ -322,9 +322,13 @@ fresh clone reproduces the verified state.
   validation work.
 - Added `AI_USAGE.md` to disclose development assistants, their uses, human
   verification, credential handling, and limitations.
-- Added `M2_VIDEO_SCRIPT.md`, a timed 5:30 real-run demonstration plan covering
+- Added `video-demo/M2_VIDEO_SCRIPT.md`, a timed 5:30 real-run demonstration plan covering
   the clean Docker start, health, prediction, monitoring, CI trigger, live
   deployment, Project Focus, and secret-safe recording checks.
+- Added `video-demo/M2_VIDEO_PRESENTATION.md`, a seven-slide presentation source with
+  concise on-slide copy, speaker notes, live-demo transitions, evidence-image
+  directions, and backup slides for the technology stack, monitoring response,
+  and hosting decision.
 
 ### Verification status
 
@@ -1359,3 +1363,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `3062327`: the public URL now opens the Miras interface over HTTPS, a browser question was answered, `/docs` and `/predict` still work, `/metrics` counted interface questions (3: 2 answered, 1 empty question rejected), and the Azure log stream showed the JSON access lines without question text. Recorded `3062327` as a known-good release. Phase 12 is complete pending team acceptance. |
 | 2026-11-22 | `14-m2-submission` | Added the Milestone 2 requirement/evidence table to the README, labelled Render as the failed capacity experiment across the docs, and added six live and CI screenshots in `report/m2-evidence/`. A fresh clone passed Ruff and 58 focused tests, built an image that ran healthy and answered through the API and the interface, the public service passed its smoke test, and CI passed on `a48712c`. Measured a 15.1 s cold start. The Milestone 2 `CONTRIBUTION.md` table awaits the team. |
 | 2026-11-25 | `14-m2-submission` | Audited the revised instructor requirements; added the explicit MLflow/LLM-as-a-Judge Project Focus, the M2 contribution allocation, `AI_USAGE.md`, and a timed video script. Confirmed `/metrics` is live but `/stats` returns 404, so the alias, redeployment, and final recording remain pending. |
+| 2026-11-25 | `14-m2-submission` | Added a seven-slide Markdown presentation source for the live demo, with timed speaker notes, Docker/CI/Azure demonstration cues, evaluation results, and optional backup slides. |

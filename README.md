@@ -78,7 +78,7 @@ before deployment.
 | Contribution | [`CONTRIBUTION.md`](CONTRIBUTION.md) | Milestone 2 member-to-task table with names, ERP IDs, responsibilities, and deliverables |
 | Project Focus | Extensive MLflow experimentation and LLM-as-a-Judge evaluation for RAG | [`Project Focus`](#project-focus) and the experiment/evaluation sections below |
 | AI usage | [`AI_USAGE.md`](AI_USAGE.md) | Development uses, human verification, credential handling, and limitations disclosed |
-| Video | [`M2_VIDEO_SCRIPT.md`](M2_VIDEO_SCRIPT.md) | Timed 4-6 minute real-run plan prepared; recording remains pending until `/stats` is live |
+| Video | [`video-demo/M2_VIDEO_SCRIPT.md`](video-demo/M2_VIDEO_SCRIPT.md) | Timed 4-6 minute real-run plan prepared; recording remains pending until `/stats` is live |
 
 Screenshots of the live service and CI are in
 [`report/m2-evidence/`](report/m2-evidence/).
@@ -171,7 +171,8 @@ The codebase is logically split into modular stages corresponding to the data in
 - `deploy/azure/`: The Azure Container Apps deployment script and its API-key reader.
 - `RUNBOOK.md`: Operating guide for the live service: checks, diagnosis, redeploy, rollback, key replacement, and shutdown.
 - `AI_USAGE.md`: Development-AI disclosure, verification approach, and limitations.
-- `M2_VIDEO_SCRIPT.md`: Timed 4-6 minute demonstration plan and recording checklist.
+- `video-demo/M2_VIDEO_SCRIPT.md`: Timed 4-6 minute demonstration plan and recording checklist.
+- `video-demo/M2_VIDEO_PRESENTATION.md`: Seven-slide live-demo deck source with speaker notes and backup slides.
 - `MLOPS_LOG.md` and `MILESTONE2_PLAN.md`: Phase-by-phase implementation and verification log, and the Milestone 2 plan.
 - `report/m2-evidence/`: Milestone 2 screenshots of the live service, its monitoring, and CI.
 - `render.yaml`: Record of the failed Render free-plan deployment attempt (not the live host).

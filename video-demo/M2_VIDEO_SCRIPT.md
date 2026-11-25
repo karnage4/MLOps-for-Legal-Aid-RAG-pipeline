@@ -1,5 +1,7 @@
 # Milestone 2 Video Script and Checklist
 
+Companion script for `M2_VIDEO_PRESENTATION.md` and the required live demonstration.
+
 Target duration: **5 minutes 30 seconds**. The required range is 4–6 minutes;
 the absolute marking limit is 7 minutes. Record a real run rather than slides.
 
