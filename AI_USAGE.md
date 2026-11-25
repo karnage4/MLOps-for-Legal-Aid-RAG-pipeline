@@ -32,15 +32,19 @@ AI output was not treated as proof that the system worked. Team members:
 - ran Ruff and pytest locally and through GitHub Actions;
 - built and inspected the Docker image;
 - started a local container and verified its Docker health status;
-- called `/health`, `/docs`, and `/predict` locally and on the deployed service;
-- inspected request metrics and privacy-safe structured logs;
+- called `/health`, `/docs`, `/predict`, and `/stats` locally and on the
+  deployed service, including the `scripts/stats_demo.py` before/after run;
+- inspected request metrics, `/stats` aggregates, and privacy-safe structured
+  logs;
 - reviewed MLflow runs, nested traces, datasets, judges, and artifacts;
 - manually tested recursive and fixed retrieval paths and the Gradio interface;
 - measured container memory and cold-start behavior; and
 - captured screenshots and run/deployment identifiers as evidence.
 
-The previously verified submission commit `0e636dd` passed the automated lint,
-test, and Docker-build jobs. Live-service claims in the repository are backed
+The submission branch passed the automated lint, test, and Docker-build jobs
+at `0e636dd` and again at `4986182`, after the AI-assisted `/stats` work was
+merged; that work was also verified in the local container and on the live
+service before being documented. Live-service claims in the repository are backed
 by recorded public smoke tests rather than by AI-generated descriptions alone.
 
 ## Data, privacy, and credentials
