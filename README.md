@@ -21,6 +21,33 @@ This is a training-exempt RAG project: the reproducible modeling stage prepares
 and indexes the corpus, evaluates retrieval/generation configurations, and
 tracks them in MLflow instead of fitting an unrelated supervised model.
 
+## Project Focus
+
+Our focus is **extensive MLflow experimentation and LLM-as-a-Judge evaluation
+for a production RAG system**. This suits the project because its quality is
+determined by retrieval, prompting, generation, and grounding rather than by a
+single supervised training cycle. A conventional training-loss graph would not
+show whether a legal answer retrieved the right evidence or remained faithful
+to it.
+
+The focus work compares eight retrieval profiles across fixed and recursive
+chunking, semantic and hybrid retrieval, and top-K values of 3 and 5. It also
+holds retrieval constant while comparing two prompts, two Groq-hosted
+generation models, and low versus high temperature. MLflow records parameters,
+latency, failures, artifacts, and nested query/retrieval/generation traces. A
+managed three-question dataset and versioned LLM judges measure expected-fact
+coverage, correctness, relevance, retrieval relevance, groundedness, and
+retrieval sufficiency. This produced two explicit deployment choices:
+`fixed-hybrid-top5` as the quality champion and `fixed-semantic-top3` as the
+latency challenger.
+
+We demonstrate the focus through the MLflow experiment comparison, dataset,
+judge versions, nested traces, tracked JSON artifacts, and the champion versus
+challenger latency/quality results documented below. For the final project, the
+next step is to connect representative production feedback or a larger held-out
+set to repeatable evaluation gates so retrieval or prompt changes can be checked
+before deployment.
+
 ## Milestone 2 at a glance
 
 - **Live service:** <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io>
@@ -33,6 +60,10 @@ tracks them in MLflow instead of fitting an unrelated supervised model.
 - **Final branch:** `14-m2-submission`. Each Milestone 2 phase has its own
   cumulative branch: `10-m2-containerization`, `11-m2-ci`,
   `12-m2-render-deployment`, and `13-m2-monitoring-runbook`.
+- **Revised checklist status:** the Project Focus, Milestone 2 contribution,
+  AI-usage disclosure, and timed video plan are documented. The instructor's
+  required `/stats` compatibility route and the final recorded video remain
+  pending.
 
 | Requirement | Implementation | Evidence |
 | --- | --- | --- |
@@ -41,10 +72,13 @@ tracks them in MLflow instead of fitting an unrelated supervised model.
 | CI: tests | Pytest job running the full suite | Same runs |
 | CI: Docker build on `main` | Docker build job on every push, including `main` | [Run 43652828766](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/43652828766) on `main` (`MLOPS_LOG.md` Phase 10) |
 | Deployment | Azure Container Apps (1 vCPU, 2 GiB, 0-1 replicas) via [`deploy/azure/deploy-containerapp.sh`](deploy/azure/deploy-containerapp.sh); image on Docker Hub tagged with its Git SHA; API keys stored as platform secrets | Live URL above; public `/health`, `/docs`, `/predict`, and interface checks in `MLOPS_LOG.md` Phases 11 and 12; [interface screenshot](report/m2-evidence/01-live-interface-answer.jpg) |
-| Monitoring | [`src/monitoring.py`](src/monitoring.py): one JSON access-log line per request and `GET /metrics` with request count, successes, failures, and average latency, in total and per route | Live counters changing after requests and Azure log-stream lines in `MLOPS_LOG.md` Phase 12; [metrics screenshot](report/m2-evidence/02-live-metrics.png); [`tests/test_monitoring.py`](tests/test_monitoring.py) |
+| Monitoring | [`src/monitoring.py`](src/monitoring.py): one JSON access-log line per request and `GET /metrics` with request count, successes, failures, and average latency, in total and per route. The revised rubric's `/stats` alias remains pending. | Live counters changing after requests and Azure log-stream lines in `MLOPS_LOG.md` Phase 12; [metrics screenshot](report/m2-evidence/02-live-metrics.png); [`tests/test_monitoring.py`](tests/test_monitoring.py) |
 | Runbook | [`RUNBOOK.md`](RUNBOOK.md): checks, diagnosis, redeploy, key replacement, rollback to a known-good image tag or digest, shutdown and restore | Known-good release table with image digests. The first deployment and two image updates (`996bf7f`, `3062327`) ran through the same script command the rollback uses, and the keys were replaced once by hand with the steps the script now automates (`MLOPS_LOG.md` Phases 11 and 12). A rollback to an older tag has not been rehearsed on the live service. |
 | README | Deployment steps, live status, and `curl` examples (sections below) | This file |
-| Contribution | [`CONTRIBUTION.md`](CONTRIBUTION.md) | Milestone 2 member-to-task table to be finalised by the team |
+| Contribution | [`CONTRIBUTION.md`](CONTRIBUTION.md) | Milestone 2 member-to-task table with names, ERP IDs, responsibilities, and deliverables |
+| Project Focus | Extensive MLflow experimentation and LLM-as-a-Judge evaluation for RAG | [`Project Focus`](#project-focus) and the experiment/evaluation sections below |
+| AI usage | [`AI_USAGE.md`](AI_USAGE.md) | Development uses, human verification, credential handling, and limitations disclosed |
+| Video | [`M2_VIDEO_SCRIPT.md`](M2_VIDEO_SCRIPT.md) | Timed 4-6 minute real-run plan prepared; recording remains pending until `/stats` is live |
 
 Screenshots of the live service and CI are in
 [`report/m2-evidence/`](report/m2-evidence/).
@@ -136,6 +170,8 @@ The codebase is logically split into modular stages corresponding to the data in
 - `.github/workflows/ci.yml`: Runs the Ruff, Pytest, and Docker build jobs on every push and pull request.
 - `deploy/azure/`: The Azure Container Apps deployment script and its API-key reader.
 - `RUNBOOK.md`: Operating guide for the live service: checks, diagnosis, redeploy, rollback, key replacement, and shutdown.
+- `AI_USAGE.md`: Development-AI disclosure, verification approach, and limitations.
+- `M2_VIDEO_SCRIPT.md`: Timed 4-6 minute demonstration plan and recording checklist.
 - `MLOPS_LOG.md` and `MILESTONE2_PLAN.md`: Phase-by-phase implementation and verification log, and the Milestone 2 plan.
 - `report/m2-evidence/`: Milestone 2 screenshots of the live service, its monitoring, and CI.
 - `render.yaml`: Record of the failed Render free-plan deployment attempt (not the live host).

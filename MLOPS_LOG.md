@@ -29,7 +29,7 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
-| 13 | M2 submission | `14-m2-submission` | Complete except `CONTRIBUTION.md` | Rubric table, Render cleanup, and screenshots done; fresh-clone lint, tests, image build, and container smoke test passed; public smoke test and CI passed | Awaiting the team's M2 contribution table |
+| 13 | M2 submission | `14-m2-submission` | Revised documentation complete; `/stats` and video pending | Rubric table, Project Focus, M2 contribution allocation, AI disclosure, video plan, Render cleanup, screenshots, fresh-clone verification, public smoke test, and CI evidence completed | Implement `/stats`, redeploy, then record the 4-6 minute video |
 | 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
@@ -313,8 +313,18 @@ fresh clone reproduces the verified state.
   `main`) with an index listing the Azure Portal captures that need the
   account holder.
 - `RUNBOOK.md` points at branch 14 and records the measured cold start.
-- `CONTRIBUTION.md` is unchanged; the team will supply the Milestone 2
-  member-to-task table.
+- Added the required `Project Focus` section describing the MLflow and
+  LLM-as-a-Judge specialization, why it suits RAG, the completed comparisons,
+  how it is demonstrated, and the final-project next step.
+- Replaced the Milestone 1 contribution file with an M2-specific member-to-task
+  allocation for Karam Hussain (27857), Aadesh Panjwani (29303), and Muhammad
+  Rayyan Khan (28410), aligned with the implementation history and manual
+  validation work.
+- Added `AI_USAGE.md` to disclose development assistants, their uses, human
+  verification, credential handling, and limitations.
+- Added `M2_VIDEO_SCRIPT.md`, a timed 5:30 real-run demonstration plan covering
+  the clean Docker start, health, prediction, monitoring, CI trigger, live
+  deployment, Project Focus, and secret-safe recording checks.
 
 ### Verification status
 
@@ -346,9 +356,14 @@ fresh clone reproduces the verified state.
   ([run 45053312903](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/45053312903)):
   Ruff lint, Pytest (the complete suite on a clean Ubuntu runner), and Docker
   build all passed.
-- Outstanding: the Milestone 2 `CONTRIBUTION.md` table (team), Azure Portal
-  screenshots (account holder), and the after-grading decision to keep the
-  service scaling to zero or stop it.
+- Revised-requirement audit on 2026-11-25: the existing `/metrics` monitoring
+  implementation satisfies the underlying request-count and latency behavior,
+  but the instructor's video checklist explicitly names `/stats`; the live
+  `/stats` route returned 404 while `/metrics` returned 200. The compatibility
+  route, its tests/documentation, redeployment, and final video remain pending.
+- Recommended evidence still outstanding: Azure Portal screenshots from the
+  account holder, a live rollback rehearsal, and the after-grading decision to
+  keep the service scaling to zero or stop it.
 
 ## Phase 12 — M2 monitoring and runbook
 
@@ -1343,3 +1358,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `996bf7f` and verified live metrics (0 to 4 requests, 3/1 success/failure) with `X-Request-ID` on every response; recorded a scale-to-zero 502 seen after an idle period. At the team's request, mounted the branch-8/9 Miras Gradio interface at `/ui` with `/` redirecting to it (`src/web.py`), sharing the API's loaded retrievers and counting interface questions as `POST /ui/predict`; 58 local tests and Ruff passed. |
 | 2026-11-22 | `13-m2-monitoring-runbook` | Deployed `3062327`: the public URL now opens the Miras interface over HTTPS, a browser question was answered, `/docs` and `/predict` still work, `/metrics` counted interface questions (3: 2 answered, 1 empty question rejected), and the Azure log stream showed the JSON access lines without question text. Recorded `3062327` as a known-good release. Phase 12 is complete pending team acceptance. |
 | 2026-11-22 | `14-m2-submission` | Added the Milestone 2 requirement/evidence table to the README, labelled Render as the failed capacity experiment across the docs, and added six live and CI screenshots in `report/m2-evidence/`. A fresh clone passed Ruff and 58 focused tests, built an image that ran healthy and answered through the API and the interface, the public service passed its smoke test, and CI passed on `a48712c`. Measured a 15.1 s cold start. The Milestone 2 `CONTRIBUTION.md` table awaits the team. |
+| 2026-11-25 | `14-m2-submission` | Audited the revised instructor requirements; added the explicit MLflow/LLM-as-a-Judge Project Focus, the M2 contribution allocation, `AI_USAGE.md`, and a timed video script. Confirmed `/metrics` is live but `/stats` returns 404, so the alias, redeployment, and final recording remain pending. |

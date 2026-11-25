@@ -1,0 +1,28 @@
+Milestone 2: Containerization, CI/CD & Deployment
+Objective: package the Milestone-1 system and put it somewhere reachable, with a working automated pipeline behind it.
+Dockerfile: a clean build (single or simple multi-stage) that installs dependencies, copies trained model and source code, runs API on correct exposed port, and includes a basic healthcheck hitting /health
+GitHub Actions CI (.github/workflows/ci.yml): a lint job (ruff or flake8), a test job running pytest with a visible pass/fail status, and a build job that builds the Docker image on every push to main.
+Deployment: the containerized API deployed and reachable on one cloud or managed hosting service — a single VM (EC2/Compute Engine/Azure VM) or an equivalent managed platform (Render, Railway, AWS App Runner, Azure Web App).
+Monitoring in place and demonstrable during grading: request count and average latency visible via logs, a simple counter endpoint, or one dashboard panel.
+A short RUNBOOK.md or README section describing how to redeploy the service and how to roll back to a previous Docker image tag if the deployment breaks.
+README updated with deployment steps, the live endpoint (or a note that it was shut down after grading to save cost), example cURL requests against the deployed service, and a Project Focus section, (See heading below).
+CONTRIBUTION.md with student names/ERP IDs and a member-to-task table for this milestone.
+Video Submission: 4-6 minute video, covering the following:
+Introduction: Project Focus, Overview, tech stacks used.
+Clean start. Show the repo on GitHub and run the single documented command from the README (docker build and docker run). Open /docs and call /health and /predict on the local container.
+Docker. Show the Dockerfile briefly. Run docker ps and point to (healthy) in the STATUS column, which confirms the /health check works.
+Monitoring. Send a few /predict requests, then open /stats and show the request count rising and the average latency.
+CI. On the Actions tab, show lint, test and build all green. Push a small change to show it triggers automatically. Optionally show one failing test turning the run red.
+Deployment. Open the live URL. Call /health, /predict and /stats on the deployed service, ideally with a cURL example from the README. If they use a free platform, they should wake it before recording.
+
+Checklist for students before submitting
+The video shows a real run, not just slides.
+/stats is demonstrated live, because the document says monitoring must be demonstrable.
+The README contains the live URL (or a note that it was shut down) and the cURL examples.
+CONTRIBUTION.md and AI_USAGE.md are updated.
+VIDEO SHOULD NOT BE LONGER THAN 7 MINUTES MAX. If its longer, the content covered beyond the required time limit would not be marked.
+
+Important for Milestone 2 - Project Focus:
+Every group must complete the full baseline pipeline: data preparation, a tracked and evaluated model, a FastAPI service, Docker, CI, and a basic deployment with monitoring. On top of this baseline, each group has one or more focus areas, which is the main differentiator in the final evaluation. The focus is where a group goes deep instead of wide. Examples include AutoML versus manual training, extensive MLflow experimentation or model comparison, DataOps and automated retraining, data drift or concept drift detection with alerts, canary or blue-green deployment, A/B testing, explainability (XAI), and LLM-as-a-Judge evaluation for GenAI projects. Not every project needs every technique. Canary deployment, for instance, only makes sense for projects where it fits, and groups not focused on it do the basic deployment only. The aim is to give students a feel for the different parts of a real pipeline, since the nature of each project differs. Focus work should begin in Milestone 2 and be shown in detail in the final submission. These tasks take real time and cannot be done in one night, and after Milestone 2 there will be little time left. Each group must write a short “Project Focus” section in its README covering what the focus is, why it suits the project, what will be built/compared, and how it will be demonstrated. Each group should cover it briefly in their demo video as well.
+
+Please note that you are supposed to start work or be in progress of addressing focus area(s) for the Milestone 2. You will have time till final presentation to fully complete it. In your Milestone 2 video submission, you may explain in the last 0.5-1 minute that what are your next steps going to be.
