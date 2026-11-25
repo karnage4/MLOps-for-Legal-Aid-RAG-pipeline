@@ -48,6 +48,27 @@ next step is to connect representative production feedback or a larger held-out
 set to repeatable evaluation gates so retrieval or prompt changes can be checked
 before deployment.
 
+## Post-M1 problems and improvements
+
+Instructor feedback identified slow inference and misleading correctness
+scores after the first Milestone 1 submission. Branch `9-post-m1-fixes`
+addressed both without changing the RAG architecture.
+
+| Problem before the fix | Cause identified | Improvement | Verified result |
+| --- | --- | --- | --- |
+| Some requests took 20-30 seconds, and early prompt/model runs reported 52.7-106.6 second averages. | Retrieval, provider/network delays, retries, and judge work were mixed into small-sample timings. | Added stage-level timing and a controlled 24-call rerun with shared warm retrieval, rotated configuration order, judges disabled, and cooldown excluded. | All calls passed without retries. Generation medians were 0.76-1.59 seconds and total medians were 5.33-6.09 seconds, showing that the earlier extreme values were transient stalls rather than stable configuration cost. |
+| The historical hybrid retrieval benchmark recorded a 26,287 ms mean. | Hybrid retrieval processed too many candidates, and cross-encoder reranking dominated the retrieval stage. | Limited processing to 10 BM25, 10 semantic, and 12 reranking candidates; logged BM25, embedding, Pinecone, fusion, reranking, and total time separately. | The quality champion measured 6,975 ms mean retrieval, 73.5% below the historical mean. Reranking remained the main cost at 76.0% of champion retrieval time. |
+| Interactive use was still slow with the quality-first hybrid profile. | BM25 fusion and cross-encoder reranking improve coverage but add substantial work. | Benchmarked a semantic-only deployment challenger against the same 15 questions and five repetitions. | `fixed-semantic-top3` measured 528 ms mean and 394 ms median retrieval, 92.4% and 94.2% lower than `fixed-hybrid-top5`, with a 0.1389 reduction in fact coverage. |
+| Strict correctness was usually `0.0` even when an answer supported several approved facts. | The binary judge required every expected fact, so one omission collapsed a partially correct answer to zero. | Added `fact_coverage`, which scores every expected fact independently, while retaining strict correctness as a diagnostic. | The quality champion reached 0.7222 fact coverage and could be compared meaningfully with the 0.5833 speed challenger. |
+| The original evaluation used seven judge calls per row and encountered quota, timeout, malformed-JSON, and completeness problems. | Independent judge requests multiplied provider calls and failure opportunities. | Replaced the primary evaluation path with one quota-aware, schema-validated core judge request per query. | Judge calls fell from 21 to 3 for the three-record dataset, and the corrected run completed every row with no missing core feedback. |
+| Every production request attempted a retired Hugging Face model before reaching Groq. | The original Hub model was unavailable, making the first provider attempt a guaranteed failure. | Removed Hugging Face generation from the runtime path and made Groq the direct provider with bounded transient-error retries. | The unnecessary failed call was removed while retrieval behavior and nested MLflow tracing remained unchanged. |
+
+The project therefore keeps two explicit operating choices. Use
+`fixed-hybrid-top5` when expected-fact coverage has priority, or
+`fixed-semantic-top3` when interactive retrieval latency has priority. The
+detailed artifacts, run IDs, benchmark distributions, and all eight core-v2
+profiles remain in the evaluation sections below.
+
 ## Milestone 2 at a glance
 
 - **Live service:** <https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io>
