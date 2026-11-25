@@ -103,12 +103,14 @@ def test_semantic_search_retries_transient_pinecone_connection_failure():
         {"matches": []},
     ]
 
-    with patch.object(retrieval.time, "sleep") as sleep:
+    # Replace this module's clock so MLflow background threads keep real sleep.
+    with patch.object(retrieval, "time", wraps=retrieval.time) as clock:
+        clock.sleep.return_value = None
         results = retrieval.semantic_search("question", embedder, index)
 
     assert results == []
     assert index.query.call_count == 2
-    sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
+    clock.sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
 
 
 def test_init_pinecone_retries_transient_startup_failure():
@@ -121,14 +123,15 @@ def test_init_pinecone_retries_transient_startup_failure():
 
     with (
         patch.object(retrieval, "Pinecone", return_value=client) as pinecone,
-        patch.object(retrieval.time, "sleep") as sleep,
+        patch.object(retrieval, "time", wraps=retrieval.time) as clock,
     ):
+        clock.sleep.return_value = None
         result = retrieval.init_pinecone("key", "legal-index")
 
     assert result is index
     pinecone.assert_called_once_with(api_key="key")
     assert client.Index.call_args_list == [call("legal-index"), call("legal-index")]
-    sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
+    clock.sleep.assert_called_once_with(retrieval.PINECONE_RETRY_BASE_SECONDS)
 
 
 def test_init_pinecone_raises_after_last_attempt():
@@ -138,13 +141,14 @@ def test_init_pinecone_raises_after_last_attempt():
     with (
         patch.object(retrieval, "Pinecone", return_value=client),
         patch.object(retrieval, "PINECONE_INIT_MAX_ATTEMPTS", 3),
-        patch.object(retrieval.time, "sleep") as sleep,
+        patch.object(retrieval, "time", wraps=retrieval.time) as clock,
         pytest.raises(retrieval.PineconeConnectionError),
     ):
+        clock.sleep.return_value = None
         retrieval.init_pinecone("key", "legal-index")
 
     assert client.Index.call_count == 3
-    assert sleep.call_count == 2
+    assert clock.sleep.call_count == 2
 
 
 def test_semantic_mode_skips_sparse_search_and_cross_encoder():

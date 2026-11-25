@@ -1,0 +1,18 @@
+{
+  "recursive": {
+    "expected_vectors": 3593,
+    "missing": 0,
+    "metadata_mismatches": 0,
+    "vector_mismatches_atol_1e-6_rtol_1e-5": 0,
+    "max_absolute_difference": 7.436752325062912e-09,
+    "remote_writes": 0
+  },
+  "fixed": {
+    "expected_vectors": 883,
+    "missing": 0,
+    "metadata_mismatches": 0,
+    "vector_mismatches_atol_1e-6_rtol_1e-5": 0,
+    "max_absolute_difference": 7.409095753585504e-09,
+    "remote_writes": 0
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "python": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "commit": "5f6953b68faf54d041eba579befce0c441d76985",
+  "credentials": {
+    "PINECONE_API_KEY": "configured",
+    "GROQ_API_KEY": "configured"
+  },
+  "generation_model": "qwen/qwen3.8-27b",
+  "model_cache": "C:\\Users\\aades\\.cache\\huggingface\\hub",
+  "cached_models": [
+    "models--cross-encoder--ms-marco-MiniLM-L-6-v2",
+    "models--sentence-transformers--all-MiniLM-L6-v2"
+  ],
+  "cached_model_main_revisions": {
+    "models--cross-encoder--ms-marco-MiniLM-L-6-v2": "233902d25c440f23af6f7d6e94d2946bac0bee0a",
+    "models--sentence-transformers--all-MiniLM-L6-v2": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+  },
+  "project_cached_model_configs": [],
+  "corpus_files": 50,
+  "runtime_artifacts": {
+    "bm25_corpus.json": {
+      "sha256": "51c8b6cd081f954f3e5d94d4676e98ffccb46556c6bc5fd88a736207447dcdc2",
+      "bytes": 1914492
+    },
+    "bm25_corpus_fixed.json": {
+      "sha256": "e878377705440dc9e599ecd3e3c2b55cd69299a072d23b7f1d806fd9736a7f15",
+      "bytes": 1669394
+    },
+    "chunks_fixed.json": {
+      "sha256": "3f3ed3278ab98f06a86ec7884cc7e30425d19665dcfdb5bc187953451e212e5b",
+      "bytes": 1784672
+    },
+    "chunks_recursive.json": {
+      "sha256": "c46ddab1977135a799234ccc22fffd4b11c8e3bee280cb47613ef24dd30ffc82",
+      "bytes": 2399273
+    },
+    "embeddings_cache.json": {
+      "sha256": "e55b77c0f7b9e900295f7a5cf1c99997654575cda69de9dceaf8fab4f531899c",
+      "bytes": 30568886
+    },
+    "embeddings_fixed.json": {
+      "sha256": "1088ec7b9ee38814e048ff356919019c365c07818e16720df447850cd7f2af60",
+      "bytes": 7511953
+    }
+  }
+}

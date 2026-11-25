@@ -1,0 +1,181 @@
+{
+  "requests": [
+    {
+      "route": "/health",
+      "http_status": 200,
+      "body": {
+        "status": "ok",
+        "retriever_loaded": true,
+        "chunking_strategies": [
+          "recursive",
+          "fixed"
+        ]
+      }
+    },
+    {
+      "route": "/docs",
+      "http_status": 200
+    },
+    {
+      "route": "/ui/",
+      "http_status": 200
+    },
+    {
+      "route": "/metrics",
+      "http_status": 200,
+      "body": {
+        "started_at": "2026-11-25T11:05:59+00:00",
+        "uptime_seconds": 9.375,
+        "request_count": 2,
+        "success_count": 2,
+        "failure_count": 0,
+        "average_latency_ms": 1.1,
+        "routes": {
+          "GET /docs": {
+            "request_count": 1,
+            "success_count": 1,
+            "failure_count": 0,
+            "average_latency_ms": 0.4
+          },
+          "GET /health": {
+            "request_count": 1,
+            "success_count": 1,
+            "failure_count": 0,
+            "average_latency_ms": 1.8
+          }
+        }
+      }
+    },
+    {
+      "route": "/stats",
+      "http_status": 404,
+      "body": {
+        "detail": "Not Found"
+      }
+    },
+    {
+      "profile": "fixed-semantic-top3",
+      "http_status": 200,
+      "body": {
+        "answer": "Based on the provided legal context, the share a daughter receives depends on the presence of other heirs, specifically sons:\n\n1.  **In the absence of a son:** A single daughter is entitled to **1/2** of the share. If there are **two or more daughters**, they are collectively entitled to **2/3** of the share, which they divide equally among themselves. This is stated in *Muslim Law of Inheritance Hanafi School.pdf*.\n2.  **Relative to a son:** The Qur'an provides the rule that a son's share must be **twice** that of a daughter's. This is explained in *theislamicinheritncesystem.pdf*.\n\nTherefore, a daughter receives **1/2** of the estate if she is the only child (or no sons exist), **2/3** if there are two or more daughters and no sons, or **half the share of a son** if sons are present.\n\n*Note: Please consult a qualified lawyer for advice regarding your specific inheritance situation.*",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": false,
+        "retrieved_chunks": 3,
+        "sources": [
+          "Muslim Law of Inheritance Hanafi School.pdf",
+          "theislamicinheritncesystem.pdf"
+        ],
+        "chunking_strategy": "fixed",
+        "retrieval_mode": "semantic",
+        "top_k": 3,
+        "timings": {
+          "retrieval_ms": 1246,
+          "generation_ms": 865,
+          "total_ms": 2110
+        }
+      },
+      "trace_id": "tr-44b6ffa03fbf00f3c2cdbcbdd82ec183",
+      "spans": [
+        "legal_aid_rag_query",
+        "hybrid_legal_retrieval",
+        "legal_generation"
+      ]
+    },
+    {
+      "profile": "fixed-hybrid-top5",
+      "http_status": 200,
+      "body": {
+        "answer": "Based on the provided legal context, the share a daughter receives depends on the presence of other heirs, specifically sons:\n\n1.  **In the absence of a son:** A daughter is entitled to **1/2** of the share. If there are two or more daughters, they are entitled to a collective share of **2/3**, which they divide equally among themselves. This is stated in *Muslim Law of Inheritance Hanafi School.pdf*.\n2.  **In the presence of a son:** The Qur'an provides the rule that a son's share must be **twice** that of the daughter's. This is stated in *theislamicinheritncesystem.pdf*.\n\nTherefore, a daughter receives **1/2** of the estate if she is the only child (or if there are multiple daughters and no sons), or **half the share of a son** if there are surviving sons.\n\n*Note: Please consult a qualified lawyer for advice regarding your specific inheritance situation.*",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": false,
+        "retrieved_chunks": 5,
+        "sources": [
+          "Divergent interpretations Section4MFLO.pdf",
+          "Muslim Law of Inheritance Hanafi School.pdf",
+          "theislamicinheritncesystem.pdf"
+        ],
+        "chunking_strategy": "fixed",
+        "retrieval_mode": "hybrid",
+        "top_k": 5,
+        "timings": {
+          "retrieval_ms": 769,
+          "generation_ms": 1216,
+          "total_ms": 1985
+        }
+      },
+      "trace_id": "tr-d4a5b60920093724d7a820dba16512b0",
+      "spans": [
+        "legal_aid_rag_query",
+        "hybrid_legal_retrieval",
+        "legal_generation"
+      ]
+    },
+    {
+      "profile": "recursive-hybrid-top5",
+      "http_status": 200,
+      "body": {
+        "answer": "Based on the provided legal context, the share a daughter receives in Islamic inheritance depends on the specific circumstances of the heirs:\n\n1.  **If there is only one daughter:** Her share is **half** of the estate. This is stated in **Context 2** (Source: Unknown source), which quotes Quran 4:11: \"And if there be only one daughter, her share shall be half.\"\n2.  **If there are more than two daughters:** They collectively receive **two-thirds** of the estate. **Context 2** (Source: Unknown source) states: \"In case there are only daughters, more than two shall have two-thirds of what has been left behind.\"\n3.  **If there are both male and female children:** A daughter's share is **half** that of a son's share. **Context 3** (Source: theislamicinheritncesystem.pdf) notes that \"Islam allots women half the share of inheritance available to men who have the same degree of relation to the decedent,\" and specifically that \"a son's share is double that of a daughter's.\"\n\nAdditionally, **Context 1** (Source: RP on Section4MFLO.pdf) provides a specific example where a daughter receives **1/2** of the estate, while a paternal granddaughter receives 1/6 to complete the cumulative share of 2/3 reserved for daughters.\n\n*Disclaimer: This information is based strictly on the provided documents. You should consult a qualified lawyer for advice regarding your specific legal situation.*",
+        "provider": "groq",
+        "model": "qwen/qwen3.8-27b",
+        "fallback_used": false,
+        "retrieved_chunks": 5,
+        "sources": [
+          "Divergent interpretations Section4MFLO.pdf",
+          "RP on Section4MFLO.pdf",
+          "theislamicinheritncesystem.pdf"
+        ],
+        "chunking_strategy": "recursive",
+        "retrieval_mode": "hybrid",
+        "top_k": 5,
+        "timings": {
+          "retrieval_ms": 528,
+          "generation_ms": 1053,
+          "total_ms": 1581
+        }
+      },
+      "trace_id": "tr-8d8c0bd67d079daa09db9e577af358a3",
+      "spans": [
+        "legal_aid_rag_query",
+        "hybrid_legal_retrieval",
+        "legal_generation"
+      ]
+    }
+  ],
+  "startup_seconds": 9.18,
+  "final_metrics": {
+    "started_at": "2026-11-25T11:05:59+00:00",
+    "uptime_seconds": 16.283,
+    "request_count": 6,
+    "success_count": 5,
+    "failure_count": 1,
+    "average_latency_ms": 1147.4,
+    "routes": {
+      "GET /docs": {
+        "request_count": 1,
+        "success_count": 1,
+        "failure_count": 0,
+        "average_latency_ms": 0.4
+      },
+      "GET /health": {
+        "request_count": 1,
+        "success_count": 1,
+        "failure_count": 0,
+        "average_latency_ms": 1.8
+      },
+      "GET unmatched": {
+        "request_count": 1,
+        "success_count": 0,
+        "failure_count": 1,
+        "average_latency_ms": 0.3
+      },
+      "POST /predict": {
+        "request_count": 3,
+        "success_count": 3,
+        "failure_count": 0,
+        "average_latency_ms": 2293.9
+      }
+    }
+  }
+}

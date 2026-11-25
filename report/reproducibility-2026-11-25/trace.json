@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "tracking_uri": "sqlite:///C:/Users/aades/Desktop/IBA/Semester 7/MLOps/Project/Git/MLOps-for-Legal-Aid-RAG-pipeline/output/reproducibility-2026-11-25/mlflow.db",
+  "experiment_id": "1",
+  "run_id": "085bf52f913b459aa188c32e883a5226",
+  "trace_id": "tr-1b9e07c7f44dcfcb30ad599cf4f0cf74",
+  "span_names": [
+    "smoke_rag_chain",
+    "smoke_retriever",
+    "smoke_llm"
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "checks": [
+    {
+      "route": "/health",
+      "http_status": 200,
+      "body": {
+        "status": "ok",
+        "retriever_loaded": true,
+        "chunking_strategies": [
+          "recursive",
+          "fixed"
+        ]
+      }
+    },
+    {
+      "route": "/docs",
+      "http_status": 200
+    },
+    {
+      "route": "/ui/",
+      "http_status": 200
+    },
+    {
+      "route": "/metrics",
+      "http_status": 200,
+      "body": {
+        "started_at": "2026-11-25T11:18:12+00:00",
+        "uptime_seconds": 10.174,
+        "request_count": 3,
+        "success_count": 3,
+        "failure_count": 0,
+        "average_latency_ms": 6.1,
+        "routes": {
+          "GET /docs": {
+            "request_count": 1,
+            "success_count": 1,
+            "failure_count": 0,
+            "average_latency_ms": 0.2
+          },
+          "GET /health": {
+            "request_count": 2,
+            "success_count": 2,
+            "failure_count": 0,
+            "average_latency_ms": 9.0
+          }
+        }
+      }
+    },
+    {
+      "route": "/stats",
+      "http_status": 404,
+      "body": {
+        "detail": "Not Found"
+      }
+    },
+    {
+      "route": "/predict",
+      "http_status": 422,
+      "body": {
+        "detail": [
+          {
+            "type": "string_too_short",
+            "loc": [
+              "body",
+              "query"
+            ],
+            "msg": "String should have at least 3 characters",
+            "input": "",
+            "ctx": {
+              "min_length": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "route": "/metrics",
+      "http_status": 200,
+      "body": {
+        "started_at": "2026-11-25T11:18:12+00:00",
+        "uptime_seconds": 10.209,
+        "request_count": 5,
+        "success_count": 3,
+        "failure_count": 2,
+        "average_latency_ms": 4.0,
+        "routes": {
+          "GET /docs": {
+            "request_count": 1,
+            "success_count": 1,
+            "failure_count": 0,
+            "average_latency_ms": 0.2
+          },
+          "GET /health": {
+            "request_count": 2,
+            "success_count": 2,
+            "failure_count": 0,
+            "average_latency_ms": 9.0
+          },
+          "GET unmatched": {
+            "request_count": 1,
+            "success_count": 0,
+            "failure_count": 1,
+            "average_latency_ms": 0.2
+          },
+          "POST /predict": {
+            "request_count": 1,
+            "success_count": 0,
+            "failure_count": 1,
+            "average_latency_ms": 1.9
+          }
+        }
+      }
+    }
+  ]
+}

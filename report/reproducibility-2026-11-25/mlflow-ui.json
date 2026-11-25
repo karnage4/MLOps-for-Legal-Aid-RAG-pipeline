@@ -1,0 +1,26 @@
+{
+  "verified_at": "2026-11-25T16:56:41.046064+05:00",
+  "servers": [
+    {
+      "name": "project",
+      "url": "http://127.0.0.1:5000",
+      "backend_store_uri": "sqlite:///mlflow.db",
+      "health_status": 200,
+      "ui_status": 200,
+      "experiment_name": "legal-aid-rag",
+      "experiment_id": "1",
+      "runs_visible": 7
+    },
+    {
+      "name": "reproduction",
+      "url": "http://127.0.0.1:5001",
+      "backend_store_uri": "sqlite:///output/reproducibility-2026-11-25/mlflow.db",
+      "health_status": 200,
+      "ui_status": 200,
+      "experiment_name": "laptop-reproducibility-2026-11-25",
+      "experiment_id": "1",
+      "runs_visible": 1
+    }
+  ],
+  "scope": "Local project and reproduction SQLite stores; the application container still uses its separate internal store."
+}

@@ -1,0 +1,162 @@
+{
+  "recorded_at": "2026-11-25T16:20:17.277158+05:00",
+  "source_commit": "5f6953b68faf54d041eba579befce0c441d76985",
+  "result": "Local preprocessing, embeddings, and real application integration reproduced; clean container build and startup verified.",
+  "baseline_tests": {
+    "passed": 160,
+    "failed": 1,
+    "failure": "test_semantic_search_retries_transient_pinecone_connection_failure",
+    "cause": "Mocking the shared time.sleep also intercepted background-thread calls"
+  },
+  "final_tests": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "161",
+    "time": "15.981",
+    "timestamp": "2026-11-25T16:06:57.806782+05:00",
+    "hostname": "MSI"
+  },
+  "ruff": "passed, including reproduction helper scripts",
+  "pip_check_native": "passed",
+  "pip_check_container": "passed",
+  "preprocessing": {
+    "status": "passed",
+    "checks": {
+      "chunks_fixed.json": {
+        "entries": 883,
+        "json_equal": true,
+        "bytes_equal": true,
+        "original_sha256": "3f3ed3278ab98f06a86ec7884cc7e30425d19665dcfdb5bc187953451e212e5b",
+        "reproduced_sha256": "3f3ed3278ab98f06a86ec7884cc7e30425d19665dcfdb5bc187953451e212e5b"
+      },
+      "chunks_recursive.json": {
+        "entries": 3593,
+        "json_equal": true,
+        "bytes_equal": true,
+        "original_sha256": "c46ddab1977135a799234ccc22fffd4b11c8e3bee280cb47613ef24dd30ffc82",
+        "reproduced_sha256": "c46ddab1977135a799234ccc22fffd4b11c8e3bee280cb47613ef24dd30ffc82"
+      },
+      "bm25_corpus_fixed.json": {
+        "entries": 883,
+        "json_equal": true,
+        "bytes_equal": true,
+        "original_sha256": "e878377705440dc9e599ecd3e3c2b55cd69299a072d23b7f1d806fd9736a7f15",
+        "reproduced_sha256": "e878377705440dc9e599ecd3e3c2b55cd69299a072d23b7f1d806fd9736a7f15"
+      },
+      "bm25_corpus.json": {
+        "entries": 3593,
+        "json_equal": true,
+        "bytes_equal": true,
+        "original_sha256": "51c8b6cd081f954f3e5d94d4676e98ffccb46556c6bc5fd88a736207447dcdc2",
+        "reproduced_sha256": "51c8b6cd081f954f3e5d94d4676e98ffccb46556c6bc5fd88a736207447dcdc2"
+      }
+    }
+  },
+  "embeddings": {
+    "recursive": {
+      "shape": [
+        3593,
+        384
+      ],
+      "allclose_atol_1e-5_rtol_1e-4": true,
+      "max_absolute_difference": 0.0,
+      "mean_cosine_similarity": 1.0,
+      "ids_aligned": true
+    },
+    "fixed": {
+      "shape": [
+        883,
+        384
+      ],
+      "allclose_atol_1e-5_rtol_1e-4": true,
+      "max_absolute_difference": 0.0,
+      "mean_cosine_similarity": 1.0,
+      "ids_aligned": true
+    }
+  },
+  "existing_index_audit": {
+    "recursive": {
+      "expected_vectors": 3593,
+      "missing": 0,
+      "metadata_mismatches": 0,
+      "vector_mismatches_atol_1e-6_rtol_1e-5": 0,
+      "max_absolute_difference": 7.436752325062912e-09,
+      "remote_writes": 0
+    },
+    "fixed": {
+      "expected_vectors": 883,
+      "missing": 0,
+      "metadata_mismatches": 0,
+      "vector_mismatches_atol_1e-6_rtol_1e-5": 0,
+      "max_absolute_difference": 7.409095753585504e-09,
+      "remote_writes": 0
+    }
+  },
+  "docker": {
+    "image": "legal-aid-rag-repro:5f6953b",
+    "image_id": "sha256:3a0487ff72ee462b9df0a3893086aa5d3db6267c0529fdd719ce1c562c96b59e",
+    "image_bytes": 814368381,
+    "python": "3.12.16",
+    "container": "legal-aid-rag-api",
+    "status": "running",
+    "health": "healthy",
+    "memory_limit": "2 GiB",
+    "idle_memory_observed": "501.1 MiB",
+    "started_at": "2026-11-25T11:18:10.783081549Z",
+    "url": "http://127.0.0.1:8000/ui/"
+  },
+  "native_live_predictions": {
+    "successful": 3,
+    "profiles": [
+      "fixed-semantic-top3",
+      "fixed-hybrid-top5",
+      "recursive-hybrid-top5"
+    ],
+    "query": "What share does a daughter receive in Islamic inheritance?",
+    "trace_spans_verified": true
+  },
+  "known_gaps": {
+    "stats_endpoint": "404; documented pending item",
+    "judge_evaluation": "skipped by explicit user request after automatic approval review rejected data transfer",
+    "additional_container_prediction": "automatic approval review rejected provider data transfer; container readiness and input validation tested instead",
+    "fresh_pinecone_index": "not created; existing index fully inspected without writes",
+    "cloud_deployment": "not attempted",
+    "answer_quality_and_historical_benchmarks": "not re-evaluated",
+    "native_environment": "existing Windows Python 3.14 venv; exact package snapshot retained",
+    "dependency_pinning": "public-model revisions and transitive dependencies are not fully pinned"
+  },
+  "operational_notes": [
+    "Docker Desktop started; healthy Compose service left running",
+    "Plain docker run with quoted .env keys failed authentication; Compose parsed the unchanged keys correctly",
+    "Pinecone SDK 10.3 fetch missed IDs with spaces; audit uses verified explicit percent encoding",
+    "No secrets printed or included in report; no remote index writes"
+  ],
+  "mlflow_ui": {
+    "verified_at": "2026-11-25T16:56:41.046064+05:00",
+    "servers": [
+      {
+        "name": "project",
+        "url": "http://127.0.0.1:5000",
+        "backend_store_uri": "sqlite:///mlflow.db",
+        "health_status": 200,
+        "ui_status": 200,
+        "experiment_name": "legal-aid-rag",
+        "experiment_id": "1",
+        "runs_visible": 7
+      },
+      {
+        "name": "reproduction",
+        "url": "http://127.0.0.1:5001",
+        "backend_store_uri": "sqlite:///output/reproducibility-2026-11-25/mlflow.db",
+        "health_status": 200,
+        "ui_status": 200,
+        "experiment_name": "laptop-reproducibility-2026-11-25",
+        "experiment_id": "1",
+        "runs_visible": 1
+      }
+    ],
+    "scope": "Local project and reproduction SQLite stores; the application container still uses its separate internal store."
+  }
+}

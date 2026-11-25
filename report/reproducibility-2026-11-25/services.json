@@ -1,0 +1,56 @@
+{
+  "pinecone": {
+    "status": "passed",
+    "dimension": 384,
+    "metric": "cosine",
+    "stats": {
+      "namespaces": {
+        "fixed": {
+          "vector_count": 883
+        },
+        "__default__": {
+          "vector_count": 3593
+        }
+      },
+      "dimension": 384,
+      "index_fullness": 0.0,
+      "total_vector_count": 4476,
+      "metric": "cosine",
+      "vector_type": "dense",
+      "memory_fullness": 0.0,
+      "storage_fullness": 0.0,
+      "response_info": {
+        "raw_headers": {
+          "date": "Wed, 25 Nov 2026 11:05:07 GMT",
+          "content-type": "application/json",
+          "content-length": "215",
+          "connection": "keep-alive",
+          "x-pinecone-request-latency-ms": "94",
+          "x-envoy-upstream-service-time": "95",
+          "x-pinecone-response-duration-ms": "96",
+          "grpc-status": "0",
+          "server": "envoy"
+        }
+      }
+    }
+  },
+  "groq": {
+    "status": "passed",
+    "http_status": 200,
+    "configured_model": "qwen/qwen3.8-27b",
+    "configured_model_available": true,
+    "available_models": [
+      "allam-2-7b",
+      "canopylabs/orpheus-arabic-saudi",
+      "canopylabs/orpheus-v1-english",
+      "meta-llama/llama-prompt-guard-2-22m",
+      "meta-llama/llama-prompt-guard-2-86m",
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b",
+      "openai/gpt-oss-safeguard-20b",
+      "qwen/qwen3.8-27b",
+      "whisper-large-v3",
+      "whisper-large-v3-turbo"
+    ]
+  }
+}

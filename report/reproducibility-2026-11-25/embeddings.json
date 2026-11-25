@@ -1,0 +1,22 @@
+{
+  "recursive": {
+    "shape": [
+      3593,
+      384
+    ],
+    "allclose_atol_1e-5_rtol_1e-4": true,
+    "max_absolute_difference": 0.0,
+    "mean_cosine_similarity": 1.0,
+    "ids_aligned": true
+  },
+  "fixed": {
+    "shape": [
+      883,
+      384
+    ],
+    "allclose_atol_1e-5_rtol_1e-4": true,
+    "max_absolute_difference": 0.0,
+    "mean_cosine_similarity": 1.0,
+    "ids_aligned": true
+  }
+}

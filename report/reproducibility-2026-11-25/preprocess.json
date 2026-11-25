@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "checks": {
+    "chunks_fixed.json": {
+      "entries": 883,
+      "json_equal": true,
+      "bytes_equal": true,
+      "original_sha256": "3f3ed3278ab98f06a86ec7884cc7e30425d19665dcfdb5bc187953451e212e5b",
+      "reproduced_sha256": "3f3ed3278ab98f06a86ec7884cc7e30425d19665dcfdb5bc187953451e212e5b"
+    },
+    "chunks_recursive.json": {
+      "entries": 3593,
+      "json_equal": true,
+      "bytes_equal": true,
+      "original_sha256": "c46ddab1977135a799234ccc22fffd4b11c8e3bee280cb47613ef24dd30ffc82",
+      "reproduced_sha256": "c46ddab1977135a799234ccc22fffd4b11c8e3bee280cb47613ef24dd30ffc82"
+    },
+    "bm25_corpus_fixed.json": {
+      "entries": 883,
+      "json_equal": true,
+      "bytes_equal": true,
+      "original_sha256": "e878377705440dc9e599ecd3e3c2b55cd69299a072d23b7f1d806fd9736a7f15",
+      "reproduced_sha256": "e878377705440dc9e599ecd3e3c2b55cd69299a072d23b7f1d806fd9736a7f15"
+    },
+    "bm25_corpus.json": {
+      "entries": 3593,
+      "json_equal": true,
+      "bytes_equal": true,
+      "original_sha256": "51c8b6cd081f954f3e5d94d4676e98ffccb46556c6bc5fd88a736207447dcdc2",
+      "reproduced_sha256": "51c8b6cd081f954f3e5d94d4676e98ffccb46556c6bc5fd88a736207447dcdc2"
+    }
+  }
+}
