@@ -29,8 +29,8 @@ This file is the running record for introducing MLOps features one at a time. Up
 | 9a | M2 CPU-only Docker image | `10a-m2-docker-cpu-image` | Complete | Local Docker build, healthy container, `/health`, `/docs`, and both `/predict` strategies passed; 756.1 MiB peak memory | Verified; included in `10-m2-containerization` |
 | 10 | M2 continuous integration | `11-m2-ci` | Complete | Ruff, 117 tests, and Docker build passed in GitHub Actions | Accepted |
 | 11 | M2 deployment (Render, then Azure Container Apps) | `12-m2-render-deployment` | Complete | Render free plan ran out of memory at startup; Azure Container Apps in `swedencentral` passed public `/health`, `/docs`, and `/predict` for both strategies | Live; awaiting team acceptance |
-| 13 | M2 submission | `14-m2-submission` | Revised documentation complete; `/stats` implemented (live redeploy pending); video pending | Rubric table, Project Focus, M2 contribution allocation, AI disclosure, video plan, Render cleanup, screenshots, fresh-clone verification, public smoke test, and CI evidence completed | Redeploy with `/stats`, then record the 4-6 minute video |
-| 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser; `/stats` added and verified in the local container (live redeploy pending) | Live; awaiting team acceptance |
+| 13 | M2 submission | `14-m2-submission` | Revised documentation complete; `/stats` live (image `a5d818a`); video pending | Rubric table, Project Focus, M2 contribution allocation, AI disclosure, video plan, Render cleanup, screenshots, fresh-clone verification, public smoke test, and CI evidence completed | Record the 4-6 minute video |
+| 12 | M2 monitoring, runbook, and public interface | `13-m2-monitoring-runbook` | Complete | Live `/metrics` counts and JSON access logs verified in Azure; `RUNBOOK.md` added; the Miras Gradio interface serves the public URL and answered a question in a browser; `/stats` added and verified locally and live (image `a5d818a`) | Live; awaiting team acceptance |
 
 ## Phase 9 — M2 containerization
 
@@ -370,8 +370,9 @@ fresh clone reproduces the verified state.
   route, its tests/documentation, redeployment, and final video remain pending.
   Update, same day: `GET /stats` was implemented and verified on branch 13
   (`a5d818a`, see Phase 12) and merged into this branch, and the two local
-  check scripts now expect `/stats` to return 200; the live redeploy and the
-  video remain.
+  check scripts now expect `/stats` to return 200. The same day, image
+  `a5d818a` was deployed and `/stats` passed the demo live (Phase 12); only
+  the video remains.
 - Recommended evidence still outstanding: Azure Portal screenshots from the
   account holder, a live rollback rehearsal, and the after-grading decision to
   keep the service scaling to zero or stop it.
@@ -533,6 +534,21 @@ Verification:
   included model warm-up). Docker health status `healthy` with the `/stats`
   healthcheck; 7 JSON log lines, no question text, no monitoring warnings, no
   errors; 788.6 MiB memory.
+- GitHub Actions passed Ruff, Pytest, and Docker build on branch 13 at
+  `c155251` ([run 45616366652](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/45616366652))
+  and on the merged branch 14 at `f1b6308`
+  ([run 45616676232](https://github.com/karnage4/MLOps-for-Legal-Aid-RAG-pipeline/actions/runs/45616676232)).
+- Image pushed as
+  `sha256:8160d38205527adfd28796a99005b2ae7d130b1198e6ec9842d144d4d739e0db`
+  (0.76 GB compressed) and deployed with the branch-14 deploy script on
+  2026-11-25 (`started_at` 12:52:29 UTC). The script's new `/stats` check
+  printed the empty state (0 questions, `error_rate` null, latency null).
+- Live demo at 17:53 PKT, `scripts/stats_demo.py --url <live URL>`: passed.
+  `/stats` went from 0 to 4 questions (3 succeeded, 1 rejected with 422;
+  `error_rate` 0.25; `per_minute` 3.823; latency p50 3,368.7 ms, p95
+  4,585.8 ms over 3 answers); server totals 2,075, 3,334, and 2,169 ms for
+  `recursive/hybrid`, `fixed/hybrid`, and `fixed/semantic`. `GET /stats`
+  returned 200 without an `X-Request-ID`, as reads of it are not counted.
 
 ## Phase 1 — MLflow integration
 
@@ -1421,3 +1437,4 @@ all-or-nothing correctness results while preserving the RAG architecture.
 | 2026-11-25 | `14-m2-submission` | Added a seven-slide Markdown presentation source for the live demo, with timed speaker notes, Docker/CI/Azure demonstration cues, evaluation results, and optional backup slides. |
 | 2026-11-25 | `14-m2-submission` | Added a top-level README summary of the post-M1 latency, correctness, judge-reliability, and provider problems, the branch-9 fixes, and the verified results. |
 | 2026-11-25 | `13-m2-monitoring-runbook` | Added the required `GET /stats`: the `/metrics` fields plus fail-safe, privacy-safe question aggregates (error rate, rate per minute, status counts, latency p50/p90/p95/p99), a `/stats` healthcheck and deploy smoke check, and `scripts/stats_demo.py`. 21 new tests; 79 focused tests and Ruff passed; the demo passed against the rebuilt image with real keys. Live redeploy pending. |
+| 2026-11-25 | `13-m2-monitoring-runbook` | Deployed image `a5d818a`: the deploy script's `/stats` check passed and `scripts/stats_demo.py` passed against the live service (0 to 4 questions, error rate 0.25, p50 3,368.7 ms, p95 4,585.8 ms). CI passed on `c155251` and on the merged branch 14 (`f1b6308`). Recorded `a5d818a` as the running known-good release. |

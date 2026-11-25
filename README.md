@@ -83,9 +83,9 @@ profiles remain in the evaluation sections below.
   `12-m2-render-deployment`, and `13-m2-monitoring-runbook`.
 - **Revised checklist status:** the Project Focus, Milestone 2 contribution,
   AI-usage disclosure, and timed video plan are documented. The instructor's
-  required `GET /stats` route is implemented and verified in the local
-  container (see [Monitoring](#monitoring)); its live redeploy and the final
-  recorded video remain pending.
+  required `GET /stats` route is live
+  ([`/stats`](https://legal-aid-rag-api.whitesand-d7432c32.swedencentral.azurecontainerapps.io/stats);
+  see [Monitoring](#monitoring)); the final recorded video remains pending.
 
 | Requirement | Implementation | Evidence |
 | --- | --- | --- |
@@ -100,7 +100,7 @@ profiles remain in the evaluation sections below.
 | Contribution | [`CONTRIBUTION.md`](CONTRIBUTION.md) | Milestone 2 member-to-task table with names, ERP IDs, responsibilities, and deliverables |
 | Project Focus | Extensive MLflow experimentation and LLM-as-a-Judge evaluation for RAG | [`Project Focus`](#project-focus) and the experiment/evaluation sections below |
 | AI usage | [`AI_USAGE.md`](AI_USAGE.md) | Development uses, human verification, credential handling, and limitations disclosed |
-| Video | [`video-demo/M2_VIDEO_SCRIPT.md`](video-demo/M2_VIDEO_SCRIPT.md) | Timed 4-6 minute real-run plan prepared; recording remains pending until `/stats` is live |
+| Video | [`video-demo/M2_VIDEO_SCRIPT.md`](video-demo/M2_VIDEO_SCRIPT.md) | Timed 4-6 minute real-run plan prepared; `/stats` is now live, so recording can proceed |
 
 Screenshots of the live service and CI are in
 [`report/m2-evidence/`](report/m2-evidence/).
