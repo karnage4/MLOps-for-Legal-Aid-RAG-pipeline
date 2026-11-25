@@ -64,8 +64,10 @@ EXPOSE 8000
 
 # Render/Cloud Run supply PORT; local Docker uses the image default of 8000.
 # Startup loads both retrievers before uvicorn answers, hence the grace period.
+# The check also reads /stats, so broken monitoring marks the container
+# unhealthy; reading /stats does not change its counters.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
-    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/health', timeout=4).read()"
+    CMD python -c "import os, urllib.request; base = 'http://127.0.0.1:' + os.getenv('PORT', '8000'); [urllib.request.urlopen(base + path, timeout=2).read() for path in ('/health', '/stats')]"
 
 # src.web serves the API plus the Miras Gradio interface at /ui (/ redirects
 # there). The app writes one structured JSON access-log line per request
